@@ -41,7 +41,7 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 
 **Why two utility processes:** parsing and agent orchestration are both bursty and crash-prone. Isolating them keeps the main process (IPC, DB, windows) responsive and lets either restart without losing UI state.
 
-**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md), [ADR 0007 — `node:sqlite`](./adr/0007-node-sqlite-over-better-sqlite3.md), [ADR 0008 — M1 agents read git objects](./adr/0008-m1-agents-read-git-objects.md), [ADR 0009 — Lezer highlighting until M2](./adr/0009-lezer-highlighting-until-m2.md), [ADR 0010 — Tailwind CSS](./adr/0010-tailwind-css.md).
+**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md), [ADR 0007 — `node:sqlite`](./adr/0007-node-sqlite-over-better-sqlite3.md), [ADR 0008 — M1 agents read git objects](./adr/0008-m1-agents-read-git-objects.md), [ADR 0009 — Lezer highlighting until M2](./adr/0009-lezer-highlighting-until-m2.md), [ADR 0010 — Tailwind CSS](./adr/0010-tailwind-css.md), [ADR 0011 — oxlint and oxfmt](./adr/0011-oxlint-and-oxfmt.md), [ADR 0012 — calendar versions](./adr/0012-calendar-versions.md).
 
 ## 2. Stack
 
@@ -450,7 +450,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - AgentRuntime with both Claude auth paths, provider-neutral tool definitions and schema lint from day one, tier router (Claude-only catalog), scheduler, cost meter; Explanations on ranges and files.
 - Packaging: notarized macOS build, auto-update.
 - **Exit:** the author reviews real agent branches in Legible daily; click any range → Explanation in < 5 s (fast tier).
-- **As built:** see [Dogfooding M1](./dogfooding.md). Decisions made while building it are recorded in ADRs 0007–0011. Not yet done: notarized builds (the release workflow is ready once signing secrets are added) and the `apps/prototype` browser build from M0.
+- **As built:** see [Dogfooding M1](./dogfooding.md). Decisions made while building it are recorded in ADRs 0007–0012. Not yet done: a first signed release (the Release workflow is ready) and the `apps/prototype` browser build from M0.
 
 ### M2 — Code structure
 - Indexer utilityProcess, grammar manifest + Language Tiers, parse cache, highlighting moved to tree-sitter.

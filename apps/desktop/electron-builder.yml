@@ -18,12 +18,14 @@ asarUnpack:
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**
 mac:
   category: public.app-category.developer-tools
+  # Apple Silicon only for now. An Intel build would also need the x64 Claude
+  # Code binary, which pnpm only installs on an x64 machine.
   target:
     - target: dmg
-      arch: [arm64, x64]
+      arch: [arm64]
     # The zip is what auto-update downloads.
     - target: zip
-      arch: [arm64, x64]
+      arch: [arm64]
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist

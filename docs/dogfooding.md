@@ -25,10 +25,14 @@ pnpm dev ~/code/my-repo      # …and opens that repository's working tree (use 
 To build an app you can keep in `/Applications`:
 
 ```sh
-pnpm dist:mac                # release/Legible-<version>-arm64.dmg (and x64)
+pnpm dist:mac                # release/Legible-0.0.0-arm64.dmg (Apple Silicon)
 ```
 
-Without signing credentials the build is unsigned. The first time, open it with right-click → Open. Signed and notarized builds come from the release workflow: push a `v*` tag after adding the `MAC_CERTS`, `MAC_CERTS_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` secrets. Signed builds update themselves from published GitHub Releases (macOS only auto-updates signed apps).
+Without signing credentials the build is unsigned. The first time, open it with right-click → Open.
+
+### Releases
+
+Signed, notarized builds come from the Release workflow. In the repository's Actions tab, choose **Release → Run workflow** on `main`. It picks the next version (`YYYY.MDD.N`, [ADR 0012](./adr/0012-calendar-versions.md)), tags the commit, and uploads the DMG to a draft GitHub Release. Publish the draft to make it downloadable and to offer it to installed copies. They check at launch, download in the background, and install when you quit. It needs the `MAC_CERTS`, `MAC_CERTS_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` secrets. Builds are Apple Silicon only for now.
 
 ### From the terminal
 
