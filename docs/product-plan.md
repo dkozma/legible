@@ -139,7 +139,7 @@ The orientation page every Review opens on:
 - Scope: changed Symbols plus 1-hop neighbors, including unchanged code; expand further on demand.
 - **Connections panel** beside the code: "Uses →" and "← Used by", each with a change badge; hover preview; optional mini-graph for the current Step.
 - **Trail**: browser-style back/forward (`⌘[ / ⌘]`) with breadcrumbs.
-- **Ambiguous Connections** show every candidate with a "?" badge, never silently guessed. Optional Jev disambiguation (off by default; user's TypeSafe key) reduces them; high-confidence picks show as "likely".
+- **Ambiguous Connections** show every candidate with a "?" badge, never silently guessed. Optional disambiguation through an external judgment model reduces them: TypeSafe Jev or the OpenAI Decisions API, both off by default and using the user's own key. High-confidence picks show as "likely".
 - **Language Tiers** follow tree-sitter grammar availability: Full (grammar + tags query), Structural (grammar only), Text (no grammar). All grammars that ship tags queries are bundled.
 
 ### 7.8 Explanations
@@ -151,7 +151,7 @@ The orientation page every Review opens on:
 
 ### 7.9 Comments, Asks, Batches, Revisions
 
-- **Remote Comments** shown in place; reply and resolve threads from Legible.
+- **Remote Comments** shown in place; reply and resolve threads from Legible. After each new Iteration, unresolved threads whose code changed get a "likely addressed" badge. Legible never resolves a thread on its own.
 - **Notes** — local, private until published in a **Pending Review** with a verdict (approve / request changes / comment).
 - **Asks** — anchored, addressed to Claude, each carrying its own instructions and context (selected lines, enclosing Symbol, relevant Connections).
   - **Questions** — answered in parallel, inline as threads.
@@ -209,12 +209,12 @@ The orientation page every Review opens on:
 
 - **"Use my Claude Code"** — Legible drives the user's own installed, signed-in `claude`; Legible never touches credentials. **"API key"** — Anthropic, Bedrock, Vertex, or Foundry, stored in the OS keychain.
 - Model tiers (overridable): strongest for Lenses, Verification, Change Requests, Scenario traces; mid-tier for Walkthrough, Brief, Domain Changes, Conversations; fast for Explanations and Scope tagging.
-- Optional TypeSafe (Jev) key for Connection disambiguation.
+- **Judgment models (optional):** a TypeSafe (Jev) key and/or an OpenAI key for the Decisions API. These make Legible's many small yes/no and pick-one judgments faster, cheaper, and better calibrated. Examples: Scope tagging, Description Gap checks, Risk signals, Lens selection, "likely addressed" threads, Finding dedupe, and Connection disambiguation. Without either key, Claude makes these judgments.
 
 ## 8. Privacy and trust
 
 - No telemetry; opt-in crash reports only.
-- Code leaves the machine only to: the user's git host, Claude (via the user's chosen auth), and TypeSafe if Jev is enabled. The README states this plainly.
+- Code leaves the machine only for: the user's git host, Claude (through the user's chosen auth), and TypeSafe and/or OpenAI, only if the user enables those judgment backends. Enabling one shows exactly what will be sent. The README states this plainly.
 - Agents are read-only everywhere except the isolated Revision worktree. Legible never pushes, publishes, or comments without explicit confirmation.
 
 ## 9. Milestones
@@ -226,7 +226,7 @@ The orientation page every Review opens on:
 | **M2** | **Code structure** — tree-sitter Language Tiers, Symbols, Connections panel, Connection changes, Trail, ⌘-click | See how changes connect to the rest of the system |
 | **M3** | **Understanding** — Intent (PR, Agent Transcript, Inferred), Walkthrough (Steps, Layers, Chapters, Sittings), Change Brief, Domain Changes, Scope, Risk, Description Gap | Priorities 1–3 delivered |
 | **M4** | **The feedback loop** — Notes, Remote Comments (reply/resolve), Pending Review; Asks, Batches, Revisions with partial accept; Iterations and Interdiff; Scratchpad | Steer the agent's next round from inside Legible |
-| **M5** | **Agent Review and deep tools** — Review Plan, Lenses, Verification, Findings; Invariant checks; Scenario traces; Conversations; Jev | Priorities 4–5 delivered |
+| **M5** | **Agent Review and deep tools** — Review Plan, Lenses, Verification, Findings; Invariant checks; Scenario traces; Conversations; Connection disambiguation through external judgment models | Priorities 4–5 delivered |
 | **v1.1** | Focused passes with fading checklists; self-explanation prompts; coverage tracking and honest coverage statements; pace and break nudges; tests-first toggle | |
 | **Later** | Retrieval practice and spaced revisits; track record; linter/type-check integration; edit-provenance agent hooks; precise resolution (LSP/SCIP); sparse checkout for monorepos; other agents (Codex, Gemini CLI, local models) | |
 
@@ -256,7 +256,7 @@ Adjacent tools surfaced during planning (verify before launch): **Reviewly** (op
 
 - **Subscription auth path** must be confirmed with Anthropic before public release (see [ADR 0002](./adr/0002-agent-runtime-and-claude-auth.md)).
 - **Name** — "Legible" is a working name; trademark search before public launch. Product name must not include "Claude Code".
-- **Jev data handling** — TypeSafe's data retention isn't documented; disclose before users enable it.
+- **Judgment-model data handling.** TypeSafe's data retention isn't documented. OpenAI offers Zero Data Retention only to eligible customers. Disclose both before a user enables either. The two backends' probabilities aren't directly comparable, so thresholds are tuned for each backend.
 - **Domain Change accuracy** — the highest-value output is also the hardest to get right; needs an evaluation set of real agent PRs early (M3).
 - **Cost** on large Change Sets — Review Plan estimates and spend caps must be trustworthy.
 

@@ -35,12 +35,13 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 └──────────────────────────────────────────────────────────────────────────┘
         │                    │                         │
    git remotes        GitHub / GitLab APIs      Anthropic / Bedrock / Vertex /
-                                                Foundry  (+ TypeSafe if Jev on)
+                                                Foundry  (+ TypeSafe / OpenAI
+                                                if a Judge backend is enabled)
 ```
 
 **Why two utility processes:** parsing and agent orchestration are both bursty and crash-prone. Isolating them keeps the main process (IPC, DB, windows) responsive and lets either restart without losing UI state.
 
-**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md).
+**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md).
 
 ## 2. Stack
 
@@ -56,6 +57,7 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 | DB | SQLite via better-sqlite3 + a typed query layer (Drizzle or Kysely) | Migrations versioned in repo |
 | Parsing | web-tree-sitter + prebuilt WASM grammars | Language Tiers |
 | Agents | Claude Agent SDK (TypeScript) behind `AgentRuntime` | ADR 0002 |
+| Typed judgments | `Judge` interface: TypeSafe JS SDK (Jev), OpenAI SDK (Decisions API), Claude structured output | ADR 0005; external backends optional |
 | GitHub | Octokit (REST + GraphQL) | |
 | GitLab | Thin typed REST client (or @gitbeaker) | |
 | Diagrams | Mermaid (sequence diagrams for Scenario traces, mini-graphs) | |
@@ -83,6 +85,7 @@ legible/
 │  ├─ indexer/                     tree-sitter, grammars, Symbols, Connections, equivalence, highlighting
 │  ├─ hosts/                       github/, gitlab/ adapters behind a common Host interface
 │  ├─ agent-runtime/               AgentRuntime interface, Claude SDK impl, fake/replay impl
+│  ├─ judge/                       Judge interface; Jev, OpenAI Decisions, Claude backends; judgment catalog
 │  └─ pipelines/                   Intent, Walkthrough, Brief, Explanations, Asks, Revisions, Lenses…
 │                                  (prompts + output schemas + orchestration, versioned)
 ├─ grammars/                       WASM grammars + tags/highlights queries, manifest with Language Tiers
@@ -169,7 +172,7 @@ Parse results are keyed by **blob OID + grammar version**, so identical files ac
 ### 7.4 Resolution pipeline (name → definition)
 
 1. **Deterministic rules:** language-specific import/module resolution where tractable (TS/JS relative imports and `tsconfig` paths, Python relative/package imports, Go package paths, Rust `use` paths, Java/Kotlin packages), same-file and lexical scope (`locals.scm`), receiver type when syntactically evident, arity filter.
-2. **Jev (optional, off by default):** remaining ambiguous call sites are sent in one batched TypeSafe request per indexing pass — one Choice question per call site; state = call-site snippet, file imports, file path, candidate signatures and paths; criteria = candidates + "none of these". Cached by call-site content hash.
+2. **Judge (`resolve-call-site`, §8.6):** the remaining ambiguous call sites go out as one batched Judge request per indexing pass, with one choice question per call site. The input is the call-site snippet, the file's imports and path, and each candidate's signature and path; the options are the candidates plus "none of these". Results are cached by call-site content hash. This step runs only when an external Judge backend (Jev or OpenAI Decisions) is enabled. Without one, Claude isn't used here; the volume is too high, so those call sites simply stay ambiguous.
 3. **Confidence gate:** ≥ threshold (start 0.85, tune on evals) → resolved, marked "likely"; below → **Ambiguous Connection** with candidates ranked by probability.
 4. **Precise resolver slot:** a `Resolver` interface so an LSP/SCIP-backed resolver can later override per language.
 
@@ -250,6 +253,56 @@ Each Review has a spend cap; the Review Plan's estimate is computed from context
 
 Each pipeline's prompt + output schema lives in `packages/pipelines/<pipeline>/` with a `PROMPT_VERSION`. Cache keys include the prompt version, so prompt changes invalidate exactly the right cached outputs.
 
+### 8.6 Judge (`packages/judge`)
+
+The Judge handles typed judgments that don't need generated text or tool-driven investigation ([ADR 0005](./adr/0005-judge-interface-for-typed-judgments.md)).
+
+```ts
+type Judgment =
+  | { kind: 'choice';    name: string; instructions: string; options: { value: string; description: string }[] }
+  | { kind: 'predicate'; name: string; instructions: string }
+  | { kind: 'score';     name: string; instructions: string; levels: string[] };   // 2–10 ordered levels
+
+interface Judge {
+  judge(req: { input: JudgeInput; judgments: Judgment[] }, opts: { signal: AbortSignal }):
+    Promise<JudgeAnswer[]>;   // choice + probabilities + confidence | probability | score + confidence | refusal
+}
+```
+
+**Backends**, selected in Settings in this order of preference, with the first enabled one winning per judgment kind:
+
+| Backend | API | Notes |
+|---|---|---|
+| TypeSafe Jev | `POST https://api.typesafe.ai/v1/systemone` (Choice / Noul / Score) | ≤ 255 options per choice; long input needs the `TypeSafe-Danger-Zone-Long-Context` header; pricing, latency, and retention undocumented at planning time |
+| OpenAI Decisions | `POST /v1/decisions`, `client.decisions.create(...)`, model `gpt-6-luna` (choice / predicate / score) | 1–400 questions per request; input billed ($0.10 / 1M uncached at planning time), output free; prompt caching on shared input (≥ 1,024-token prefix); ZDR for eligible customers |
+| Claude | Agent SDK structured output, fast tier | Always available; one run per request with all judgments in one schema; self-reported confidence |
+
+**Rules**
+
+- **Batch over shared input.** Group judgments over the same Change Set, Step, or Finding set into one request. Put the large shared evidence first (it's the cached prefix) and keep per-question text short.
+- **Thresholds per judgment and per backend**, stored in the judgment catalog and tuned on evals. Below threshold, a judgment is either shown as uncertain ("likely Unrequested") or escalated to a Claude run with tools, depending on the catalog entry.
+- **Cache by** hash(input, judgment definitions, backend, backend model).
+- **Untrusted input:** the same delimiting rules as agents (§8.3). Judges have no tools, so there's no action surface.
+
+**Judgment catalog (v1)**
+
+| Judgment | Kind | Used by | Below threshold |
+|---|---|---|---|
+| `step-scope` | choice: each requirement id, `supporting`, `unrequested` | Walkthrough / Scope | show as "likely …"; Intent Conformance Lens re-checks |
+| `requirement-covered` | predicate per requirement | Change Brief | escalate to Claude |
+| `description-states-domain-change` | predicate per Domain Change | Description Gap | treat as a gap with "possibly stated" |
+| `risk-signal` | predicate per sensitive area per Step | Risk | fall back to deterministic detectors |
+| `lens-applies` | predicate per conditional Lens | Review Plan | include the Lens (fail open) |
+| `remote-comment-addressed` | predicate per thread per new Iteration | Remote Comments | no badge |
+| `fragment-layer` | choice over Layers | Walkthrough planner hints | use path heuristics |
+| `test-subject` | choice over candidate Steps | Walkthrough planner | attach by imports/naming |
+| `findings-duplicate` | predicate per candidate pair | Agent Review dedupe | keep both |
+| `domain-impact` | score per Finding / Domain Change | sorting | sort by severity |
+| `anchor-relocation` | choice over candidate locations + none | Anchoring §11 | mark outdated |
+| `transcript-match` | choice over candidate sessions + none | Intent §9.1 | ask the user |
+| `ask-kind` | choice: question / change request | Ask composer | ask the user |
+| `resolve-call-site` | choice over candidate Symbols + none | Indexer §7.4 | Ambiguous Connection (external backends only) |
+
 ## 9. Pipelines (`packages/pipelines`)
 
 ### 9.1 Intent
@@ -270,9 +323,9 @@ Each pipeline's prompt + output schema lives in `packages/pipelines/<pipeline>/`
 ### 9.3 Change Brief, Domain Changes, Scope, Risk, Description Gap
 
 - **Domain Changes (strong tier):** from Behavioral fragments + Intent → `[{ statement, before, after, fragmentIds }]` in domain language.
-- **Scope:** produced by the Intent Conformance logic in the planner (per Step, against requirement ids); re-checked by the Intent Conformance Lens when an Agent Review runs.
-- **Risk:** deterministic signals (sensitive-area detectors by path/identifier/API: auth, payments, crypto, migrations, deletes, concurrency primitives, public API surface; blast radius = transitive Used-by count) → base level; model adjustment with stated reason; raised by critical Findings.
-- **Description Gap:** for each Domain Change, a fast-model check of whether the PR title/description states it; missing ones get suggested wording.
+- **Scope:** the Judge's `step-scope` judgment per Step, against the Intent's requirement ids, plus `requirement-covered` per requirement to find requirements with no implementing code. Re-checked by the Intent Conformance Lens when an Agent Review runs.
+- **Risk:** deterministic detectors (paths, identifiers, APIs) and the Judge's `risk-signal` predicates per sensitive area (auth, payments, crypto, migrations, deletes, concurrency, public API surface), combined with blast radius (transitive Used-by count), give a base level. A model adjustment with a stated reason follows, and critical Findings raise the level.
+- **Description Gap:** the Judge's `description-states-domain-change` predicate for each Domain Change against the PR title and description. Missing ones get suggested wording, generated by Claude.
 
 ### 9.4 Explanations
 
@@ -287,9 +340,9 @@ Fast tier. Context = Base and Head text of the target, its Connection changes, e
 
 ### 9.6 Agent Review
 
-1. **Review Plan:** deterministic Lens selection from Layers + signal detectors; cost estimate; user adjusts.
+1. **Review Plan:** deterministic Lens selection from Layers and signal detectors, plus the Judge's `lens-applies` predicates, which fail open. Then a cost estimate, which the user adjusts.
 2. **Lens runs (strong tier, read-only, parallel):** each Lens gets the Change Set summary, Intent, Walkthrough, repo guidance text, and Legible tools. Output `Finding[]` (anchor by fragment id + line range, severity, title, rationale, suggestedFix?).
-3. **Dedupe:** same file + overlapping ranges + similar titles → candidate merge; a fast-model pass confirms merges. Merged Findings record contributing Lenses.
+3. **Dedupe:** same file + overlapping ranges + similar titles → candidate pairs; the Judge's `findings-duplicate` predicate confirms merges. Merged Findings record contributing Lenses.
 4. **Verification (strong tier, parallel, grouped per file):** a skeptical agent tries to disprove each Finding using the tools → confirmed / plausible / disproved with reason.
 5. **Incremental reruns:** each Lens run records the fragment ids it covered; on a new Iteration only Lenses whose relevant fragments changed rerun, and prior Findings are re-verified as resolved/unresolved.
 
@@ -308,6 +361,7 @@ Common `Host` interface: `getPullRequest`, `listThreads`, `reply`, `resolveThrea
 - **GitHub:** GraphQL for review threads (thread resolution, pending reviews with comments, submit); REST for diffs, commits, permissions, description updates. GHES = same adapters with a custom base URL.
 - **GitLab:** REST discussions, draft notes (pending review), `bulk_publish`, approvals; self-managed via base URL.
 - **Polling:** ~60 s per open Review with conditional requests (ETag / `If-None-Match`); backoff on rate-limit headers. New head commit ⇒ `iteration-available`; new threads ⇒ merge into `remote_comments`.
+- **Addressed threads:** on each new Iteration, the Judge's `remote-comment-addressed` predicate runs for every unresolved thread whose Anchor changed. It powers a "likely addressed" badge and never resolves a thread automatically.
 - **Every write** is invoked only from an explicit user confirmation in the UI.
 
 ## 11. Anchoring
@@ -318,7 +372,7 @@ Re-anchoring on a new Iteration or Snapshot:
 
 1. Fragment id unchanged → same position.
 2. Exact text match of anchored lines + context within the same file (path follows renames).
-3. Fuzzy match (diff-match-patch–style) above a similarity threshold, preferring locations inside the same Symbol.
+3. Fuzzy match (diff-match-patch–style) above a similarity threshold, preferring locations inside the same Symbol. When there are several plausible locations, the Judge's `anchor-relocation` choice picks one (with a "none" option).
 4. Otherwise `outdated` — kept, shown in an "Outdated" group with its original code.
 
 Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLab position objects) into Anchors on the matching Iteration.
@@ -340,6 +394,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - Secrets: keychain only (`safeStorage`); never logged; never written to SQLite. Claude.ai credentials are never read (ADR 0002).
 - Agents: §8.3 permission policy; ADR 0004.
 - Foreign repos: hooks disabled, no repo scripts executed.
+- Judge backends: TypeSafe and OpenAI are off by default; enabling one shows exactly what is sent (code snippets, PR text, Intent) before saving the key.
 - No telemetry; opt-in crash reporting only. README documents every outbound destination.
 
 ## 14. Testing and evaluation
@@ -347,7 +402,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - **Unit (Vitest):** git operations against generated fixture repos; diff/fragment/move detection; structural-equivalence proofs; Walkthrough validator (coverage + topological guarantees as property tests); Anchoring; Sitting packing; IPC schema round-trips.
 - **Integration:** pipelines run against `ReplayRuntime` recordings for determinism; host adapters against recorded HTTP fixtures.
 - **E2E (Playwright `_electron`):** open a fixture repo → Brief → Walkthrough → Ask → Revision → accept.
-- **AI evals (`evals/`):** a growing set of real agent-written Change Sets with hand labels — Step grouping, Layer, Scope (esp. Unrequested), Domain Changes, Description Gaps, seeded bugs. Scored metrics: fragment coverage (must be 100%), dependency violations (must be 0 after validation), Unrequested recall, Domain Change recall/precision (judged), Finding precision after Verification, cost per 1k changed lines. Run on every prompt-version change; results committed.
+- **AI evals (`evals/`):** a growing set of real agent-written Change Sets with hand labels — Step grouping, Layer, Scope (esp. Unrequested), Domain Changes, Description Gaps, seeded bugs. Scored metrics: fragment coverage (must be 100%), dependency violations (must be 0 after validation), Unrequested recall, Domain Change recall/precision (judged), Finding precision after Verification, cost per 1k changed lines. Run on every prompt-version change; results committed. **Judge evals** score every catalog judgment on each backend against the same labels (accuracy, calibration, latency, cost), and set the per-backend thresholds.
 - **Fixtures:** `fixtures/` scripts generate deterministic repos, including the M0 design fixtures (refund-window feature with an Unrequested audit change and a Description Gap; a ~3,000-line multi-Chapter Change Set; a PR with Remote Comment threads).
 
 ## 15. Milestones — engineering scope and exit criteria
@@ -379,6 +434,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - Walkthrough planner + validator, Chapters, Sittings, Step editing.
 - Change Brief: Domain Changes, Scope, Risk, Description Gap, component map, Sitting estimate.
 - Evals harness live with ≥ 20 labeled Change Sets.
+- `packages/judge` with the Claude backend plus the Jev and OpenAI Decisions backends; an early spike measures latency and cost on large Change Sets; thresholds come from Judge evals.
 - **Exit:** 100% fragment coverage and 0 dependency violations on evals; Unrequested recall ≥ target agreed after first eval run.
 
 ### M4 — The feedback loop
@@ -391,7 +447,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 ### M5 — Agent Review and deep tools
 - Review Plan, parallel Lenses, dedupe, Verification, Findings panel/gutter/ruler, incremental reruns.
 - Invariant checks, Scenario traces, Conversations.
-- Jev disambiguation (optional).
+- Call-site disambiguation through external Judge backends (`resolve-call-site`); `findings-duplicate`, `domain-impact`, `lens-applies` judgments.
 - **Exit:** on evals, confirmed+plausible Finding precision ≥ target; full Agent Review of a 1,000-line Change Set completes in < 5 min within its spend cap.
 
 ## 16. Technical risks
@@ -406,11 +462,13 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 | Cost on large Change Sets | Clustered planning, caching by content hash, Review Plan estimates, hard spend caps |
 | Large repos / monorepos | `git grep`-scoped indexing, blob-OID parse cache; sparse checkout later |
 | Host API complexity (pending reviews, suggestion mapping) | Adapter-level recorded-fixture tests; suggestions fall back to patch Notes |
+| Judge backends disagree or are poorly calibrated on code | Per-backend thresholds from evals; Claude fallback; uncertain results shown as "likely", never as fact |
 | Prompt injection via PR content | No network/shell tools, delimited untrusted data, writes only in a reviewed Revision worktree |
 
 ## 17. Open technical questions
 
 - electron-vite vs Electron Forge (decide at M1 start).
 - Drizzle vs Kysely (decide at M1 start).
-- Exact Sitting size and Jev confidence threshold — tune on evals.
+- Exact Sitting size and per-backend Judge thresholds: tune on evals.
+- The default external Judge backend if a user enables both. Decide from Judge evals.
 - Whether Domain Change extraction needs the strong tier or mid tier suffices — decide from M3 evals.

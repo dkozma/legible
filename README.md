@@ -15,7 +15,7 @@ Legible collects no telemetry. Your code leaves your machine only for three dest
 
 - your git host (GitHub or GitLab)
 - Claude, through the authentication you choose
-- TypeSafe, only if you turn on the optional Jev disambiguation
+- TypeSafe and/or OpenAI, only if you turn on the optional judgment-model backends (Jev, Decisions API)
 
 ## License
 
