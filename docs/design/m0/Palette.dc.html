@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Command palette and shortcuts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="width: 1440px; height: 820px; box-sizing: border-box; background: oklch(0.1 0 0); padding: 56px 48px; display: flex; gap: 40px; justify-content: center; align-items: flex-start">
+
+  <div role="dialog" aria-label="Command palette" class="popover" style="width: 600px; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column">
+    <div class="row" style="padding: 0 14px; height: 52px; border-bottom: 1px solid oklch(1 0 0 / 10%); gap: 10px">
+      <svg class="i muted" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <label class="sr" for="cmd">Search Steps, Symbols, files and actions</label>
+      <input id="cmd" value="refund" style="flex: 1 1 auto; height: 100%; border: 0; background: transparent; color: oklch(0.985 0 0); font: inherit; font-size: 15px; outline: none">
+      <span class="kbd">esc</span>
+    </div>
+    <div style="padding: 6px; display: flex; flex-direction: column">
+      <div class="xs muted" style="padding: 8px 10px 4px; font-weight: 500">Steps</div>
+      <div class="li active" style="height: 36px"><span class="g g-req"></span><span class="sm grow">4 · Issue partial <b>refund</b>s</span><span class="risk crit"><i></i><i></i><i></i></span><span class="xs muted">current</span></div>
+      <div class="li" style="height: 36px"><span class="g g-req"></span><span class="sm grow">3 · Calculate <b>refund</b>able balance</span><span class="risk crit"><i></i><i></i><i></i></span></div>
+      <div class="li" style="height: 36px"><span class="g g-unreq"></span><span class="sm grow">5 · Move <b>refund</b> audit logging</span><span class="badge badge-unreq">Unrequested</span></div>
+
+      <div class="xs muted" style="padding: 10px 10px 4px; font-weight: 500">Symbols</div>
+      <div class="li" style="height: 36px"><span class="badge badge-muted" style="width: 22px; justify-content: center; padding: 0">ƒ</span><span class="mono sm grow">RefundService.<b>refund</b>Order</span><span class="xs muted">changed</span></div>
+      <div class="li" style="height: 36px"><span class="badge badge-muted" style="width: 22px; justify-content: center; padding: 0">ƒ</span><span class="mono sm grow">RefundService.calculate<b>Refund</b>able</span><span class="xs muted">new</span></div>
+      <div class="li" style="height: 36px"><span class="badge badge-muted" style="width: 22px; justify-content: center; padding: 0">T</span><span class="mono sm grow"><b>Refund</b>ExceedsBalance</span><span class="xs muted">new</span></div>
+
+      <div class="xs muted" style="padding: 10px 10px 4px; font-weight: 500">Actions</div>
+      <div class="li" style="height: 36px"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"></path></svg><span class="sm grow">Explain <span class="mono">refundOrder</span></span><span class="kbd">e</span></div>
+      <div class="li" style="height: 36px"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg><span class="sm grow">Ask about the selection</span><span class="kbd">a</span></div>
+      <div class="li" style="height: 36px"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg><span class="sm grow">Run Agent Review…</span></div>
+      <div class="li" style="height: 36px"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M12 3v18"></path></svg><span class="sm grow">Toggle split view</span><span class="kbd-group"><span class="kbd">⌥</span><span class="kbd">S</span></span></div>
+    </div>
+    <div class="row xs muted" style="padding: 10px 14px; gap: 14px; border-top: 1px solid oklch(1 0 0 / 10%)">
+      <span class="row" style="gap: 4px"><span class="kbd">↑</span><span class="kbd">↓</span>move</span>
+      <span class="row" style="gap: 4px"><span class="kbd">↵</span>open</span>
+      <span class="row" style="gap: 4px"><span class="kbd">⇥</span>filter by kind</span>
+      <span class="grow"></span>
+      <span>Every result joins the Trail</span>
+    </div>
+  </div>
+
+  <div role="dialog" aria-labelledby="kb-h" class="popover" style="width: 620px; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column">
+    <div class="row" style="padding: 16px 18px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+      <svg class="i muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 8h.01M12 12h.01M14 8h.01M16 12h.01M18 8h.01M6 8h.01M7 16h10M8 12h.01"></path><rect width="20" height="16" x="2" y="4" rx="2"></rect></svg>
+      <h2 class="h3 grow" id="kb-h">Keyboard shortcuts</h2>
+      <span class="kbd">?</span>
+    </div>
+    <div style="padding: 16px 18px 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 28px">
+      <section class="col" style="gap: 8px">
+        <h3 class="eyebrow">Move</h3>
+        <div class="row sm"><span class="grow">Next / previous hunk</span><span class="kbd-group"><span class="kbd">j</span><span class="kbd">k</span></span></div>
+        <div class="row sm"><span class="grow">Next / previous Step</span><span class="kbd-group"><span class="kbd">n</span><span class="kbd">p</span></span></div>
+        <div class="row sm"><span class="grow">Next Chapter</span><span class="kbd-group"><span class="kbd">⇧</span><span class="kbd">N</span></span></div>
+        <div class="row sm"><span class="grow">Trail back / forward</span><span class="kbd-group"><span class="kbd">⌘[</span><span class="kbd">⌘]</span></span></div>
+        <div class="row sm"><span class="grow">Go to definition</span><span class="kbd-group"><span class="kbd">⌘</span><span class="kbd">click</span></span></div>
+        <div class="row sm"><span class="grow">Change Brief</span><span class="kbd-group"><span class="kbd">g</span><span class="kbd">b</span></span></div>
+      </section>
+      <section class="col" style="gap: 8px">
+        <h3 class="eyebrow">Act</h3>
+        <div class="row sm"><span class="grow">Note on selection</span><span class="kbd">c</span></div>
+        <div class="row sm"><span class="grow">Ask on selection</span><span class="kbd">a</span></div>
+        <div class="row sm"><span class="grow">Explain</span><span class="kbd">e</span></div>
+        <div class="row sm"><span class="grow">Mark Step viewed</span><span class="kbd">v</span></div>
+        <div class="row sm"><span class="grow">Add Ask to Batch</span><span class="kbd-group"><span class="kbd">⌘</span><span class="kbd">↵</span></span></div>
+        <div class="row sm"><span class="grow">Submit Batch</span><span class="kbd-group"><span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">↵</span></span></div>
+      </section>
+      <section class="col" style="gap: 8px">
+        <h3 class="eyebrow">View</h3>
+        <div class="row sm"><span class="grow">Split / unified</span><span class="kbd-group"><span class="kbd">⌥</span><span class="kbd">S</span></span></div>
+        <div class="row sm"><span class="grow">Expand context to Symbol</span><span class="kbd">x</span></div>
+        <div class="row sm"><span class="grow">Connections · Explain · Scratchpad</span><span class="kbd-group"><span class="kbd">⌘1</span><span class="kbd">⌘2</span><span class="kbd">⌘3</span></span></div>
+        <div class="row sm"><span class="grow">Interdiff / full Change Set</span><span class="kbd">i</span></div>
+      </section>
+      <section class="col" style="gap: 8px">
+        <h3 class="eyebrow">App</h3>
+        <div class="row sm"><span class="grow">Command palette</span><span class="kbd">⌘K</span></div>
+        <div class="row sm"><span class="grow">Open in editor</span><span class="kbd">o</span></div>
+        <div class="row sm"><span class="grow">Settings</span><span class="kbd">⌘,</span></div>
+        <div class="row sm"><span class="grow">This overlay</span><span class="kbd">?</span></div>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

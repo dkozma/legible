@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; display: flex; flex-direction: column">
+
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+    <span class="b sm grow">Settings</span>
+    <span class="xs muted row" style="gap: 6px">Close<span class="kbd">esc</span></span>
+  </header>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap">
+    <nav aria-label="Settings sections" style="flex: 1 1 220px; max-width: 100%; padding: 20px 12px; border-right: 1px solid oklch(1 0 0 / 10%); background: oklch(0.205 0 0); display: flex; flex-direction: column; gap: 2px">
+      <a class="nav-item active" href="#providers">Providers</a>
+      <a class="nav-item" href="#tiers">Model tiers</a>
+      <a class="nav-item" href="#judgment">Judgment models</a>
+      <a class="nav-item" href="#hosts">Hosts &amp; accounts</a>
+      <a class="nav-item" href="#spend">Spend</a>
+      <a class="nav-item" href="#privacy">Privacy</a>
+      <a class="nav-item" href="#">Appearance</a>
+      <a class="nav-item" href="#">Keyboard</a>
+    </nav>
+
+    <main style="flex: 999 1 640px; min-width: 0; padding: 28px 24px 64px">
+      <div style="max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px">
+
+        <section id="providers" class="col" style="gap: 14px" aria-labelledby="prov-h">
+          <div class="col" style="gap: 4px"><h1 class="h2" id="prov-h">Providers</h1><p class="sm muted">Connect Claude, OpenAI, or both. Keys and tokens are stored in the macOS Keychain.</p></div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+            <article class="card col" aria-labelledby="claude-h">
+              <div class="card-head row"><h2 class="h3 grow" id="claude-h">Claude</h2><span class="badge badge-secondary">Default</span></div>
+              <div class="card-body col" style="gap: 14px">
+                <div class="inset col" style="padding: 12px; gap: 8px">
+                  <div class="row"><span class="sm b grow">Use my Claude Code</span><span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Connected</span></div>
+                  <p class="xs muted">Legible runs your installed, signed-in <span class="mono">claude</span>. It never reads its credentials.</p>
+                  <div class="row xs muted" style="gap: 10px"><span class="mono">claude</span><span>on your PATH</span><span class="grow"></span><button class="btn btn-ghost btn-xs muted" type="button">Recheck</button></div>
+                </div>
+                <div class="col" style="gap: 8px">
+                  <span class="label">Or usage-based</span>
+                  <div class="tabs" role="tablist" aria-label="Claude usage-based option" style="align-self: flex-start">
+                    <button class="tab" role="tab" aria-selected="true">Anthropic API</button>
+                    <button class="tab" role="tab" aria-selected="false">Bedrock</button>
+                    <button class="tab" role="tab" aria-selected="false">Vertex</button>
+                    <button class="tab" role="tab" aria-selected="false">Foundry</button>
+                  </div>
+                  <label class="sr" for="ant-key">Anthropic API key</label>
+                  <input id="ant-key" class="input mono" placeholder="sk-ant-…" style="font-size: 12px">
+                </div>
+              </div>
+            </article>
+
+            <article class="card col" aria-labelledby="oai-h">
+              <div class="card-head row"><h2 class="h3 grow" id="oai-h">OpenAI</h2><span class="badge badge-muted">Optional</span></div>
+              <div class="card-body col" style="gap: 14px">
+                <div class="inset col" style="padding: 12px; gap: 8px">
+                  <div class="row"><span class="sm b grow">Continue with ChatGPT</span><span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Connected</span></div>
+                  <p class="xs muted">OpenAI's sign-in for open-source apps, using your Plus or Pro plan.</p>
+                  <div class="row xs muted" style="gap: 10px"><span>Plus plan</span><span class="grow"></span><button class="btn btn-ghost btn-xs muted" type="button">Sign out</button></div>
+                </div>
+                <div class="col" style="gap: 8px">
+                  <span class="label">Or usage-based</span>
+                  <label class="sr" for="oai-key">OpenAI API key</label>
+                  <input id="oai-key" class="input mono" placeholder="sk-…" style="font-size: 12px">
+                  <span class="xs muted">Also used by the Decisions API, if you turn it on below.</span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="inset col" style="padding: 12px 14px; gap: 6px">
+            <span class="xs muted">Not connected yet? Both sign-ins get equal weight:</span>
+            <div class="row wrap" style="gap: 8px"><button class="btn btn-outline btn-sm" type="button">Use my Claude Code</button><button class="btn btn-outline btn-sm" type="button">Continue with ChatGPT</button></div>
+          </div>
+        </section>
+
+        <section id="tiers" class="col" style="gap: 14px" aria-labelledby="tiers-h">
+          <div class="col" style="gap: 4px"><h2 class="h2" id="tiers-h">Model tiers</h2><p class="sm muted">Each kind of agent work runs on a tier. Pick any connected model for each; tiers can mix providers.</p></div>
+
+          <div class="card" style="overflow: visible">
+            <div class="row wrap" style="padding: 14px 18px; gap: 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+              <div class="col grow" style="gap: 2px; min-width: 240px"><span class="sm b">Strong</span><span class="xs muted">Lenses, Verification, Change Requests, Scenario traces, Domain Changes</span></div>
+              <button class="select" type="button" style="width: 300px"><span class="row" style="gap: 8px"><span>Claude Opus 5.5</span><span class="badge badge-ok">recommended</span></span><span class="row" style="gap: 6px"><span class="mono xs muted">$$$</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+            </div>
+            <div class="row wrap" style="padding: 14px 18px; gap: 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+              <div class="col grow" style="gap: 2px; min-width: 240px"><span class="sm b">Mid</span><span class="xs muted">Walkthrough, Change Brief, Conversations, Invariant suggestions</span></div>
+              <button class="select" type="button" style="width: 300px"><span class="row" style="gap: 8px"><span>Claude Sonnet 5.5</span><span class="badge badge-ok">recommended</span></span><span class="row" style="gap: 6px"><span class="mono xs muted">$$</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+            </div>
+            <div class="row wrap" style="padding: 14px 18px; gap: 14px; position: relative">
+              <div class="col grow" style="gap: 2px; min-width: 240px"><span class="sm b">Fast</span><span class="xs muted">Explanations, generated wording such as Description Gap suggestions</span></div>
+              <div style="position: relative; width: 300px">
+                <button class="select" type="button" aria-expanded="true" style="width: 300px; border-color: oklch(0.556 0 0); box-shadow: 0 0 0 3px oklch(0.556 0 0 / 50%)"><span class="row" style="gap: 8px"><span>GPT-5 mini</span><span class="badge badge-outline">experimental</span></span><span class="row" style="gap: 6px"><span class="mono xs muted">$</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+                <div class="popover" role="listbox" aria-label="Fast tier model" style="position: absolute; right: 0; top: 38px; width: 340px; padding: 4px; z-index: 2">
+                  <div class="xs muted" style="padding: 6px 8px 4px; font-weight: 500">Claude</div>
+                  <div class="li" role="option" aria-selected="false"><span class="sm grow">Claude Haiku 5.5</span><span class="badge badge-ok">recommended</span><span class="mono xs muted" style="width: 28px; text-align: right">$</span></div>
+                  <div class="li" role="option" aria-selected="false"><span class="sm grow">Claude Sonnet 5.5</span><span class="badge badge-ok">recommended</span><span class="mono xs muted" style="width: 28px; text-align: right">$$</span></div>
+                  <div class="xs muted" style="padding: 8px 8px 4px; font-weight: 500">OpenAI · via ChatGPT</div>
+                  <div class="li active" role="option" aria-selected="true"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">GPT-5 mini</span><span class="badge badge-outline">experimental</span><span class="mono xs muted" style="width: 28px; text-align: right">$</span></div>
+                  <div class="li" role="option" aria-selected="false"><span class="sm grow">GPT-5</span><span class="badge badge-ok">recommended</span><span class="mono xs muted" style="width: 28px; text-align: right">$$</span></div>
+                  <hr class="sep" style="margin: 4px 0">
+                  <div class="xs muted" style="padding: 6px 8px">Recommended models pass Legible's evals. Experimental ones haven't yet.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row wrap" style="gap: 16px; padding: 0 2px">
+            <div class="row grow" style="gap: 12px; min-width: 300px; align-items: flex-start">
+              <button class="switch" role="switch" aria-checked="true" aria-label="Cross-check Verification" style="margin-top: 2px"></button>
+              <div class="col" style="gap: 2px"><span class="sm b">Cross-check Verification</span><span class="xs muted">Findings are verified by the provider that didn't raise them, so blind spots don't line up. Needs both providers.</span></div>
+            </div>
+            <a href="#" class="sm muted">Override the tier for one kind of work…</a>
+          </div>
+        </section>
+
+        <section id="judgment" class="col" style="gap: 14px" aria-labelledby="judg-h">
+          <div class="col" style="gap: 4px"><h2 class="h2" id="judg-h">Judgment models</h2><p class="sm muted">Optional. Faster, cheaper, better-calibrated answers to Legible's small yes/no and pick-one questions: Scope tagging, Description Gap checks, Risk signals, Lens selection, “likely addressed” threads, Finding dedupe, Ambiguous Connections. Without either, the Fast tier answers them.</p></div>
+          <div class="card">
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+              <div class="row" style="gap: 12px"><button class="switch" role="switch" aria-checked="false" aria-label="TypeSafe Jev"></button><span class="sm b grow">TypeSafe Jev</span><span class="badge badge-muted">Off</span></div>
+              <label class="sr" for="jev-key">TypeSafe key</label>
+              <input id="jev-key" class="input mono" placeholder="TypeSafe key" style="font-size: 12px; max-width: 420px">
+              <div class="row xs" style="gap: 8px; align-items: flex-start; color: oklch(0.87 0 0)"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg><span>Sends short code excerpts and the question being judged. TypeSafe doesn't document how long it keeps data. <a href="#">See exactly what's sent</a></span></div>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+              <div class="row" style="gap: 12px"><button class="switch" role="switch" aria-checked="false" aria-label="OpenAI Decisions API"></button><span class="sm b grow">OpenAI Decisions API</span><span class="badge badge-muted">Needs an OpenAI API key</span></div>
+              <div class="row xs" style="gap: 8px; align-items: flex-start; color: oklch(0.87 0 0)"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg><span>Uses your OpenAI API key, not ChatGPT sign-in. Zero Data Retention is offered only to eligible OpenAI accounts. <a href="#">See exactly what's sent</a></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="hosts" class="col" style="gap: 14px" aria-labelledby="hosts-h">
+          <div class="col" style="gap: 4px"><h2 class="h2" id="hosts-h">Hosts &amp; accounts</h2><p class="sm muted">Legible checks open Reviews for new pushes and Remote Comments about every 60 seconds.</p></div>
+          <div class="card">
+            <div class="row wrap" style="padding: 14px 18px; gap: 12px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="sm b" style="width: 200px">github.com</span><span class="xs muted grow">@dkozma · from <span class="mono">gh</span> CLI</span><span class="badge badge-ok">Connected</span></div>
+            <div class="row wrap" style="padding: 14px 18px; gap: 12px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="sm b" style="width: 200px">ghe.acme.internal</span><span class="xs muted grow">GitHub Enterprise Server · OAuth device flow</span><span class="badge badge-ok">Connected</span></div>
+            <div class="row wrap" style="padding: 14px 18px; gap: 12px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="sm b" style="width: 200px">gitlab.com</span><span class="xs muted grow">No <span class="mono">glab</span> credentials found</span><button class="btn btn-outline btn-xs" type="button">Sign in</button></div>
+            <div class="row" style="padding: 12px 18px"><button class="btn btn-ghost btn-sm muted" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Add GitHub Enterprise or self-managed GitLab</button></div>
+          </div>
+        </section>
+
+        <section id="spend" class="col" style="gap: 14px" aria-labelledby="spend-h">
+          <div class="col" style="gap: 4px"><h2 class="h2" id="spend-h">Spend</h2><p class="sm muted">Caps and the cost meter cover every connected provider.</p></div>
+          <div class="card card-body col" style="gap: 16px">
+            <div class="row wrap" style="gap: 12px"><label class="sm grow" for="cap-ar">Cap per Agent Review</label><input id="cap-ar" class="input mono" value="$5.00" style="width: 110px; text-align: right"></div>
+            <hr class="sep">
+            <div class="col" style="gap: 8px">
+              <div class="row"><span class="sm grow">This month</span><span class="mono sm b">$12.40</span></div>
+              <div style="display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: oklch(0.922 0 0 / 18%)" aria-hidden="true"><span style="width: 52%; background: oklch(0.922 0 0)"></span><span style="width: 19%; background: oklch(0.556 0 0)"></span></div>
+              <div class="row xs muted" style="gap: 16px"><span class="row" style="gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: oklch(0.922 0 0)"></span>Claude $9.10</span><span class="row" style="gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: oklch(0.556 0 0)"></span>OpenAI $3.30</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="privacy" class="inset col" style="gap: 8px; padding: 16px 18px" aria-labelledby="priv-h">
+          <h2 class="h3" id="priv-h">Where your code goes</h2>
+          <p class="sm muted">Only to your git host, the providers you connected (Anthropic, OpenAI), and TypeSafe if you turn it on. No telemetry. Crash reports are opt-in.</p>
+          <label class="row sm" style="gap: 8px"><input type="checkbox" class="cb">Send crash reports</label>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

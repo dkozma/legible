@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Explanation card</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="width: 600px; height: 760px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 10px; background: oklch(0.145 0 0)">
+
+  <div class="diff panel" style="overflow: hidden" aria-hidden="true">
+    <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">71</span><span class="sg">+</span><span class="cd">  <span class="f" style="background: oklch(0.746 0.16 232.661 / 22%); border-radius: 2px; box-shadow: 0 0 0 1px oklch(0.746 0.16 232.661 / 50%)">calculateRefundable</span>(order: <span class="t">Order</span>): <span class="t">RefundBalance</span> {</span></div>
+    <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">72</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> issued = <span class="k">this</span>.refunds.<span class="f">listForOrder</span>(order.id);</span></div>
+  </div>
+
+  <article class="popover" aria-labelledby="ex-h" style="display: flex; flex-direction: column; overflow: hidden">
+    <header style="padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+      <div class="row">
+        <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"></path></svg>
+        <span class="eyebrow grow">Explanation</span>
+        <span class="xs muted">Fast tier · Claude Haiku 5.5</span>
+        <button class="btn btn-ghost btn-icon btn-xs muted" type="button" aria-label="Close"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+      <div class="row wrap" style="gap: 8px">
+        <h1 class="mono" id="ex-h" style="font-size: 14px; font-weight: 500">RefundService.<b>calculateRefundable</b></h1>
+        <span class="badge badge-ok">new method</span>
+        <span class="badge badge-muted">Step 3</span>
+      </div>
+    </header>
+
+    <div style="padding: 4px 16px 8px; display: grid; grid-template-columns: 104px minmax(0, 1fr); column-gap: 16px">
+      <div class="xs b muted" style="padding: 12px 0">Before</div>
+      <p class="sm muted" style="padding: 12px 0; font-style: italic">Omitted. This method is new in this Change Set.</p>
+
+      <div class="xs b muted" style="padding: 12px 0; border-top: 1px solid oklch(1 0 0 / 10%)">After</div>
+      <p class="sm" style="padding: 12px 0; border-top: 1px solid oklch(1 0 0 / 10%)">Returns the order's refundable balance: the amount paid minus every refund already issued, plus how many refunds exist. Callers treat <span class="code-inline">remaining</span> as the cap for the next refund.</p>
+
+      <div class="xs b muted" style="padding: 12px 0; border-top: 1px solid oklch(1 0 0 / 10%)">What changed</div>
+      <ul class="sm col" style="padding: 12px 0; gap: 8px; border-top: 1px solid oklch(1 0 0 / 10%)">
+        <li class="row" style="align-items: flex-start; gap: 8px"><span class="g g-req" style="margin-top: 6px"></span><span>Makes partial refunds possible, as the Intent asks.</span></li>
+        <li class="row" style="align-items: flex-start; gap: 8px"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 2px"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg><span>Called by <a href="#" class="mono xs">refundOrder</a> and <a href="#" class="mono xs">postRefund</a>. Calls <a href="#" class="mono xs">RefundRepository.listForOrder</a>, one query each time.</span></li>
+      </ul>
+
+      <div class="xs b" style="padding: 12px 0; border-top: 1px solid oklch(1 0 0 / 10%); color: oklch(0.828 0.189 84.429)">Watch out</div>
+      <ol class="sm col" style="padding: 12px 0; gap: 10px; border-top: 1px solid oklch(1 0 0 / 10%)">
+        <li class="row" style="align-items: flex-start; gap: 8px"><span class="mono xs" style="color: oklch(0.828 0.189 84.429); margin-top: 1px">1</span><span>Rounds each refund to cents before summing. Three $33.33 refunds on a $100 order leave $0.01 that can never be refunded.</span></li>
+        <li class="row" style="align-items: flex-start; gap: 8px"><span class="mono xs" style="color: oklch(0.828 0.189 84.429); margin-top: 1px">2</span><span>Counts pending refunds as issued. A failed gateway call blocks that amount until it's reconciled.</span></li>
+      </ol>
+    </div>
+
+    <footer style="padding: 12px 16px; border-top: 1px solid oklch(1 0 0 / 10%); display: flex; flex-direction: column; gap: 10px; background: oklch(0.185 0 0)">
+      <div class="row">
+        <button class="btn btn-secondary btn-sm" type="button">Go deeper<span class="kbd" style="background: oklch(0.145 0 0 / 40%)">⇧E</span></button>
+        <button class="btn btn-ghost btn-sm muted" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"></path><path d="M15 3v6h6"></path></svg>Watch out → To-check</button>
+        <span class="grow"></span>
+        <span class="xs muted">Cached for this Head</span>
+      </div>
+      <label class="sr" for="ex-follow">Ask a follow-up</label>
+      <div class="row" style="gap: 6px">
+        <input id="ex-follow" class="input" placeholder="Ask a follow-up. It becomes a Question thread." style="height: 30px; font-size: 12px">
+      </div>
+    </footer>
+  </article>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":600,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

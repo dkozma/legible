@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Walkthrough with Chapters</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<aside class="app" aria-label="Walkthrough" style="width: 400px; height: 900px; box-sizing: border-box; background: oklch(0.205 0 0); border: 1px solid oklch(1 0 0 / 10%); display: flex; flex-direction: column; overflow: hidden">
+  <div style="padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+    <div class="row"><span class="b">Checkout v2</span><span class="grow"></span><span class="xs muted">PR #511 · 3,040 lines</span></div>
+    <div class="row xs muted" style="gap: 12px"><span>3 Chapters</span><span>7 Sittings</span><span>~5 h 10 min</span></div>
+    <div class="progress"><span style="width: 21%"></span></div>
+    <div class="xs muted">Sitting 2 of 7 · 21% of changed lines viewed</div>
+  </div>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 8px; display: flex; flex-direction: column; gap: 4px">
+
+    <section aria-label="Chapter 1">
+      <button class="li" type="button" style="width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 8px">
+        <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        <span class="col grow" style="gap: 1px"><span class="b">Chapter 1 · Tax engine</span><span class="xs muted">Sittings 1–3 · 1,240 lines · 15 Steps</span></span>
+        <span class="xs muted">40%</span>
+      </button>
+
+      <div class="li" style="padding: 6px 8px 6px 30px">
+        <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        <span class="sm grow muted">Sitting 1 · Tax data model</span>
+        <span class="xs muted">6 Steps · done</span>
+      </div>
+
+      <div class="sitting" style="padding-left: 30px"><span class="b sm grow">Sitting 2 · Rate lookup</span><span class="xs muted">2 of 5</span></div>
+      <div class="progress" style="margin: 0 8px 6px 38px"><span style="width: 40%"></span></div>
+      <div style="padding-left: 22px; display: flex; flex-direction: column">
+        <a class="step" href="#">
+          <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">7</span><span class="sm truncate">TaxRate value object</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-sup"></span>Supporting · +62</span></span>
+          <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Low risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">8</span><span class="sm truncate">Look up rates by ship-to region</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +148 −20</span></span>
+          <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical risk</span></span>
+        </a>
+        <a class="step active" href="#" aria-current="step">
+          <span class="vw part"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">9</span><span class="sm truncate b">Cache rates for 24 hours</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +71 −4</span></span>
+          <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated risk</span></span>
+        </a>
+        <a class="step unreq" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">10</span><span class="sm truncate">Round tax per line, not per order</span></span><span class="row xs" style="gap: 6px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>Unrequested · +38 −22</span></span>
+          <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">11</span><span class="sm truncate">Rate lookup tests</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-sup"></span>Supporting · +104</span></span>
+          <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Low risk</span></span>
+        </a>
+      </div>
+
+      <div class="li" style="padding: 6px 8px 6px 30px; margin-top: 4px">
+        <span class="vw"></span>
+        <span class="sm grow">Sitting 3 · Applying tax at checkout</span>
+        <span class="xs muted">4 Steps</span>
+      </div>
+    </section>
+
+    <hr class="sep" style="margin: 6px 0">
+
+    <section aria-label="Chapter 2">
+      <button class="li" type="button" style="width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 8px; align-items: flex-start">
+        <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 3px"><path d="m9 18 6-6-6-6"></path></svg>
+        <span class="col grow" style="gap: 4px">
+          <span class="b">Chapter 2 · Saved carts</span>
+          <span class="xs muted">Sittings 4–5 · 980 lines · 11 Steps</span>
+          <span class="row xs" style="gap: 10px">
+            <span class="row" style="gap: 4px"><span class="risk crit"><i></i><i></i><i></i></span><span class="muted">1 critical</span></span>
+            <span class="row" style="gap: 4px"><span class="risk elev"><i></i><i></i><i></i></span><span class="muted">3 elevated</span></span>
+          </span>
+        </span>
+        <span class="xs muted">0%</span>
+      </button>
+    </section>
+
+    <section aria-label="Chapter 3">
+      <button class="li" type="button" style="width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 8px; align-items: flex-start">
+        <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 3px"><path d="m9 18 6-6-6-6"></path></svg>
+        <span class="col grow" style="gap: 4px">
+          <span class="b">Chapter 3 · Gift cards</span>
+          <span class="xs muted">Sittings 6–7 · 820 lines · 9 Steps</span>
+          <span class="row xs" style="gap: 10px">
+            <span class="row" style="gap: 4px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>2 Unrequested</span>
+            <span class="row" style="gap: 4px"><span class="risk crit"><i></i><i></i><i></i></span><span class="muted">2 critical</span></span>
+          </span>
+        </span>
+        <span class="xs muted">0%</span>
+      </button>
+    </section>
+  </div>
+
+  <div style="padding: 12px 14px; border-top: 1px solid oklch(1 0 0 / 10%); display: flex; flex-direction: column; gap: 8px">
+    <div class="xs muted">Chapters appear only when a Change Set holds several independent features.</div>
+    <div class="row xs muted" style="gap: 6px"><span class="kbd">n</span><span class="kbd">p</span>Steps<span style="width: 8px"></span><span class="kbd">⇧</span><span class="kbd">N</span>next Chapter</div>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

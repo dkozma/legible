@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scope and Risk visual language</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; padding: 40px 24px 56px">
+  <div style="max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px">
+
+    <header class="col" style="gap: 8px">
+      <div class="eyebrow">Visual language</div>
+      <h1 class="h1" style="font-size: 26px; line-height: 32px">Scope and Risk</h1>
+      <p class="muted" style="max-width: 780px; font-size: 14px; line-height: 22px">Scope is a shape: was this asked for? Risk is a set of signal bars: how bad would a mistake be? Unrequested is the only Scope with color. Risk shows color only at elevated and critical. Every mark also carries a text label, so color is never the only cue.</p>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px">
+      <section class="col" style="flex: 1 1 560px; min-width: 0; gap: 12px" aria-labelledby="scope-h">
+        <h2 class="h2" id="scope-h">Scope</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+          <div class="card card-body col" style="gap: 10px">
+            <div class="row" style="height: 24px"><span class="g g-req g-lg"></span></div>
+            <div class="h3">Requested</div>
+            <span class="badge badge-outline" style="align-self: flex-start"><span class="g g-req" style="width: 6px; height: 6px"></span>Requested</span>
+            <p class="xs muted">Directly fulfills the Intent. Filled dot, neutral gray.</p>
+          </div>
+          <div class="card card-body col" style="gap: 10px">
+            <div class="row" style="height: 24px"><span class="g g-sup g-lg"></span></div>
+            <div class="h3">Supporting</div>
+            <span class="badge badge-muted" style="align-self: flex-start"><span class="g g-sup" style="width: 7px; height: 7px"></span>Supporting</span>
+            <p class="xs muted">Needed to deliver a Requested change, like a migration. Hollow ring, dimmer gray.</p>
+          </div>
+          <div class="unreq-box col" style="gap: 10px; padding: 16px 18px; border-radius: 14px">
+            <div class="row" style="height: 24px"><span class="g g-unreq g-lg"></span></div>
+            <div class="h3" style="color: oklch(0.702 0.183 293.541)">Unrequested</div>
+            <span class="badge badge-unreq" style="align-self: flex-start"><span class="g g-unreq" style="width: 6px; height: 6px"></span>Unrequested</span>
+            <p class="xs" style="color: oklch(0.87 0 0)">Goes beyond, or differs from, the Intent. Violet diamond and a tinted row everywhere it appears. Never collapsed, never hidden.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="col" style="flex: 1 1 560px; min-width: 0; gap: 12px" aria-labelledby="risk-h">
+        <h2 class="h2" id="risk-h">Risk</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+          <div class="card card-body col" style="gap: 10px">
+            <div class="row" style="height: 24px"><span class="risk low lg"><i></i><i></i><i></i></span></div>
+            <div class="h3">Low</div>
+            <span class="xs muted">One dim bar. No badge.</span>
+            <p class="xs muted">Most Steps. Nothing to draw attention to.</p>
+          </div>
+          <div class="card card-body col" style="gap: 10px">
+            <div class="row" style="height: 24px"><span class="risk elev lg"><i></i><i></i><i></i></span></div>
+            <div class="h3" style="color: oklch(0.828 0.189 84.429)">Elevated</div>
+            <span class="badge badge-elev" style="align-self: flex-start">Elevated · migration</span>
+            <p class="xs muted">Two amber bars. Migrations, public APIs, wide blast radius.</p>
+          </div>
+          <div class="card card-body col" style="gap: 10px">
+            <div class="row" style="height: 24px"><span class="risk crit lg"><i></i><i></i><i></i></span></div>
+            <div class="h3" style="color: oklch(0.704 0.191 22.216)">Critical</div>
+            <span class="badge badge-crit" style="align-self: flex-start">Critical · payments</span>
+            <p class="xs muted">Three rose bars. Auth, payments, deletions, concurrency. Always says why.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="col" style="gap: 12px" aria-labelledby="ctx-h">
+      <h2 class="h2" id="ctx-h">The same marks in every context</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px">
+
+        <div class="card col" style="overflow: hidden">
+          <div class="row" style="padding: 12px 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="h3 grow">Walkthrough</span><span class="xs muted">Step rows</span></div>
+          <div class="col" style="padding: 8px; gap: 2px; background: oklch(0.205 0 0)">
+            <a class="step" href="#">
+              <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+              <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate">Extend refund window</span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested</span></span>
+              <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i></span>
+            </a>
+            <a class="step" href="#">
+              <span class="vw"></span>
+              <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate">Add columns</span><span class="row xs muted" style="gap: 6px"><span class="g g-sup"></span>Supporting</span></span>
+              <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i></span>
+            </a>
+            <a class="step unreq" href="#">
+              <span class="vw"></span>
+              <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate">Move audit logging</span><span class="row xs" style="gap: 6px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>Unrequested</span></span>
+              <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i></span>
+            </a>
+            <a class="step" href="#">
+              <span class="vw"></span>
+              <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate muted">Rename helper</span><span class="row xs muted" style="gap: 6px"><span class="g g-sup"></span>Structural · verified</span></span>
+              <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i></span>
+            </a>
+          </div>
+        </div>
+
+        <div class="card col" style="overflow: hidden">
+          <div class="row" style="padding: 12px 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="h3 grow">Gutter</span><span class="xs muted">Strip + markers</span></div>
+          <div class="diff" style="padding: 8px 0">
+            <div class="dl add"><span class="st"></span><span class="mk"><span class="gm gm-note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span></span><span class="ln"></span><span class="ln">46</span><span class="sg">+</span><span class="cd">const requested = …</span></div>
+            <div class="dl add"><span class="st"></span><span class="mk"><span class="gm gm-ask"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></span></span><span class="ln"></span><span class="ln">50</span><span class="sg">+</span><span class="cd">const isFinal = …</span></div>
+            <div class="dl add"><span class="st"></span><span class="mk"><span class="gm gm-find"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span></span><span class="ln"></span><span class="ln">53</span><span class="sg">+</span><span class="cd">idempotencyKey: …</span></div>
+            <div class="frag u" style="padding-left: 25px"><span class="g g-unreq"></span><span class="xs">Step 5 · Unrequested</span></div>
+            <div class="dl del u"><span class="st"></span><span class="mk"></span><span class="ln">45</span><span class="ln"></span><span class="sg">−</span><span class="cd">await auditLog(…)</span></div>
+            <div class="dl add u"><span class="st"></span><span class="mk"><span class="gm gm-remote">M</span></span><span class="ln"></span><span class="ln">55</span><span class="sg">+</span><span class="cd">this.events.emit(…)</span></div>
+            <div class="frag s" style="padding-left: 25px"><svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg><span class="xs">Structural · verified · 3 lines</span></div>
+          </div>
+        </div>
+
+        <div class="card col" style="overflow: hidden">
+          <div class="row" style="padding: 12px 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="h3 grow">Overview ruler</span><span class="xs muted">Two lanes</span></div>
+          <div class="row" style="padding: 14px; gap: 14px; align-items: stretch">
+            <div class="ruler" aria-hidden="true" style="height: 236px; border: 1px solid oklch(1 0 0 / 10%); border-radius: 3px">
+              <i class="r-view" style="top: 4%; height: 30%"></i>
+              <i class="r-crit" style="top: 8%; height: 22%"></i>
+              <i class="r-note" style="top: 14%"></i>
+              <i class="r-ask" style="top: 22%"></i>
+              <i class="r-find" style="top: 28%"></i>
+              <i class="r-unreq" style="top: 48%; height: 10%"></i>
+              <i class="r-elev" style="top: 48%; height: 10%"></i>
+              <i class="r-find crit" style="top: 76%"></i>
+            </div>
+            <ul class="col xs" style="gap: 7px; justify-content: center">
+              <li class="row" style="gap: 8px"><span style="width: 4px; height: 12px; background: oklch(0.702 0.183 293.541); border-radius: 1px"></span>Left lane: Unrequested</li>
+              <li class="row" style="gap: 8px"><span style="width: 4px; height: 12px; background: oklch(0.704 0.191 22.216); border-radius: 1px"></span>Right lane: critical</li>
+              <li class="row" style="gap: 8px"><span style="width: 4px; height: 12px; background: oklch(0.828 0.189 84.429); border-radius: 1px"></span>Right lane: elevated</li>
+              <li class="row" style="gap: 8px"><span style="width: 12px; height: 2px; background: oklch(0.985 0 0)"></span>Note</li>
+              <li class="row" style="gap: 8px"><span style="width: 12px; height: 2px; background: oklch(0.746 0.16 232.661)"></span>Ask</li>
+              <li class="row" style="gap: 8px"><span style="width: 12px; height: 3px; background: oklch(0.828 0.189 84.429)"></span>Finding, by severity</li>
+              <li class="row" style="gap: 8px"><span style="width: 12px; height: 8px; background: oklch(1 0 0 / 10%); border: 1px solid oklch(1 0 0 / 14%)"></span>Visible area</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card col" style="overflow: hidden">
+          <div class="row" style="padding: 12px 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="h3 grow">File tree</span><span class="xs muted">Rolls up to folders</span></div>
+          <div class="col" style="padding: 8px; gap: 1px; background: oklch(0.205 0 0)">
+            <div class="li sm"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg><span class="grow">src/refunds</span><span class="g g-unreq"></span><span class="risk crit"><i></i><i></i><i></i></span></div>
+            <div class="li sm" style="padding-left: 30px"><span class="g g-req"></span><span class="mono xs grow">RefundPolicy.ts</span><span class="risk crit"><i></i><i></i><i></i></span></div>
+            <div class="li sm" style="padding-left: 30px"><span class="g g-req"></span><span class="mono xs grow">RefundService.ts</span><span class="risk crit"><i></i><i></i><i></i></span></div>
+            <div class="li sm" style="padding-left: 30px; background: oklch(0.702 0.183 293.541 / 12%); color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span><span class="mono xs grow">RefundAuditSubscriber.ts</span><span class="risk elev"><i></i><i></i><i></i></span></div>
+            <div class="li sm" style="padding-left: 30px"><span class="g g-sup"></span><span class="mono xs grow muted">refund-math.ts</span><span class="xs muted">moved</span></div>
+            <div class="li sm"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="grow">db/migrations</span><span class="risk elev"><i></i><i></i><i></i></span></div>
+            <div class="li sm"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="grow muted">package-lock.json</span><span class="xs muted">generated</span></div>
+          </div>
+        </div>
+
+        <div class="card col" style="overflow: hidden">
+          <div class="row" style="padding: 12px 14px; border-bottom: 1px solid oklch(1 0 0 / 10%)"><span class="h3 grow">Change Brief</span><span class="xs muted">Badges with reasons</span></div>
+          <div class="col" style="padding: 14px; gap: 10px">
+            <div class="row wrap" style="gap: 6px">
+              <span class="badge badge-unreq"><span class="g g-unreq" style="width: 6px; height: 6px"></span>Unrequested</span>
+              <span class="badge badge-crit">Critical · payments</span>
+              <span class="badge badge-elev">Elevated · public API</span>
+            </div>
+            <div class="li" style="padding: 8px; background: oklch(0.702 0.183 293.541 / 8%); align-items: flex-start">
+              <span class="g g-unreq" style="margin-top: 6px"></span>
+              <span class="sm grow">Audit entries no longer record the operator.</span>
+            </div>
+            <div class="li" style="padding: 8px; align-items: flex-start">
+              <span class="risk crit" style="margin-top: 3px"><i></i><i></i><i></i></span>
+              <span class="sm grow">Calculate refundable balance</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px">
+      <section class="card card-body col" style="flex: 1 1 520px; min-width: 0; gap: 12px" aria-labelledby="combo-h">
+        <h2 class="h3" id="combo-h">When marks combine</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px">
+          <a class="step unreq" href="#" style="background-color: oklch(0.702 0.183 293.541 / 12%)">
+            <span class="vw"></span>
+            <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate">Round tax per line</span><span class="row xs" style="gap: 6px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>Unrequested · critical</span></span>
+            <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i></span>
+          </a>
+          <a class="step active" href="#">
+            <span class="vw part"></span>
+            <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate b">Issue partial refunds</span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · current</span></span>
+            <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i></span>
+          </a>
+        </div>
+        <p class="xs muted">Scope sets the row's tint, Risk sets the bars. They never compete for the same channel, so an Unrequested critical Step reads as both at once.</p>
+      </section>
+
+      <section class="card card-body col" style="flex: 1 1 520px; min-width: 0; gap: 12px" aria-labelledby="tok-h">
+        <h2 class="h3" id="tok-h">Tokens added to shadcn's dark theme</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+          <div class="row" style="gap: 10px"><span style="width: 28px; height: 28px; border-radius: 6px; background: oklch(0.702 0.183 293.541); flex: none"></span><span class="col"><span class="xs b">--unrequested</span><span class="mono xs muted">0.702 0.183 293.5</span></span></div>
+          <div class="row" style="gap: 10px"><span style="width: 28px; height: 28px; border-radius: 6px; background: oklch(0.828 0.189 84.429); flex: none"></span><span class="col"><span class="xs b">--risk-elevated</span><span class="mono xs muted">0.828 0.189 84.4</span></span></div>
+          <div class="row" style="gap: 10px"><span style="width: 28px; height: 28px; border-radius: 6px; background: oklch(0.704 0.191 22.216); flex: none"></span><span class="col"><span class="xs b">--risk-critical</span><span class="mono xs muted">= --destructive</span></span></div>
+          <div class="row" style="gap: 10px"><span style="width: 28px; height: 28px; border-radius: 6px; background: oklch(0.746 0.16 232.661); flex: none"></span><span class="col"><span class="xs b">--ask</span><span class="mono xs muted">0.746 0.16 232.7</span></span></div>
+          <div class="row" style="gap: 10px"><span style="width: 28px; height: 28px; border-radius: 6px; background: oklch(0.708 0 0); flex: none"></span><span class="col"><span class="xs b">--scope-requested</span><span class="mono xs muted">= --muted-fg</span></span></div>
+          <div class="row" style="gap: 10px"><span style="width: 28px; height: 28px; border-radius: 6px; background: oklch(0.765 0.177 163.223); flex: none"></span><span class="col"><span class="xs b">--ok</span><span class="mono xs muted">0.765 0.177 163.2</span></span></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

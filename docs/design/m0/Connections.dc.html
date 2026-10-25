@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Connections panel and Trail</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="width: 600px; height: 880px; box-sizing: border-box; position: relative; background: oklch(0.175 0 0); border: 1px solid oklch(1 0 0 / 10%); display: flex; flex-direction: column; overflow: hidden">
+
+  <nav aria-label="Trail" class="row" style="padding: 8px 10px; border-bottom: 1px solid oklch(1 0 0 / 10%); gap: 4px; background: oklch(0.145 0 0)">
+    <button class="btn btn-ghost btn-icon btn-xs" type="button" aria-label="Back (⌘[)"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></button>
+    <button class="btn btn-ghost btn-icon btn-xs" type="button" aria-label="Forward (⌘])" disabled><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+    <ol class="crumbs grow" style="margin-left: 4px">
+      <li><a href="#" style="color: oklch(0.708 0 0); text-decoration: none">Change Brief</a></li>
+      <li aria-hidden="true"><svg class="i i-xs" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></li>
+      <li><a href="#" class="mono" style="color: oklch(0.708 0 0); text-decoration: none">calculateRefundable</a></li>
+      <li aria-hidden="true"><svg class="i i-xs" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></li>
+      <li><a href="#" class="mono" style="color: oklch(0.708 0 0); text-decoration: none">postRefund</a></li>
+      <li aria-hidden="true"><svg class="i i-xs" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></li>
+      <li><b class="mono" aria-current="page">refundOrder</b></li>
+    </ol>
+    <span class="kbd-group"><span class="kbd">⌘[</span><span class="kbd">⌘]</span></span>
+  </nav>
+
+  <header style="padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 6px">
+    <div class="row wrap" style="gap: 8px">
+      <h1 class="mono" style="font-size: 15px; font-weight: 500">RefundService.<b>refundOrder</b></h1>
+      <span class="badge badge-muted">method</span>
+      <span class="grow"></span>
+      <span class="badge badge-outline" title="Language Tier">TypeScript · Full</span>
+    </div>
+    <div class="row xs muted" style="gap: 10px"><span class="mono">RefundService.ts:38</span><span>Step 4</span><span>Changed Symbols + 1 hop</span></div>
+  </header>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 14px">
+
+    <section aria-labelledby="cc-h" class="inset" style="padding: 10px 6px 6px">
+      <div class="row" style="padding: 0 6px 6px"><h2 class="eyebrow grow" id="cc-h">Connection changes</h2><span class="xs muted">4</span></div>
+      <div class="li" style="background: oklch(0.702 0.183 293.541 / 10%)"><span class="g g-unreq"></span><span class="sm grow">No longer calls <span class="mono strike">auditLog()</span></span><span class="badge badge-unreq">Unrequested</span></div>
+      <div class="li" style="background: oklch(0.702 0.183 293.541 / 10%)"><span class="g g-unreq"></span><span class="sm grow">Now emits <span class="mono">refund.issued</span> via <span class="mono">events.emit</span></span><span class="badge badge-unreq">Unrequested</span></div>
+      <div class="li"><span class="g g-req"></span><span class="sm grow">Now calls <span class="mono">calculateRefundable</span></span><span class="xs muted">Step 3</span></div>
+      <div class="li"><span class="g g-req"></span><span class="sm grow">Passes new options to <span class="mono">gateway.refund</span></span><span class="xs muted">args</span></div>
+    </section>
+
+    <section aria-labelledby="uses-h" class="col" style="gap: 1px">
+      <div class="row" style="padding: 0 8px 6px"><h2 class="eyebrow grow" id="uses-h">Uses →</h2><span class="xs muted">6</span></div>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">calls</span><span class="mono sm grow">calculateRefundable</span><span class="badge badge-ok">added</span></a>
+      <a class="li active" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">calls</span><span class="mono sm grow">PaymentGateway.refund</span><span class="badge badge-muted">changed</span></a>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">calls</span><span class="mono sm grow">EventBus.emit</span><span class="badge badge-unreq">added</span></a>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">calls</span><span class="mono sm grow muted strike">auditLog</span><span class="badge badge-unreq">removed</span></a>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">type</span><span class="mono sm grow">RefundExceedsBalance</span><span class="badge badge-ok">added</span></a>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">calls</span><span class="mono sm grow">RefundPolicy.assertWithinWindow</span><span class="xs muted">unchanged</span></a>
+    </section>
+
+    <section aria-labelledby="used-h" class="col" style="gap: 1px">
+      <div class="row" style="padding: 0 8px 6px"><h2 class="eyebrow grow" id="used-h">← Used by</h2><span class="xs muted">3</span></div>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">called</span><span class="mono sm grow">postRefund</span><span class="badge badge-muted">changed · Step 6</span></a>
+      <a class="li" href="#" style="color: inherit; text-decoration: none"><span class="xs muted" style="width: 52px">called</span><span class="mono sm grow">AdminRefundJob.run</span><span class="xs muted">unchanged code</span></a>
+      <div class="inset" style="padding: 6px; display: flex; flex-direction: column; gap: 2px; margin-top: 2px; border-style: dashed">
+        <div class="li" style="padding: 4px 6px"><span class="xs muted" style="width: 52px">called?</span><span class="mono sm grow">useRefund().submit</span><span class="badge badge-outline">? Ambiguous</span></div>
+        <div class="xs muted" style="padding: 2px 8px 4px 66px">Which <span class="mono">refund()</span> does this call? Both candidates shown.</div>
+        <a class="li" href="#" style="padding: 4px 6px 4px 66px; color: inherit; text-decoration: none"><span class="mono xs grow">api.refunds.create → postRefund</span><span class="badge badge-secondary">likely</span></a>
+        <a class="li" href="#" style="padding: 4px 6px 4px 66px; color: inherit; text-decoration: none"><span class="mono xs grow muted">legacyClient.refund</span><span class="xs muted">candidate</span></a>
+      </div>
+    </section>
+
+    <div class="row" style="padding: 0 4px">
+      <button class="btn btn-outline btn-sm" type="button">Expand to 2 hops</button>
+      <button class="btn btn-ghost btn-sm muted" type="button">Mini-graph for this Step</button>
+      <span class="grow"></span>
+      <button class="btn btn-ghost btn-sm muted" type="button">Explain a Connection</button>
+    </div>
+  </div>
+
+  <div class="popover" role="tooltip" style="position: absolute; left: 150px; top: 418px; width: 420px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px">
+    <div class="row"><span class="mono xs b grow">PaymentGateway.refund</span><span class="xs muted mono">gateway.ts:112</span></div>
+    <div class="diff" style="border-radius: 6px; overflow: hidden; border: 1px solid oklch(1 0 0 / 10%)">
+      <div class="dl del split" style="grid-template-columns: 3px 0 0 18px minmax(0, 1fr)"><span class="st"></span><span></span><span></span><span class="sg">−</span><span class="cd"><span class="f">refund</span>(paymentId, amount)</span></div>
+      <div class="dl add split" style="grid-template-columns: 3px 0 0 18px minmax(0, 1fr)"><span class="st"></span><span></span><span></span><span class="sg">+</span><span class="cd"><span class="f">refund</span>(paymentId, amount, <span class="wa">opts?: RefundOptions</span>)</span></div>
+    </div>
+    <div class="xs muted">⌘-click to open · joins the Trail</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":600,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
