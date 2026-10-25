@@ -20,7 +20,8 @@ const MAX_CANDIDATES = 32;
 
 export function detectMoves(files: MoveInputFile[]): MoveBlock[] {
   type AddedLine = { file: number; line: number; key: string };
-  const keyFor = (f: MoveInputFile, text: string) => (f.language && INDENTATION_SENSITIVE.has(f.language) ? text.trimEnd() : text.trim());
+  // Unknown languages keep indentation: it may be meaningful.
+  const keyFor = (f: MoveInputFile, text: string) => (!f.language || INDENTATION_SENSITIVE.has(f.language) ? text.trimEnd() : text.trim());
 
   // Index every added line by normalized content.
   const added = new Map<string, AddedLine[]>();
@@ -70,6 +71,9 @@ export function detectMoves(files: MoveInputFile[]): MoveBlock[] {
         if (best && best.nonTrivial >= MIN_MOVE_LINES) {
           const to = files[best.file] as MoveInputFile;
           for (let i = 0; i < best.len; i++) (usedAdded[best.file] as Set<number>).add(best.start + i);
+          const fromLines = f.baseLines.slice(l, l + best.len);
+          const toLines = to.headLines.slice(best.start, best.start + best.len);
+          const exact = fromLines.every((line, i) => line === toLines[i]) && /^\S/.test(fromLines[0] ?? '');
           moves.push({
             id: hash(`${f.path}:${l}:${to.path}:${best.start}:${best.len}`),
             fromFileId: f.fileId,
@@ -80,6 +84,7 @@ export function detectMoves(files: MoveInputFile[]): MoveBlock[] {
             toPath: to.path,
             toStart: best.start + 1,
             toEnd: best.start + best.len,
+            exact,
           });
           l += best.len;
         } else {

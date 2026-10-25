@@ -54,6 +54,10 @@ export class AgentHostClient {
         p.reject(new AgentRunError('The agent host stopped unexpectedly. Try again.', 'execution', 0));
         this.runs.delete(id);
       }
+      for (const [id, resolve] of this.statusWaiters) {
+        resolve(unavailable('The agent host stopped unexpectedly.'));
+        this.statusWaiters.delete(id);
+      }
     });
     this.transport = t;
     if (this.config) t.post({ type: 'configure', config: this.config });
@@ -70,6 +74,11 @@ export class AgentHostClient {
     return new Promise((resolve) => {
       this.statusWaiters.set(reqId, resolve);
       this.ensure().post({ type: 'status', reqId });
+      // `claude --version` and `auth status` each have their own timeout; this is a backstop.
+      setTimeout(() => {
+        if (!this.statusWaiters.delete(reqId)) return;
+        resolve(unavailable('Checking Claude took too long.'));
+      }, 30_000);
     });
   }
 
@@ -112,6 +121,10 @@ export class AgentHostClient {
       p.reject(new AgentRunError(m.message, m.code, m.costUsd));
     }
   }
+}
+
+function unavailable(detail: string): RuntimeStatus {
+  return { provider: 'anthropic', auth: 'claude-code', ready: false, detail, executablePath: null, version: null };
 }
 
 /** Runs the host in this process; for tests and environments without utilityProcess. */

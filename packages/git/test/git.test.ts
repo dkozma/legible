@@ -91,6 +91,26 @@ describe('GitRepo', () => {
   });
 });
 
+describe('BlobReader', () => {
+  it('never mixes up reads across close()', async () => {
+    const head = (await repo.resolveCommit('HEAD')) as string;
+    const files = await repo.listFiles(head);
+    const r = repo.blobs();
+    const expected = new Map<string, string>();
+    for (const f of files) expected.set(f, (await r.readPath(head, f))?.toString() ?? '');
+    const inflight = files.map((f) =>
+      r.readPath(head, f).then(
+        () => 'read',
+        () => 'rejected',
+      ),
+    );
+    r.close();
+    const after = await Promise.all(files.map(async (f) => ((await r.readPath(head, f))?.toString() ?? '') === expected.get(f)));
+    await Promise.all(inflight);
+    expect(after.every(Boolean)).toBe(true);
+  });
+});
+
 describe('parseRaw', () => {
   it('parses copies and type changes', () => {
     const raw = [':100644 100644 aaaa bbbb C75', 'a.ts', 'b.ts', ':100644 120000 aaaa cccc T', 'link', ''].join('\0');

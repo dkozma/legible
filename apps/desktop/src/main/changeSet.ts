@@ -35,14 +35,42 @@ interface Loaded {
   head: string[];
   binary: boolean;
   size: number;
+  notes: string[];
 }
 
-async function readText(repo: GitRepo, oid: string | null, mode: string): Promise<{ lines: string[]; binary: boolean; size: number }> {
-  if (!oid || mode === SUBMODULE) return { lines: [], binary: mode === SUBMODULE, size: 0 };
+interface Text {
+  lines: string[];
+  binary: boolean;
+  size: number;
+  /** Null when there is no content on this side. */
+  finalNewline: boolean | null;
+  crlf: boolean;
+}
+
+async function readText(repo: GitRepo, oid: string | null, mode: string): Promise<Text> {
+  const empty = { lines: [], binary: false, size: 0, finalNewline: null, crlf: false };
+  if (!oid || mode === SUBMODULE) return { ...empty, binary: mode === SUBMODULE };
   const buf = await repo.blobs().read(oid);
-  if (!buf) return { lines: [], binary: false, size: 0 };
-  if (looksBinary(buf)) return { lines: [], binary: true, size: buf.length };
-  return { lines: splitLines(buf.toString('utf8')), binary: false, size: buf.length };
+  if (!buf) return empty;
+  if (looksBinary(buf)) return { ...empty, binary: true, size: buf.length };
+  const text = buf.toString('utf8');
+  return {
+    lines: splitLines(text),
+    binary: false,
+    size: buf.length,
+    finalNewline: text.length === 0 || text.endsWith('\n'),
+    crlf: text.includes('\r\n'),
+  };
+}
+
+function textNotes(b: Text, h: Text): string[] {
+  const notes: string[] = [];
+  if (b.finalNewline !== null && h.finalNewline !== null && b.finalNewline !== h.finalNewline) {
+    notes.push(h.finalNewline ? 'Newline added at end of file' : 'No newline at end of file');
+  }
+  if (b.finalNewline !== null && h.finalNewline !== null && b.crlf !== h.crlf)
+    notes.push(h.crlf ? 'Line endings LF → CRLF' : 'Line endings CRLF → LF');
+  return notes;
 }
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
@@ -99,6 +127,7 @@ export async function buildChangeSet(
       head: h.lines,
       binary: b.binary || h.binary,
       size: Math.max(b.size, h.size),
+      notes: textNotes(b, h),
     };
   });
 
@@ -176,6 +205,7 @@ export async function buildChangeSet(
       fragments: diff.fragments,
       baseLineCount: f.base.length,
       headLineCount: f.head.length,
+      notes: f.notes,
     };
   });
 

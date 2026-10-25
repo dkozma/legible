@@ -166,6 +166,52 @@ export function highlightLines(language: string | null, lines: string[]): LineTo
   return out;
 }
 
+const STRINGY = /String|Template|Heredoc|Nowdoc|TextBlock/;
+
+/**
+ * Marks lines that begin inside a multi-line string, template or heredoc,
+ * from the parse tree (tokens can't tell: `${x}` and escapes aren't string
+ * tokens). Whitespace on such lines is content. Null when not parseable.
+ */
+export function linesInsideStrings(language: string | null, lines: string[]): Uint8Array | null {
+  if (!language) return null;
+  const parser = parserFor(language);
+  if (!parser) return null;
+  const text = lines.join('\n');
+  if (text.length > MAX_HIGHLIGHT_CHARS) return null;
+  const starts = new Array<number>(lines.length);
+  let pos = 0;
+  for (let i = 0; i < lines.length; i++) {
+    starts[i] = pos;
+    pos += (lines[i] as string).length + 1;
+  }
+  const lineOf = (offset: number) => {
+    let lo = 0;
+    let hi = lines.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if ((starts[mid] as number) <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  };
+  const out = new Uint8Array(lines.length);
+  try {
+    parser.parse(text).iterate({
+      enter(node) {
+        if (!STRINGY.test(node.name)) return;
+        const first = lineOf(node.from);
+        const last = lineOf(Math.max(node.from, node.to - 1));
+        for (let l = first + 1; l <= last; l++) out[l] = 1;
+        return false;
+      },
+    });
+  } catch {
+    return null;
+  }
+  return out;
+}
+
 /** Scope id at a column, or -1. */
 export function scopeAt(tokens: LineTokens | undefined, col: number): number {
   if (!tokens) return -1;

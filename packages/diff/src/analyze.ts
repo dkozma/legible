@@ -3,8 +3,8 @@
 
 import { createHash } from 'node:crypto';
 import type { DiffChunk, FileDiff, Fragment, LineTokens, MoveBlock, StructuralProof } from '@legible/domain';
-import { INDENTATION_SENSITIVE } from './classify';
-import { STRING_SCOPE } from './highlight';
+import { INDENTATION_SENSITIVE, WHITESPACE_PROOF_LANGUAGES } from './classify';
+import { linesInsideStrings, STRING_SCOPE } from './highlight';
 import { diffLines } from './lineDiff';
 import { pairLines, wordDiff } from './wordDiff';
 
@@ -49,6 +49,12 @@ export function buildFileDiff(input: FileDiffInput): FileDiff {
   const headWords: Record<number, number[]> = {};
   const fragments: Fragment[] = [];
   const seen = new Map<string, number>();
+  // Parsed lazily: only chunks that look whitespace-only need it.
+  let strings: { base: Uint8Array | null; head: Uint8Array | null } | null = null;
+  const stringLines = () => {
+    strings ??= { base: linesInsideStrings(input.language, input.baseLines), head: linesInsideStrings(input.language, input.headLines) };
+    return strings;
+  };
 
   chunks.forEach((chunk, chunkIndex) => {
     if (chunk.kind !== 'change') return;
@@ -62,7 +68,7 @@ export function buildFileDiff(input: FileDiffInput): FileDiff {
       if (w.head.length) headWords[chunk.headStart + j] = w.head;
     }
 
-    const proof = proveStructural(input, chunk);
+    const proof = proveStructural(input, chunk, stringLines);
     const contentKey = fragmentKey(input.path, del, add);
     const n = seen.get(contentKey) ?? 0;
     seen.set(contentKey, n + 1);
@@ -98,12 +104,19 @@ function fragmentKey(path: string, del: string[], add: string[]): string {
 }
 
 /** Which Structural proof, if any, holds for a change chunk. Anything unproven stays Behavioral. */
-export function proveStructural(input: FileDiffInput, chunk: DiffChunk): StructuralProof | null {
+export function proveStructural(
+  input: FileDiffInput,
+  chunk: DiffChunk,
+  stringLines: () => { base: Uint8Array | null; head: Uint8Array | null } = () => ({
+    base: linesInsideStrings(input.language, input.baseLines),
+    head: linesInsideStrings(input.language, input.headLines),
+  }),
+): StructuralProof | null {
   if (isFullyMoved(input, chunk)) return 'move';
   const lang = input.language;
   // Without a parse we can't tell code from string contents, so prove nothing.
-  if (!lang || !input.baseTokens || !input.headTokens) return null;
-  const indentSensitive = INDENTATION_SENSITIVE.has(lang) || lang === 'shell' || lang === 'dockerfile';
+  if (!lang || !input.baseTokens || !input.headTokens || !WHITESPACE_PROOF_LANGUAGES.has(lang)) return null;
+  const indentSensitive = INDENTATION_SENSITIVE.has(lang);
 
   const baseSeq = normalizedSequence(
     input.baseLines,
@@ -119,37 +132,63 @@ export function proveStructural(input: FileDiffInput, chunk: DiffChunk): Structu
     chunk.headEnd,
     indentSensitive ? 'trimEnd' : 'trim',
   );
-  if (arraysEqual(baseSeq, headSeq)) return 'whitespace';
+  const insideString = () => {
+    const s = stringLines();
+    if (!s.base || !s.head) return true;
+    // A line starting inside a multi-line string, or the line just after the change (a removed
+    // line may have been the string's interior), means the whitespace is content.
+    for (let i = chunk.baseStart; i <= Math.min(chunk.baseEnd, input.baseLines.length - 1); i++) if (s.base[i]) return true;
+    for (let i = chunk.headStart; i <= Math.min(chunk.headEnd, input.headLines.length - 1); i++) if (s.head[i]) return true;
+    return false;
+  };
+  if (arraysEqual(baseSeq, headSeq)) return insideString() ? null : 'whitespace';
+
+  // In C-family preprocessor lines spacing is meaningful: `#define F (a)` isn't `#define F(a)`.
+  const preprocessor = (lines: string[], s: number, e: number) => lines.slice(s, e).some((l) => l.trimStart().startsWith('#'));
+  const cFamily = lang === 'c' || lang === 'cpp' || lang === 'csharp';
+  if (
+    cFamily &&
+    (preprocessor(input.baseLines, chunk.baseStart, chunk.baseEnd) || preprocessor(input.headLines, chunk.headStart, chunk.headEnd))
+  ) {
+    return null;
+  }
 
   if (INTRA_LINE_SAFE.has(lang)) {
     const mode = indentSensitive ? 'collapseKeepLead' : 'collapse';
     const b = normalizedSequence(input.baseLines, input.baseTokens, chunk.baseStart, chunk.baseEnd, mode);
     const h = normalizedSequence(input.headLines, input.headTokens, chunk.headStart, chunk.headEnd, mode);
-    if (arraysEqual(b, h)) return 'formatting';
+    if (arraysEqual(b, h)) return insideString() ? null : 'formatting';
   }
   return null;
 }
 
+/**
+ * A chunk is a proven move when every line on both sides belongs to an exact
+ * move (a top-level declaration moved verbatim), allowing trivial lines like
+ * `}` between blocks, and at least one line really is moved code.
+ */
 function isFullyMoved(input: FileDiffInput, chunk: DiffChunk): boolean {
-  if (!input.moves || input.moves.length === 0) return false;
+  const moves = (input.moves ?? []).filter((m) => m.exact);
+  if (moves.length === 0) return false;
+  let anyCovered = false;
   const covered = (start: number, end: number, side: 'from' | 'to') => {
     for (let line = start + 1; line <= end; line++) {
-      const ok = input.moves?.some((m) =>
+      const ok = moves.some((m) =>
         side === 'from'
           ? m.fromFileId === input.fileId && line >= m.fromStart && line <= m.fromEnd
           : m.toFileId === input.fileId && line >= m.toStart && line <= m.toEnd,
       );
-      if (!ok) {
-        // Blank and trivial lines between moved blocks don't break the proof.
-        const text = side === 'from' ? input.baseLines[line - 1] : input.headLines[line - 1];
-        if (text !== undefined && isTrivialLine(text)) continue;
-        return false;
+      if (ok) {
+        anyCovered = true;
+        continue;
       }
+      const text = side === 'from' ? input.baseLines[line - 1] : input.headLines[line - 1];
+      if (text !== undefined && isTrivialLine(text)) continue;
+      return false;
     }
     return true;
   };
-  const hasLines = chunk.baseEnd > chunk.baseStart || chunk.headEnd > chunk.headStart;
-  return hasLines && covered(chunk.baseStart, chunk.baseEnd, 'from') && covered(chunk.headStart, chunk.headEnd, 'to');
+  return covered(chunk.baseStart, chunk.baseEnd, 'from') && covered(chunk.headStart, chunk.headEnd, 'to') && anyCovered;
 }
 
 type NormMode = 'trim' | 'trimEnd' | 'collapse' | 'collapseKeepLead';
@@ -182,7 +221,8 @@ function blankInsideString(lines: string[], tokens: LineTokens[], i: number): bo
     prev[prev.length - 1] === STRING_SCOPE &&
     (prev[prev.length - 3] as number) + (prev[prev.length - 2] as number) >= prevLine.length;
   const startsInString = next.length >= 3 && next[0] === 0 && next[2] === STRING_SCOPE;
-  return endsInString && startsInString;
+  // Either edge is enough: a template line can end in `${x}`, or a string can start mid-line.
+  return endsInString || startsInString;
 }
 
 const WORD = /[A-Za-z0-9_$]/;
@@ -203,6 +243,8 @@ export function normalizeLine(line: string, tokens: LineTokens, mode: NormMode):
   let tail = line.length;
   while (tail > lead && /\s/.test(line[tail - 1] as string) && !inString[tail - 1]) tail--;
 
+  // A trailing backslash continues the line; whitespace after it changes meaning.
+  if (line.slice(0, tail).endsWith('\\')) tail = line.length;
   const keepLead = mode === 'trimEnd' || mode === 'collapseKeepLead';
   let out = keepLead ? line.slice(0, lead) : '';
   if (mode === 'trim' || mode === 'trimEnd') return out + line.slice(lead, tail);

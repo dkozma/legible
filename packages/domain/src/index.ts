@@ -128,6 +128,8 @@ export interface FileChange {
   fragments: Fragment[];
   baseLineCount: number;
   headLineCount: number;
+  /** Changes the line diff can't show, e.g. "No newline at end of file" or "CRLF → LF". */
+  notes: string[];
 }
 
 export interface MoveBlock {
@@ -142,6 +144,11 @@ export interface MoveBlock {
   /** 1-based inclusive Head line range. */
   toStart: number;
   toEnd: number;
+  /**
+   * Identical text starting at column 0: a top-level declaration moved as is.
+   * Only exact moves prove a Fragment Structural; others are just marked as moved.
+   */
+  exact: boolean;
 }
 
 export interface ChangeSetSummary {

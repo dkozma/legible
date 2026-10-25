@@ -97,7 +97,48 @@ export function languageForPath(path: string): string | null {
 }
 
 /** Languages where leading whitespace is meaningful. */
-export const INDENTATION_SENSITIVE = new Set(['python', 'yaml', 'makefile', 'haskell', 'elm', 'markdown', 'nix']);
+export const INDENTATION_SENSITIVE = new Set([
+  'python',
+  'yaml',
+  'makefile',
+  'haskell',
+  'elm',
+  'markdown',
+  'nix',
+  'sass',
+  'coffee',
+  'pug',
+  'shell',
+  'dockerfile',
+]);
+
+/**
+ * Languages whose Lezer grammar marks every string, template and heredoc
+ * fully, so whitespace outside strings can be compared safely. Markdown,
+ * HTML, YAML, Ruby, shell and the rest are left out: blank lines, indentation
+ * and trailing spaces carry meaning there (paragraphs, <pre>, block scalars,
+ * heredocs).
+ */
+export const WHITESPACE_PROOF_LANGUAGES = new Set([
+  'typescript',
+  'tsx',
+  'javascript',
+  'jsx',
+  'java',
+  'c',
+  'cpp',
+  'csharp',
+  'rust',
+  'go',
+  'kotlin',
+  'dart',
+  'php',
+  'json',
+  'python',
+  'css',
+  'scss',
+  'less',
+]);
 
 const LOCKFILES = new Set([
   'package-lock.json',

@@ -114,7 +114,22 @@ export function createAgentHost(post: (m: FromHost) => void) {
           });
           return;
         }
-        post({ type: 'status', reqId: m.reqId, status: await runtime.status() });
+        try {
+          post({ type: 'status', reqId: m.reqId, status: await runtime.status() });
+        } catch (e) {
+          post({
+            type: 'status',
+            reqId: m.reqId,
+            status: {
+              provider: 'anthropic',
+              auth: config?.claude.auth ?? 'claude-code',
+              ready: false,
+              detail: `Couldn't check Claude: ${(e as Error).message}`,
+              executablePath: null,
+              version: null,
+            },
+          });
+        }
         return;
       }
       case 'cancel':

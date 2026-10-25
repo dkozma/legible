@@ -336,7 +336,7 @@ export class ReviewService {
       interval = setInterval(check, 60_000);
     } else {
       // Linux: recursive inotify watches on big repos exhaust the watch limit, so poll.
-      interval = setInterval(check, 4_000);
+      interval = setInterval(check, 6_000);
     }
     this.watcher = {
       reviewId,

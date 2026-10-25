@@ -43,30 +43,41 @@ export class BlobReader {
   }
 
   close() {
-    this.child?.stdin.end();
-    this.child?.kill();
+    const child = this.child;
     this.child = null;
+    this.reset(new Error('Blob reader closed'));
+    child?.stdin.end();
+    child?.kill();
+  }
+
+  /** Fails pending reads and clears parser state, so a new process starts clean. */
+  private reset(e: Error) {
+    const pending = this.queue;
+    this.queue = [];
+    this.buf = Buffer.alloc(0);
+    this.expecting = null;
+    for (const p of pending) p.reject(e);
   }
 
   private ensure(): ChildProcessWithoutNullStreams {
     if (this.child) return this.child;
     const child = spawn(gitBinary, ['--git-dir', this.gitDir, 'cat-file', '--batch'], { env: baseEnv(this.env) });
-    child.stdout.on('data', (d: Buffer) => this.onData(d));
+    // Every handler checks it still belongs to the current process: a closed
+    // process's late events must never touch a newer one's queue.
+    const current = () => this.child === child;
+    child.stdout.on('data', (d: Buffer) => {
+      if (current()) this.onData(d);
+    });
     child.stderr.on('data', (d: Buffer) => {
-      this.stderr += d.toString('utf8');
+      if (current()) this.stderr += d.toString('utf8');
     });
     const fail = (e: Error) => {
-      for (const p of this.queue) p.reject(e);
-      this.queue = [];
-      this.buf = Buffer.alloc(0);
-      this.expecting = null;
+      if (!current()) return;
       this.child = null;
+      this.reset(e);
     };
     child.on('error', (e) => fail(new GitError(`cat-file: ${e.message}`, ['cat-file'], null, this.stderr)));
-    child.on('close', (code) => {
-      if (this.queue.length) fail(new GitError(`cat-file exited (${code}): ${this.stderr.trim()}`, ['cat-file'], code, this.stderr));
-      this.child = null;
-    });
+    child.on('close', (code) => fail(new GitError(`cat-file exited (${code}): ${this.stderr.trim()}`, ['cat-file'], code, this.stderr)));
     this.child = child;
     return child;
   }

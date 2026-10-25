@@ -238,10 +238,13 @@ export function diffLines(base: string[], head: string[], opts: LineDiffOptions 
   return toChunks(histogramMatches(a, b), base.length, head.length);
 }
 
-/** Splits file text into lines. A trailing newline does not produce an empty last line. */
+/**
+ * Splits file text into lines. A trailing newline does not produce an empty
+ * last line. `\r` stays in the line, so a CRLF → LF change is a visible change.
+ */
 export function splitLines(text: string): string[] {
   if (text.length === 0) return [];
-  const lines = text.split(/\r?\n/);
+  const lines = text.split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
   return lines;
 }

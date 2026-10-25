@@ -43,7 +43,16 @@ export class SecretStore {
     return Object.keys(this.load());
   }
 
-  async set(name: string, value: string | null) {
+  private writing: Promise<void> = Promise.resolve();
+
+  /** Writes are serialized so concurrent saves can't drop each other's changes. */
+  set(name: string, value: string | null): Promise<void> {
+    const next = this.writing.then(() => this.write(name, value));
+    this.writing = next.catch(() => undefined);
+    return next;
+  }
+
+  private async write(name: string, value: string | null) {
     const all = { ...this.load() };
     if (value === null || value === '') delete all[name];
     else {

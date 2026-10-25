@@ -97,7 +97,7 @@ describe('diffLines', () => {
 
   it('splits lines without inventing a trailing empty line', () => {
     expect(splitLines('a\nb\n')).toEqual(['a', 'b']);
-    expect(splitLines('a\r\nb')).toEqual(['a', 'b']);
+    expect(splitLines('a\r\nb')).toEqual(['a\r', 'b']);
     expect(splitLines('')).toEqual([]);
   });
 });
@@ -245,5 +245,21 @@ describe('highlightLines', () => {
   it('returns null for unknown languages', () => {
     expect(highlightLines(null, ['a'])).toBeNull();
     expect(highlightLines('brainfuck', ['a'])).toBeNull();
+  });
+});
+
+describe('line endings', () => {
+  it('shows a CRLF → LF change as a change, proven whitespace-only for code', () => {
+    const d = buildFileDiff({
+      fileId: 'f',
+      path: 'a.ts',
+      language: 'typescript',
+      baseLines: splitLines('const a = 1;\r\nconst b = 2;\r\n'),
+      headLines: splitLines('const a = 1;\nconst b = 2;\n'),
+      baseTokens: highlightLines('typescript', splitLines('const a = 1;\r\nconst b = 2;\r\n')),
+      headTokens: highlightLines('typescript', splitLines('const a = 1;\nconst b = 2;\n')),
+    });
+    expect(d.fragments).toHaveLength(1);
+    expect(d.fragments[0]?.proof).toBe('whitespace');
   });
 });
