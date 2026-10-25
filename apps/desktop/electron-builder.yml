@@ -12,7 +12,7 @@ files:
   - out/**
   - package.json
   # Only the libc variant the platform uses.
-  - '!node_modules/@anthropic-ai/claude-agent-sdk-*-musl/**'
+  - "!node_modules/@anthropic-ai/claude-agent-sdk-*-musl/**"
 # The Agent SDK spawns its bundled native `claude`; binaries can't run from inside an asar archive.
 asarUnpack:
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**

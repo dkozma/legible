@@ -97,7 +97,7 @@ In your own repositories, Snapshots are commits under `refs/legible/snapshots/`.
 
 ```sh
 pnpm typecheck && pnpm lint && pnpm test      # unit tests, including the provider schema lint
-pnpm format                                  # oxfmt: format, sort imports and Tailwind classes
+pnpm format                                  # oxfmt: Prettier's defaults, no semicolons
 pnpm --filter @legible/desktop test:e2e      # Electron end-to-end, fake agent (xvfb-run on Linux)
 npx vitest run --config vitest.live.config.ts  # live checks: a real Claude Explanation and a public GitLab MR
 node fixtures/make-refund-repo.mjs /tmp/refunds  # the M0 design fixture as a real repository

@@ -2,68 +2,74 @@
 // Electron safeStorage. Only ciphertext touches disk, in its own file; never
 // SQLite, never logs.
 
-import { readFileSync } from 'node:fs';
-import { chmod, rename, writeFile } from 'node:fs/promises';
+import { readFileSync } from "node:fs"
+import { chmod, rename, writeFile } from "node:fs/promises"
 
-import { safeStorage } from 'electron';
+import { safeStorage } from "electron"
 
 export class SecretStore {
-  private cache: Record<string, string> | null = null;
+  private cache: Record<string, string> | null = null
 
   constructor(private readonly file: string) {}
 
   available(): boolean {
-    return safeStorage.isEncryptionAvailable();
+    return safeStorage.isEncryptionAvailable()
   }
 
   private load(): Record<string, string> {
-    if (this.cache) return this.cache;
+    if (this.cache) return this.cache
     try {
-      this.cache = JSON.parse(readFileSync(this.file, 'utf8')) as Record<string, string>;
+      this.cache = JSON.parse(readFileSync(this.file, "utf8")) as Record<
+        string,
+        string
+      >
     } catch {
-      this.cache = {};
+      this.cache = {}
     }
-    return this.cache;
+    return this.cache
   }
 
   get(name: string): string | null {
-    const enc = this.load()[name];
-    if (!enc) return null;
+    const enc = this.load()[name]
+    if (!enc) return null
     try {
-      return safeStorage.decryptString(Buffer.from(enc, 'base64'));
+      return safeStorage.decryptString(Buffer.from(enc, "base64"))
     } catch {
-      return null;
+      return null
     }
   }
 
   has(name: string): boolean {
-    return Boolean(this.load()[name]);
+    return Boolean(this.load()[name])
   }
 
   names(): string[] {
-    return Object.keys(this.load());
+    return Object.keys(this.load())
   }
 
-  private writing: Promise<void> = Promise.resolve();
+  private writing: Promise<void> = Promise.resolve()
 
   /** Writes are serialized so concurrent saves can't drop each other's changes. */
   set(name: string, value: string | null): Promise<void> {
-    const next = this.writing.then(() => this.write(name, value));
-    this.writing = next.catch(() => undefined);
-    return next;
+    const next = this.writing.then(() => this.write(name, value))
+    this.writing = next.catch(() => undefined)
+    return next
   }
 
   private async write(name: string, value: string | null) {
-    const all = { ...this.load() };
-    if (value === null || value === '') delete all[name];
+    const all = { ...this.load() }
+    if (value === null || value === "") delete all[name]
     else {
-      if (!this.available()) throw new Error('The OS keychain is unavailable, so Legible can’t store secrets safely.');
-      all[name] = safeStorage.encryptString(value).toString('base64');
+      if (!this.available())
+        throw new Error(
+          "The OS keychain is unavailable, so Legible can’t store secrets safely.",
+        )
+      all[name] = safeStorage.encryptString(value).toString("base64")
     }
-    const tmp = `${this.file}.tmp`;
-    await writeFile(tmp, JSON.stringify(all), { mode: 0o600 });
-    await rename(tmp, this.file);
-    await chmod(this.file, 0o600).catch(() => undefined);
-    this.cache = all;
+    const tmp = `${this.file}.tmp`
+    await writeFile(tmp, JSON.stringify(all), { mode: 0o600 })
+    await rename(tmp, this.file)
+    await chmod(this.file, 0o600).catch(() => undefined)
+    this.cache = all
   }
 }

@@ -1,6 +1,16 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "promise", "vitest"],
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "jsx-a11y",
+    "import",
+    "promise",
+    "vitest"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
@@ -59,7 +69,13 @@
       }
     ]
   },
-  "ignorePatterns": ["**/out/**", "**/dist/**", "**/release/**", "fixtures/.generated/**", "docs/design/**"],
+  "ignorePatterns": [
+    "**/out/**",
+    "**/dist/**",
+    "**/release/**",
+    "fixtures/.generated/**",
+    "docs/design/**"
+  ],
   "overrides": [
     {
       "files": ["packages/ui/**"],

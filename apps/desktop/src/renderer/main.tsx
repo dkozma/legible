@@ -1,10 +1,10 @@
-import type { LegibleBridge } from '@legible/ipc';
-import { mountApp } from '@legible/ui';
+import type { LegibleBridge } from "@legible/ipc"
+import { mountApp } from "@legible/ui"
 
 declare global {
   interface Window {
-    legible: LegibleBridge;
+    legible: LegibleBridge
   }
 }
 
-mountApp(document.getElementById('root') as HTMLElement, window.legible);
+mountApp(document.getElementById("root") as HTMLElement, window.legible)

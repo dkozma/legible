@@ -1,44 +1,44 @@
 // Repository operations Legible needs: resolving refs, merge-bases, pairing
 // changed files, Snapshots, and read-only queries agents use as tools.
 
-import { createHash } from 'node:crypto';
-import { copyFile, mkdtemp, rm, stat } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { isAbsolute, join, resolve } from 'node:path';
+import { createHash } from "node:crypto"
+import { copyFile, mkdtemp, rm, stat } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { isAbsolute, join, resolve } from "node:path"
 
-import type { FileStatus } from '@legible/domain';
+import type { FileStatus } from "@legible/domain"
 
-import { BlobReader } from './catFile';
-import { git, runGit } from './run';
+import { BlobReader } from "./catFile"
+import { git, runGit } from "./run"
 
 export interface RawChange {
-  status: FileStatus;
+  status: FileStatus
   /** Similarity score for renames/copies, 0–100. */
-  score: number | null;
-  oldMode: string;
-  newMode: string;
-  oldOid: string | null;
-  newOid: string | null;
-  oldPath: string | null;
-  path: string;
+  score: number | null
+  oldMode: string
+  newMode: string
+  oldOid: string | null
+  newOid: string | null
+  oldPath: string | null
+  path: string
 }
 
-const ZERO = /^0+$/;
+const ZERO = /^0+$/
 
 /** Identity for Snapshot commits so they work in repos without user.email set. */
 const SNAPSHOT_IDENT = {
-  GIT_AUTHOR_NAME: 'Legible',
-  GIT_AUTHOR_EMAIL: 'snapshot@legible.invalid',
-  GIT_COMMITTER_NAME: 'Legible',
-  GIT_COMMITTER_EMAIL: 'snapshot@legible.invalid',
-};
+  GIT_AUTHOR_NAME: "Legible",
+  GIT_AUTHOR_EMAIL: "snapshot@legible.invalid",
+  GIT_COMMITTER_NAME: "Legible",
+  GIT_COMMITTER_EMAIL: "snapshot@legible.invalid",
+}
 
 /** Most blobs one agent query may download into a blobless clone. */
-export const PREFETCH_LIMIT = 2000;
+export const PREFETCH_LIMIT = 2000
 
 export class GitRepo {
-  private reader: BlobReader | null = null;
-  private partial: Promise<boolean> | null = null;
+  private reader: BlobReader | null = null
+  private partial: Promise<boolean> | null = null
 
   private constructor(
     /** Absolute git dir. */
@@ -51,77 +51,117 @@ export class GitRepo {
 
   /** Opens the repository containing `path`. */
   static async open(path: string): Promise<GitRepo> {
-    const abs = resolve(path);
-    const out = await git(['rev-parse', '--absolute-git-dir', '--is-bare-repository'], { cwd: abs });
-    const [gitDir, bare] = out.trim().split('\n');
-    if (!gitDir) throw new Error(`Not a git repository: ${path}`);
-    if (bare === 'true') return new GitRepo(gitDir, null);
-    const top = (await git(['rev-parse', '--show-toplevel'], { cwd: abs })).trim();
-    return new GitRepo(gitDir, top);
+    const abs = resolve(path)
+    const out = await git(
+      ["rev-parse", "--absolute-git-dir", "--is-bare-repository"],
+      { cwd: abs },
+    )
+    const [gitDir, bare] = out.trim().split("\n")
+    if (!gitDir) throw new Error(`Not a git repository: ${path}`)
+    if (bare === "true") return new GitRepo(gitDir, null)
+    const top = (
+      await git(["rev-parse", "--show-toplevel"], { cwd: abs })
+    ).trim()
+    return new GitRepo(gitDir, top)
   }
 
   /** Wraps an existing bare repo (cache clone) without probing. */
   static bare(gitDir: string, env?: NodeJS.ProcessEnv): GitRepo {
-    return new GitRepo(gitDir, null, env);
+    return new GitRepo(gitDir, null, env)
   }
 
-  static at(gitDir: string, workTree: string | null, env?: NodeJS.ProcessEnv): GitRepo {
-    return new GitRepo(gitDir, workTree, env);
+  static at(
+    gitDir: string,
+    workTree: string | null,
+    env?: NodeJS.ProcessEnv,
+  ): GitRepo {
+    return new GitRepo(gitDir, workTree, env)
   }
 
   /** Runs git against this repo. */
-  git(args: string[], opts: { input?: string; env?: NodeJS.ProcessEnv; allowFailure?: boolean } = {}) {
-    const prefix = ['--git-dir', this.gitDir];
-    if (this.workTree) prefix.push('--work-tree', this.workTree);
+  git(
+    args: string[],
+    opts: {
+      input?: string
+      env?: NodeJS.ProcessEnv
+      allowFailure?: boolean
+    } = {},
+  ) {
+    const prefix = ["--git-dir", this.gitDir]
+    if (this.workTree) prefix.push("--work-tree", this.workTree)
     return runGit([...prefix, ...args], {
       cwd: this.workTree ?? this.gitDir,
       env: { ...this.env, ...opts.env },
       input: opts.input,
       allowFailure: opts.allowFailure,
-    });
+    })
   }
 
-  async text(args: string[], opts: { input?: string; env?: NodeJS.ProcessEnv } = {}): Promise<string> {
-    return (await this.git(args, opts)).stdout.toString('utf8');
+  async text(
+    args: string[],
+    opts: { input?: string; env?: NodeJS.ProcessEnv } = {},
+  ): Promise<string> {
+    return (await this.git(args, opts)).stdout.toString("utf8")
   }
 
   blobs(): BlobReader {
-    this.reader ??= new BlobReader(this.gitDir, this.env);
-    return this.reader;
+    this.reader ??= new BlobReader(this.gitDir, this.env)
+    return this.reader
   }
 
   close() {
-    this.reader?.close();
-    this.reader = null;
+    this.reader?.close()
+    this.reader = null
   }
 
   /** Resolves a revision to a full commit sha, or null. */
   async resolveCommit(rev: string): Promise<string | null> {
-    if (rev.startsWith('-')) return null;
-    const r = await this.git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${rev}^{commit}`], { allowFailure: true });
-    if (r.code !== 0) return null;
-    return r.stdout.toString('utf8').trim() || null;
+    if (rev.startsWith("-")) return null
+    const r = await this.git(
+      [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        `${rev}^{commit}`,
+      ],
+      { allowFailure: true },
+    )
+    if (r.code !== 0) return null
+    return r.stdout.toString("utf8").trim() || null
   }
 
   async treeOf(rev: string): Promise<string> {
-    return (await this.text(['rev-parse', '--verify', '--end-of-options', `${rev}^{tree}`])).trim();
+    return (
+      await this.text([
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        `${rev}^{tree}`,
+      ])
+    ).trim()
   }
 
   async mergeBase(a: string, b: string): Promise<string> {
-    const r = await this.git(['merge-base', a, b], { allowFailure: true });
-    const sha = r.stdout.toString('utf8').trim();
-    if (r.code !== 0 || !sha) throw new Error(`No common ancestor between ${a} and ${b}`);
-    return sha;
+    const r = await this.git(["merge-base", a, b], { allowFailure: true })
+    const sha = r.stdout.toString("utf8").trim()
+    if (r.code !== 0 || !sha)
+      throw new Error(`No common ancestor between ${a} and ${b}`)
+    return sha
   }
 
   async currentBranch(): Promise<string | null> {
-    const r = await this.git(['symbolic-ref', '--quiet', '--short', 'HEAD'], { allowFailure: true });
-    return r.code === 0 ? r.stdout.toString('utf8').trim() : null;
+    const r = await this.git(["symbolic-ref", "--quiet", "--short", "HEAD"], {
+      allowFailure: true,
+    })
+    return r.code === 0 ? r.stdout.toString("utf8").trim() : null
   }
 
-  async remoteUrl(name = 'origin'): Promise<string | null> {
-    const r = await this.git(['remote', 'get-url', name], { allowFailure: true });
-    return r.code === 0 ? r.stdout.toString('utf8').trim() : null;
+  async remoteUrl(name = "origin"): Promise<string | null> {
+    const r = await this.git(["remote", "get-url", name], {
+      allowFailure: true,
+    })
+    return r.code === 0 ? r.stdout.toString("utf8").trim() : null
   }
 
   /**
@@ -129,43 +169,53 @@ export class GitRepo {
    * target, else the first of main/master/trunk/develop that exists.
    */
   async defaultBaseRef(): Promise<string | null> {
-    const r = await this.git(['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'], { allowFailure: true });
+    const r = await this.git(
+      ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+      { allowFailure: true },
+    )
     if (r.code === 0) {
-      const ref = r.stdout.toString('utf8').trim();
-      if (ref) return ref;
+      const ref = r.stdout.toString("utf8").trim()
+      if (ref) return ref
     }
-    for (const name of ['main', 'master', 'trunk', 'develop']) {
-      if (await this.resolveCommit(`refs/remotes/origin/${name}`)) return `origin/${name}`;
-      if (await this.resolveCommit(`refs/heads/${name}`)) return name;
+    for (const name of ["main", "master", "trunk", "develop"]) {
+      if (await this.resolveCommit(`refs/remotes/origin/${name}`))
+        return `origin/${name}`
+      if (await this.resolveCommit(`refs/heads/${name}`)) return name
     }
-    return null;
+    return null
   }
 
   async listBranches(): Promise<string[]> {
-    const out = await this.text(['for-each-ref', '--format=%(refname:short)', '--sort=-committerdate', 'refs/heads', 'refs/remotes']);
+    const out = await this.text([
+      "for-each-ref",
+      "--format=%(refname:short)",
+      "--sort=-committerdate",
+      "refs/heads",
+      "refs/remotes",
+    ])
     return out
-      .split('\n')
+      .split("\n")
       .map((s) => s.trim())
-      .filter((s) => s && !s.endsWith('/HEAD') && s !== 'origin');
+      .filter((s) => s && !s.endsWith("/HEAD") && s !== "origin")
   }
 
   /** Pairs changed files between two commits, with rename and copy detection. */
   async diffRaw(base: string, head: string): Promise<RawChange[]> {
     const out = await this.git([
-      'diff',
-      '--raw',
-      '-z',
-      '-M',
-      '-C',
-      '--no-abbrev',
-      '--no-ext-diff',
-      '--no-textconv',
-      '-l5000',
+      "diff",
+      "--raw",
+      "-z",
+      "-M",
+      "-C",
+      "--no-abbrev",
+      "--no-ext-diff",
+      "--no-textconv",
+      "-l5000",
       base,
       head,
-      '--',
-    ]);
-    return parseRaw(out.stdout.toString('utf8'));
+      "--",
+    ])
+    return parseRaw(out.stdout.toString("utf8"))
   }
 
   /**
@@ -174,19 +224,23 @@ export class GitRepo {
    * the tree, and a commit on top of HEAD when the tree differs from HEAD's.
    */
   async workingTreeTree(): Promise<string> {
-    if (!this.workTree) throw new Error('Repository has no working tree');
-    const dir = await mkdtemp(join(tmpdir(), 'legible-index-'));
-    const indexFile = join(dir, 'index');
+    if (!this.workTree) throw new Error("Repository has no working tree")
+    const dir = await mkdtemp(join(tmpdir(), "legible-index-"))
+    const indexFile = join(dir, "index")
     try {
-      const realIndex = (await this.text(['rev-parse', '--git-path', 'index'])).trim();
-      const abs = isAbsolute(realIndex) ? realIndex : join(this.workTree, realIndex);
+      const realIndex = (
+        await this.text(["rev-parse", "--git-path", "index"])
+      ).trim()
+      const abs = isAbsolute(realIndex)
+        ? realIndex
+        : join(this.workTree, realIndex)
       // Starting from a copy of the real index keeps stat info, so `add -A` only hashes changed files.
-      await copyFile(abs, indexFile).catch(() => undefined);
-      const env = { GIT_INDEX_FILE: indexFile };
-      await this.git(['add', '-A', '--', '.'], { env });
-      return (await this.text(['write-tree'], { env })).trim();
+      await copyFile(abs, indexFile).catch(() => undefined)
+      const env = { GIT_INDEX_FILE: indexFile }
+      await this.git(["add", "-A", "--", "."], { env })
+      return (await this.text(["write-tree"], { env })).trim()
     } finally {
-      await rm(dir, { recursive: true, force: true });
+      await rm(dir, { recursive: true, force: true })
     }
   }
 
@@ -197,83 +251,115 @@ export class GitRepo {
    * workingTreeTree() can, without copying the index or writing objects.
    */
   async workingTreeSignature(): Promise<string> {
-    const workTree = this.workTree;
-    if (!workTree) throw new Error('Repository has no working tree');
+    const workTree = this.workTree
+    if (!workTree) throw new Error("Repository has no working tree")
     const [head, status] = await Promise.all([
-      this.resolveCommit('HEAD'),
-      this.text(['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']),
-    ]);
+      this.resolveCommit("HEAD"),
+      this.text([
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all",
+        "--no-renames",
+      ]),
+    ])
     const paths = status
-      .split('\0')
+      .split("\0")
       .map((e) => e.slice(3))
-      .filter(Boolean);
+      .filter(Boolean)
     const stats = await Promise.all(
       paths.map((p) =>
         stat(join(workTree, p)).then(
           (s) => `${s.size}:${s.mtimeMs}`,
-          () => '-',
+          () => "-",
         ),
       ),
-    );
-    return createHash('sha1')
-      .update([head ?? '', status, ...stats].join('\0'))
-      .digest('hex');
+    )
+    return createHash("sha1")
+      .update([head ?? "", status, ...stats].join("\0"))
+      .digest("hex")
   }
 
-  async snapshot(id: string, tree?: string): Promise<{ sha: string; tree: string; clean: boolean }> {
-    tree ??= await this.workingTreeTree();
-    const head = await this.resolveCommit('HEAD');
-    if (head && (await this.treeOf(head)) === tree) return { sha: head, tree, clean: true };
-    const args = ['commit-tree', tree, '-m', `Legible Snapshot ${id}`];
-    if (head) args.splice(2, 0, '-p', head);
-    const sha = (await this.text(args, { env: SNAPSHOT_IDENT })).trim();
-    await this.git(['update-ref', `refs/legible/snapshots/${id}`, sha]);
-    return { sha, tree, clean: false };
+  async snapshot(
+    id: string,
+    tree?: string,
+  ): Promise<{ sha: string; tree: string; clean: boolean }> {
+    tree ??= await this.workingTreeTree()
+    const head = await this.resolveCommit("HEAD")
+    if (head && (await this.treeOf(head)) === tree)
+      return { sha: head, tree, clean: true }
+    const args = ["commit-tree", tree, "-m", `Legible Snapshot ${id}`]
+    if (head) args.splice(2, 0, "-p", head)
+    const sha = (await this.text(args, { env: SNAPSHOT_IDENT })).trim()
+    await this.git(["update-ref", `refs/legible/snapshots/${id}`, sha])
+    return { sha, tree, clean: false }
   }
 
   /** linguist-generated / linguist-vendored attributes as of a commit. */
-  async generatedAttributes(rev: string, paths: string[]): Promise<Map<string, { generated: boolean; vendored: boolean }>> {
-    const result = new Map<string, { generated: boolean; vendored: boolean }>();
-    if (paths.length === 0) return result;
-    const r = await this.git(['check-attr', '-z', `--source=${rev}`, '--stdin', 'linguist-generated', 'linguist-vendored'], {
-      input: `${paths.join('\0')}\0`,
-      allowFailure: true,
-    });
-    if (r.code !== 0) return result;
-    const parts = r.stdout.toString('utf8').split('\0');
+  async generatedAttributes(
+    rev: string,
+    paths: string[],
+  ): Promise<Map<string, { generated: boolean; vendored: boolean }>> {
+    const result = new Map<string, { generated: boolean; vendored: boolean }>()
+    if (paths.length === 0) return result
+    const r = await this.git(
+      [
+        "check-attr",
+        "-z",
+        `--source=${rev}`,
+        "--stdin",
+        "linguist-generated",
+        "linguist-vendored",
+      ],
+      {
+        input: `${paths.join("\0")}\0`,
+        allowFailure: true,
+      },
+    )
+    if (r.code !== 0) return result
+    const parts = r.stdout.toString("utf8").split("\0")
     for (let i = 0; i + 2 < parts.length; i += 3) {
-      const path = parts[i] as string;
-      const attr = parts[i + 1];
-      const value = parts[i + 2];
-      const entry = result.get(path) ?? { generated: false, vendored: false };
-      const on = value === 'set' || value === 'true';
-      if (attr === 'linguist-generated') entry.generated = on;
-      if (attr === 'linguist-vendored') entry.vendored = on;
-      result.set(path, entry);
+      const path = parts[i] as string
+      const attr = parts[i + 1]
+      const value = parts[i + 2]
+      const entry = result.get(path) ?? { generated: false, vendored: false }
+      const on = value === "set" || value === "true"
+      if (attr === "linguist-generated") entry.generated = on
+      if (attr === "linguist-vendored") entry.vendored = on
+      result.set(path, entry)
     }
-    return result;
+    return result
   }
 
   // ---- Blobless clones ------------------------------------------------------
 
   /** True for blobless cache clones, which fetch blobs on first read. */
   isPartialClone(): Promise<boolean> {
-    this.partial ??= this.text(['config', '--get', 'remote.origin.promisor']).then(
-      (v) => v.trim() === 'true',
+    this.partial ??= this.text([
+      "config",
+      "--get",
+      "remote.origin.promisor",
+    ]).then(
+      (v) => v.trim() === "true",
       () => false,
-    );
-    return this.partial;
+    )
+    return this.partial
   }
 
   /** Blobs that `rev-list --objects <args>` reaches but this clone doesn't have. Never fetches. */
   private async missingBlobs(revListArgs: string[]): Promise<Set<string>> {
-    const out = await this.text(['rev-list', '--objects', '--missing=print', ...revListArgs]);
+    const out = await this.text([
+      "rev-list",
+      "--objects",
+      "--missing=print",
+      ...revListArgs,
+    ])
     return new Set(
       out
-        .split('\n')
-        .filter((l) => l.startsWith('?'))
+        .split("\n")
+        .filter((l) => l.startsWith("?"))
         .map((l) => l.slice(1)),
-    );
+    )
   }
 
   /**
@@ -281,157 +367,218 @@ export class GitRepo {
    * per blob, which turns a repository-wide grep into thousands of requests.
    */
   private async fetchBlobs(oids: string[]) {
-    if (oids.length === 0) return;
+    if (oids.length === 0) return
     await this.git(
       [
-        '-c',
-        'fetch.negotiationAlgorithm=noop',
-        'fetch',
-        'origin',
-        '--no-tags',
-        '--no-write-fetch-head',
-        '--recurse-submodules=no',
-        '--filter=blob:none',
-        '--stdin',
+        "-c",
+        "fetch.negotiationAlgorithm=noop",
+        "fetch",
+        "origin",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--recurse-submodules=no",
+        "--filter=blob:none",
+        "--stdin",
       ],
-      { input: `${oids.join('\n')}\n` },
-    );
+      { input: `${oids.join("\n")}\n` },
+    )
   }
 
   /** Downloads the blobs a grep at `rev` would read, refusing a scope that would download more than `limit`. */
-  private async prefetchForGrep(rev: string, pathspec: string | undefined, limit: number) {
-    if (!(await this.isPartialClone())) return;
-    const missing = await this.missingBlobs([`${rev}^{tree}`]);
-    if (missing.size === 0) return;
-    const match = pathspec ? pathspecMatcher(pathspec) : () => true;
-    const out = await this.text(['ls-tree', '-r', '-z', '--format=%(objecttype) %(objectname) %(path)', rev]);
-    const need: string[] = [];
-    for (const entry of out.split('\0')) {
-      const m = entry.match(/^blob (\S+) (.*)$/s);
-      if (m && missing.has(m[1] as string) && match(m[2] as string)) need.push(m[1] as string);
+  private async prefetchForGrep(
+    rev: string,
+    pathspec: string | undefined,
+    limit: number,
+  ) {
+    if (!(await this.isPartialClone())) return
+    const missing = await this.missingBlobs([`${rev}^{tree}`])
+    if (missing.size === 0) return
+    const match = pathspec ? pathspecMatcher(pathspec) : () => true
+    const out = await this.text([
+      "ls-tree",
+      "-r",
+      "-z",
+      "--format=%(objecttype) %(objectname) %(path)",
+      rev,
+    ])
+    const need: string[] = []
+    for (const entry of out.split("\0")) {
+      const m = entry.match(/^blob (\S+) (.*)$/s)
+      if (m && missing.has(m[1] as string) && match(m[2] as string))
+        need.push(m[1] as string)
     }
     if (need.length > limit) {
       throw new Error(
-        `Searching ${pathspec ? `"${pathspec}"` : 'the whole repository'} would download ${need.length} files. Narrow it with path.`,
-      );
+        `Searching ${pathspec ? `"${pathspec}"` : "the whole repository"} would download ${need.length} files. Narrow it with path.`,
+      )
     }
-    await this.fetchBlobs(need);
+    await this.fetchBlobs(need)
   }
 
   // ---- Read-only queries used by agent tools --------------------------------
 
   async listFiles(rev: string, pathPrefix?: string): Promise<string[]> {
-    const args = ['ls-tree', '-r', '--name-only', '-z', rev];
-    if (pathPrefix) args.push('--', pathPrefix);
-    const out = await this.text(args);
-    return out.split('\0').filter(Boolean);
+    const args = ["ls-tree", "-r", "--name-only", "-z", rev]
+    if (pathPrefix) args.push("--", pathPrefix)
+    const out = await this.text(args)
+    return out.split("\0").filter(Boolean)
   }
 
   /** `git grep` in a commit's tree. Returns "path:line:text" style matches. */
-  async grep(rev: string, pattern: string, opts: { pathspec?: string; maxCount?: number; ignoreCase?: boolean; fixed?: boolean } = {}) {
-    const args = ['grep', '-n', '-I', '--no-color', '--full-name'];
-    if (opts.ignoreCase) args.push('-i');
-    args.push(opts.fixed ? '-F' : '-E');
-    if (opts.maxCount) args.push(`--max-count=${opts.maxCount}`);
-    args.push('-e', pattern, rev, '--');
-    if (opts.pathspec) args.push(opts.pathspec);
-    await this.prefetchForGrep(rev, opts.pathspec, PREFETCH_LIMIT);
-    const r = await this.git(args, { allowFailure: true });
+  async grep(
+    rev: string,
+    pattern: string,
+    opts: {
+      pathspec?: string
+      maxCount?: number
+      ignoreCase?: boolean
+      fixed?: boolean
+    } = {},
+  ) {
+    const args = ["grep", "-n", "-I", "--no-color", "--full-name"]
+    if (opts.ignoreCase) args.push("-i")
+    args.push(opts.fixed ? "-F" : "-E")
+    if (opts.maxCount) args.push(`--max-count=${opts.maxCount}`)
+    args.push("-e", pattern, rev, "--")
+    if (opts.pathspec) args.push(opts.pathspec)
+    await this.prefetchForGrep(rev, opts.pathspec, PREFETCH_LIMIT)
+    const r = await this.git(args, { allowFailure: true })
     // Exit 1 = no matches.
-    if (r.code !== 0 && r.code !== 1) throw new Error(r.stderr.trim() || 'git grep failed');
-    const prefix = `${rev}:`;
+    if (r.code !== 0 && r.code !== 1)
+      throw new Error(r.stderr.trim() || "git grep failed")
+    const prefix = `${rev}:`
     return r.stdout
-      .toString('utf8')
-      .split('\n')
+      .toString("utf8")
+      .split("\n")
       .filter(Boolean)
-      .map((l) => (l.startsWith(prefix) ? l.slice(prefix.length) : l));
+      .map((l) => (l.startsWith(prefix) ? l.slice(prefix.length) : l))
   }
 
   async log(rev: string, opts: { path?: string; maxCount?: number } = {}) {
-    const args = ['log', `--max-count=${opts.maxCount ?? 20}`, '--format=%H%x00%an%x00%ad%x00%s', '--date=short', rev, '--'];
-    if (opts.path) args.push(opts.path);
-    const out = await this.text(args);
+    const args = [
+      "log",
+      `--max-count=${opts.maxCount ?? 20}`,
+      "--format=%H%x00%an%x00%ad%x00%s",
+      "--date=short",
+      rev,
+      "--",
+    ]
+    if (opts.path) args.push(opts.path)
+    const out = await this.text(args)
     return out
-      .split('\n')
+      .split("\n")
       .filter(Boolean)
       .map((l) => {
-        const [sha, author, date, subject] = l.split('\0');
-        return { sha: sha ?? '', author: author ?? '', date: date ?? '', subject: subject ?? '' };
-      });
+        const [sha, author, date, subject] = l.split("\0")
+        return {
+          sha: sha ?? "",
+          author: author ?? "",
+          date: date ?? "",
+          subject: subject ?? "",
+        }
+      })
   }
 
   async blame(rev: string, path: string, start: number, end: number) {
     if (await this.isPartialClone()) {
       // Blame reads the file at every commit that touched it. A long history falls back to lazy fetches.
-      const missing = await this.missingBlobs([rev, '--', path]);
-      if (missing.size <= PREFETCH_LIMIT) await this.fetchBlobs([...missing]);
+      const missing = await this.missingBlobs([rev, "--", path])
+      if (missing.size <= PREFETCH_LIMIT) await this.fetchBlobs([...missing])
     }
-    const out = await this.text(['blame', '--porcelain', '-L', `${start},${end}`, rev, '--', path]);
-    const lines: { line: number; sha: string; author: string; summary: string; text: string }[] = [];
-    const commits = new Map<string, { author: string; summary: string }>();
-    let current: { sha: string; line: number } | null = null;
-    for (const l of out.split('\n')) {
-      const header = l.match(/^([0-9a-f]{40,64}) \d+ (\d+)/);
+    const out = await this.text([
+      "blame",
+      "--porcelain",
+      "-L",
+      `${start},${end}`,
+      rev,
+      "--",
+      path,
+    ])
+    const lines: {
+      line: number
+      sha: string
+      author: string
+      summary: string
+      text: string
+    }[] = []
+    const commits = new Map<string, { author: string; summary: string }>()
+    let current: { sha: string; line: number } | null = null
+    for (const l of out.split("\n")) {
+      const header = l.match(/^([0-9a-f]{40,64}) \d+ (\d+)/)
       if (header) {
-        current = { sha: header[1] as string, line: Number(header[2]) };
-        continue;
+        current = { sha: header[1] as string, line: Number(header[2]) }
+        continue
       }
-      if (!current) continue;
-      const info = commits.get(current.sha) ?? { author: '', summary: '' };
-      if (l.startsWith('author ')) info.author = l.slice(7);
-      else if (l.startsWith('summary ')) info.summary = l.slice(8);
-      commits.set(current.sha, info);
-      if (l.startsWith('\t')) {
-        const c = commits.get(current.sha) as { author: string; summary: string };
-        lines.push({ line: current.line, sha: current.sha, author: c.author, summary: c.summary, text: l.slice(1) });
+      if (!current) continue
+      const info = commits.get(current.sha) ?? { author: "", summary: "" }
+      if (l.startsWith("author ")) info.author = l.slice(7)
+      else if (l.startsWith("summary ")) info.summary = l.slice(8)
+      commits.set(current.sha, info)
+      if (l.startsWith("\t")) {
+        const c = commits.get(current.sha) as {
+          author: string
+          summary: string
+        }
+        lines.push({
+          line: current.line,
+          sha: current.sha,
+          author: c.author,
+          summary: c.summary,
+          text: l.slice(1),
+        })
       }
     }
-    return lines;
+    return lines
   }
 }
 
 export function parseRaw(out: string): RawChange[] {
-  const parts = out.split('\0');
-  const changes: RawChange[] = [];
-  let i = 0;
+  const parts = out.split("\0")
+  const changes: RawChange[] = []
+  let i = 0
   while (i < parts.length) {
-    const meta = parts[i];
-    if (!meta?.startsWith(':')) {
-      i++;
-      continue;
+    const meta = parts[i]
+    if (!meta?.startsWith(":")) {
+      i++
+      continue
     }
     // :oldmode newmode oldsha newsha status
-    const [oldMode, newMode, oldSha, newSha, statusField] = meta.slice(1).split(' ');
-    const letter = (statusField ?? 'M')[0] as string;
-    const score = statusField && statusField.length > 1 ? Number(statusField.slice(1)) : null;
-    const twoPaths = letter === 'R' || letter === 'C';
-    const p1 = parts[i + 1] ?? '';
-    const p2 = twoPaths ? (parts[i + 2] ?? '') : null;
-    i += twoPaths ? 3 : 2;
+    const [oldMode, newMode, oldSha, newSha, statusField] = meta
+      .slice(1)
+      .split(" ")
+    const letter = (statusField ?? "M")[0] as string
+    const score =
+      statusField && statusField.length > 1
+        ? Number(statusField.slice(1))
+        : null
+    const twoPaths = letter === "R" || letter === "C"
+    const p1 = parts[i + 1] ?? ""
+    const p2 = twoPaths ? (parts[i + 2] ?? "") : null
+    i += twoPaths ? 3 : 2
     const status: FileStatus =
-      letter === 'A'
-        ? 'added'
-        : letter === 'D'
-          ? 'deleted'
-          : letter === 'R'
-            ? 'renamed'
-            : letter === 'C'
-              ? 'copied'
-              : letter === 'T'
-                ? 'typechange'
-                : 'modified';
+      letter === "A"
+        ? "added"
+        : letter === "D"
+          ? "deleted"
+          : letter === "R"
+            ? "renamed"
+            : letter === "C"
+              ? "copied"
+              : letter === "T"
+                ? "typechange"
+                : "modified"
     changes.push({
       status,
       score,
-      oldMode: oldMode ?? '',
-      newMode: newMode ?? '',
+      oldMode: oldMode ?? "",
+      newMode: newMode ?? "",
       oldOid: oldSha && !ZERO.test(oldSha) ? oldSha : null,
       newOid: newSha && !ZERO.test(newSha) ? newSha : null,
       oldPath: twoPaths ? p1 : null,
       path: twoPaths ? (p2 as string) : p1,
-    });
+    })
   }
-  return changes;
+  return changes
 }
 
 /**
@@ -439,25 +586,25 @@ export function parseRaw(out: string): RawChange[] {
  * and everything under it; `*`, `?` and `[...]` are wildcards, and `*` crosses `/`.
  */
 export function pathspecMatcher(spec: string): (path: string) => boolean {
-  const s = spec.replace(/^\.\//, '').replace(/\/+$/, '');
-  if (!/[*?[]/.test(s)) return (p) => p === s || p.startsWith(`${s}/`);
-  let re = '';
+  const s = spec.replace(/^\.\//, "").replace(/\/+$/, "")
+  if (!/[*?[]/.test(s)) return (p) => p === s || p.startsWith(`${s}/`)
+  let re = ""
   for (let i = 0; i < s.length; i++) {
-    const c = s[i] as string;
-    if (c === '*') re += '.*';
-    else if (c === '?') re += '.';
-    else if (c === '[') {
-      const close = s.indexOf(']', i + 1);
-      if (close < 0) re += '\\[';
+    const c = s[i] as string
+    if (c === "*") re += ".*"
+    else if (c === "?") re += "."
+    else if (c === "[") {
+      const close = s.indexOf("]", i + 1)
+      if (close < 0) re += "\\["
       else {
         re += `[${s
           .slice(i + 1, close)
-          .replace(/^!/, '^')
-          .replace(/\\/g, '\\\\')}]`;
-        i = close;
+          .replace(/^!/, "^")
+          .replace(/\\/g, "\\\\")}]`
+        i = close
       }
-    } else re += c.replace(/[.+^${}()|\\]/g, '\\$&');
+    } else re += c.replace(/[.+^${}()|\\]/g, "\\$&")
   }
-  const rx = new RegExp(`^${re}(/.*)?$`, 's');
-  return (p) => rx.test(p);
+  const rx = new RegExp(`^${re}(/.*)?$`, "s")
+  return (p) => rx.test(p)
 }

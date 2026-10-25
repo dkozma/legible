@@ -93,4 +93,4 @@ export const MIGRATIONS: string[] = [
     state_json TEXT NOT NULL
   );
   `,
-];
+]

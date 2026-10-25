@@ -7,49 +7,53 @@
 // Usage: node fixtures/make-refund-repo.mjs [targetDir]
 // Default target: fixtures/.generated/refunds
 
-import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { execFileSync } from "node:child_process"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 
-const here = dirname(fileURLToPath(import.meta.url));
-const target = resolve(process.argv[2] ?? join(here, '.generated', 'refunds'));
+const here = dirname(fileURLToPath(import.meta.url))
+const target = resolve(process.argv[2] ?? join(here, ".generated", "refunds"))
 
 const env = {
   ...process.env,
-  GIT_AUTHOR_NAME: 'Fixture Author',
-  GIT_AUTHOR_EMAIL: 'author@example.com',
-  GIT_COMMITTER_NAME: 'Fixture Author',
-  GIT_COMMITTER_EMAIL: 'author@example.com',
-  GIT_CONFIG_NOSYSTEM: '1',
-  GIT_CONFIG_GLOBAL: '/dev/null',
-};
-let clock = Date.UTC(2026, 9, 1, 9, 0, 0) / 1000;
+  GIT_AUTHOR_NAME: "Fixture Author",
+  GIT_AUTHOR_EMAIL: "author@example.com",
+  GIT_COMMITTER_NAME: "Fixture Author",
+  GIT_COMMITTER_EMAIL: "author@example.com",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_CONFIG_GLOBAL: "/dev/null",
+}
+let clock = Date.UTC(2026, 9, 1, 9, 0, 0) / 1000
 const git = (...args) => {
-  clock += 3600;
-  return execFileSync('git', args, {
+  clock += 3600
+  return execFileSync("git", args, {
     cwd: target,
-    env: { ...env, GIT_AUTHOR_DATE: `${clock} +0000`, GIT_COMMITTER_DATE: `${clock} +0000` },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).toString();
-};
+    env: {
+      ...env,
+      GIT_AUTHOR_DATE: `${clock} +0000`,
+      GIT_COMMITTER_DATE: `${clock} +0000`,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  }).toString()
+}
 const write = (path, text) => {
-  const p = join(target, path);
-  mkdirSync(dirname(p), { recursive: true });
-  writeFileSync(p, text.replace(/^\n/, ''));
-};
-const rm = (path) => rmSync(join(target, path), { force: true });
+  const p = join(target, path)
+  mkdirSync(dirname(p), { recursive: true })
+  writeFileSync(p, text.replace(/^\n/, ""))
+}
+const rm = (path) => rmSync(join(target, path), { force: true })
 
-rmSync(target, { recursive: true, force: true });
-mkdirSync(target, { recursive: true });
-git('init', '-q', '-b', 'main');
-git('config', 'user.name', 'Fixture Author');
-git('config', 'user.email', 'author@example.com');
+rmSync(target, { recursive: true, force: true })
+mkdirSync(target, { recursive: true })
+git("init", "-q", "-b", "main")
+git("config", "user.name", "Fixture Author")
+git("config", "user.email", "author@example.com")
 
 // ---------------------------------------------------------------- Base (main)
 
 write(
-  'package.json',
+  "package.json",
   `
 {
   "name": "storefront",
@@ -60,18 +64,18 @@ write(
   }
 }
 `,
-);
+)
 write(
-  'pnpm-lock.yaml',
+  "pnpm-lock.yaml",
   `
 lockfileVersion: '9.0'
 packages:
   money-math@2.1.0:
     resolution: {integrity: sha512-aaaa}
 `,
-);
+)
 write(
-  'db/migrations/0007_refunds.sql',
+  "db/migrations/0007_refunds.sql",
   `
 CREATE TABLE refunds (
   id TEXT PRIMARY KEY,
@@ -80,9 +84,9 @@ CREATE TABLE refunds (
   created_at TEXT NOT NULL
 );
 `,
-);
+)
 write(
-  'src/refunds/RefundPolicy.ts',
+  "src/refunds/RefundPolicy.ts",
   `
 import type { Order } from '../orders/Order';
 
@@ -104,9 +108,9 @@ export class RefundWindowClosed extends Error {
   }
 }
 `,
-);
+)
 write(
-  'src/refunds/RefundService.ts',
+  "src/refunds/RefundService.ts",
   `
 import { auditLog } from '../audit/auditLog';
 import type { Gateway } from '../payments/Gateway';
@@ -139,9 +143,9 @@ export class RefundService {
   }
 }
 `,
-);
+)
 write(
-  'src/refunds/refundUtils.ts',
+  "src/refunds/refundUtils.ts",
   `
 export function formatCents(cents: number): string {
   const dollars = Math.floor(cents / 100);
@@ -155,9 +159,9 @@ export function sumCents(values: number[]): number {
   return total;
 }
 `,
-);
+)
 write(
-  'src/api/refunds.ts',
+  "src/api/refunds.ts",
   `
 import type { Request, Response } from '../http';
 import { service } from '../services';
@@ -168,9 +172,9 @@ export async function postRefund(req: Request, res: Response) {
   res.status(201).json(refund);
 }
 `,
-);
+)
 write(
-  'src/client/refundStore.ts',
+  "src/client/refundStore.ts",
   `
 export interface RefundState {
   pending: boolean;
@@ -187,9 +191,9 @@ export async function submitRefund(orderId: string): Promise<void> {
   if (!res.ok) throw new Error('Refund failed');
 }
 `,
-);
+)
 write(
-  'src/ui/RefundDialog.tsx',
+  "src/ui/RefundDialog.tsx",
   `
 import { submitRefund } from '../client/refundStore';
 
@@ -202,33 +206,33 @@ export function RefundDialog({ orderId, onClose }: { orderId: string; onClose():
   );
 }
 `,
-);
+)
 write(
-  'src/config/limits.ts',
+  "src/config/limits.ts",
   `
 export const limits = {
     maxRefundsPerDay: 50,
     maxRefundCents: 500000,
 };
 `,
-);
+)
 write(
-  'README.md',
+  "README.md",
   `
 # Storefront
 
 Order management and refunds.
 `,
-);
-git('add', '-A');
-git('commit', '-q', '-m', 'Storefront with full refunds');
+)
+git("add", "-A")
+git("commit", "-q", "-m", "Storefront with full refunds")
 
 // -------------------------------------------------- Feature branch (agent work)
 
-git('checkout', '-q', '-b', 'feature/partial-refunds');
+git("checkout", "-q", "-b", "feature/partial-refunds")
 
 write(
-  'package.json',
+  "package.json",
   `
 {
   "name": "storefront",
@@ -239,26 +243,26 @@ write(
   }
 }
 `,
-);
+)
 write(
-  'pnpm-lock.yaml',
+  "pnpm-lock.yaml",
   `
 lockfileVersion: '9.0'
 packages:
   money-math@2.2.0:
     resolution: {integrity: sha512-bbbb}
 `,
-);
+)
 write(
-  'db/migrations/0008_partial_refunds.sql',
+  "db/migrations/0008_partial_refunds.sql",
   `
 ALTER TABLE refunds ADD COLUMN includes_shipping INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE refunds ADD COLUMN sequence INTEGER NOT NULL DEFAULT 1;
 CREATE INDEX refunds_order_id ON refunds(order_id);
 `,
-);
+)
 write(
-  'src/refunds/RefundPolicy.ts',
+  "src/refunds/RefundPolicy.ts",
   `
 import type { Order } from '../orders/Order';
 
@@ -280,9 +284,9 @@ export class RefundWindowClosed extends Error {
   }
 }
 `,
-);
+)
 write(
-  'src/refunds/RefundService.ts',
+  "src/refunds/RefundService.ts",
   `
 import type { EventBus } from '../events/EventBus';
 import type { Gateway } from '../payments/Gateway';
@@ -353,10 +357,10 @@ export class RefundService {
   }
 }
 `,
-);
-rm('src/refunds/refundUtils.ts');
+)
+rm("src/refunds/refundUtils.ts")
 write(
-  'src/refunds/refund-math.ts',
+  "src/refunds/refund-math.ts",
   `
 export function formatCents(cents: number): string {
   const dollars = Math.floor(cents / 100);
@@ -370,9 +374,9 @@ export function sumCents(values: number[]): number {
   return total;
 }
 `,
-);
+)
 write(
-  'src/refunds/RefundRepository.ts',
+  "src/refunds/RefundRepository.ts",
   `
 export interface RefundRecord {
   orderId: string;
@@ -386,9 +390,9 @@ export interface RefundRepository {
   record(orderId: string, amountCents: number, includesShipping: boolean, sequence: number): Promise<void>;
 }
 `,
-);
+)
 write(
-  'src/audit/RefundAuditSubscriber.ts',
+  "src/audit/RefundAuditSubscriber.ts",
   `
 import { auditLog } from './auditLog';
 import type { EventBus } from '../events/EventBus';
@@ -400,9 +404,9 @@ export function subscribeRefundAudit(events: EventBus) {
   });
 }
 `,
-);
+)
 write(
-  'src/api/refunds.ts',
+  "src/api/refunds.ts",
   `
 import type { Request, Response } from '../http';
 import { service } from '../services';
@@ -417,9 +421,9 @@ export async function postRefund(req: Request, res: Response) {
   res.status(201).json(refund);
 }
 `,
-);
+)
 write(
-  'src/client/refundStore.ts',
+  "src/client/refundStore.ts",
   `
 export interface RefundState {
   pending: boolean;
@@ -440,9 +444,9 @@ export async function submitRefund(orderId: string, amountCents?: number): Promi
   }
 }
 `,
-);
+)
 write(
-  'src/ui/RefundDialog.tsx',
+  "src/ui/RefundDialog.tsx",
   `
 import { useState } from 'react';
 import { submitRefund } from '../client/refundStore';
@@ -462,22 +466,22 @@ export function RefundDialog({ orderId, remainingCents, onClose }: { orderId: st
   );
 }
 `,
-);
+)
 write(
-  'src/config/limits.ts',
+  "src/config/limits.ts",
   `
 export const limits = {
   maxRefundsPerDay: 50,
   maxRefundCents: 500000,
 };
 `,
-);
-git('add', '-A');
-git('commit', '-q', '-m', 'Partial refunds and a 60-day window');
+)
+git("add", "-A")
+git("commit", "-q", "-m", "Partial refunds and a 60-day window")
 
 // Uncommitted work the agent left in the working tree.
 write(
-  'src/refunds/RefundService.test.ts',
+  "src/refunds/RefundService.test.ts",
   `
 import { describe, expect, it } from 'vitest';
 import { RefundService } from './RefundService';
@@ -495,14 +499,14 @@ describe('refundOrder', () => {
   });
 });
 `,
-);
+)
 write(
-  'README.md',
+  "README.md",
   `
 # Storefront
 
 Order management and refunds. Refunds are allowed within 60 days and can be partial.
 `,
-);
+)
 
-process.stdout.write(`${target}\n`);
+process.stdout.write(`${target}\n`)

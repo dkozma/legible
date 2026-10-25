@@ -1,8 +1,8 @@
-import { resolve } from 'node:path';
+import { resolve } from "node:path"
 
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig, externalizeDepsPlugin } from "electron-vite"
 
 export default defineConfig({
   main: {
@@ -10,8 +10,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/main/index.ts'),
-          agentHost: resolve(__dirname, 'src/main/agentHost.ts'),
+          index: resolve(__dirname, "src/main/index.ts"),
+          agentHost: resolve(__dirname, "src/main/agentHost.ts"),
         },
       },
     },
@@ -21,15 +21,15 @@ export default defineConfig({
     build: {
       rollupOptions: {
         // Sandboxed preloads must be CommonJS.
-        output: { format: 'cjs', entryFileNames: '[name].cjs' },
+        output: { format: "cjs", entryFileNames: "[name].cjs" },
       },
     },
   },
   renderer: {
-    root: resolve(__dirname, 'src/renderer'),
+    root: resolve(__dirname, "src/renderer"),
     plugins: [react(), tailwindcss()],
     build: {
-      rollupOptions: { input: resolve(__dirname, 'src/renderer/index.html') },
+      rollupOptions: { input: resolve(__dirname, "src/renderer/index.html") },
     },
   },
-});
+})

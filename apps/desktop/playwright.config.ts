@@ -1,10 +1,10 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig } from "@playwright/test"
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   timeout: 90_000,
   workers: 1,
-  reporter: [['list']],
-  use: { trace: 'retain-on-failure' },
-  outputDir: './test-results',
-});
+  reporter: [["list"]],
+  use: { trace: "retain-on-failure" },
+  outputDir: "./test-results",
+})

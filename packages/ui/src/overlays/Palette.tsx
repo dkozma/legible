@@ -1,39 +1,42 @@
-import { FileCode2, Search, Terminal } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { FileCode2, Search, Terminal } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
-import { formatKey, fuzzy } from '../commands';
-import { cn, Kbd } from '../components/ui';
-import { useUI } from '../state';
+import { formatKey, fuzzy } from "../commands"
+import { cn, Kbd } from "../components/ui"
+import { useUI } from "../state"
 
 interface Item {
-  id: string;
-  kind: 'file' | 'command';
-  label: string;
-  keys: string[];
-  indices: number[];
-  score: number;
-  run: () => void;
+  id: string
+  kind: "file" | "command"
+  label: string
+  keys: string[]
+  indices: number[]
+  score: number
+  run: () => void
 }
 
 function Highlight({ text, indices }: { text: string; indices: number[] }) {
-  if (!indices.length) return <>{text}</>;
-  const set = new Set(indices);
+  if (!indices.length) return <>{text}</>
+  const set = new Set(indices)
   // `indices` are UTF-16 offsets into `text`. Walk code points so emoji stay whole,
   // and emit one element per run of matched or unmatched text.
-  const runs: { at: number; marked: boolean; text: string }[] = [];
-  let at = 0;
+  const runs: { at: number; marked: boolean; text: string }[] = []
+  let at = 0
   for (const ch of text) {
-    const marked = set.has(at);
-    const last = runs[runs.length - 1];
-    if (last?.marked === marked) last.text += ch;
-    else runs.push({ at, marked, text: ch });
-    at += ch.length;
+    const marked = set.has(at)
+    const last = runs[runs.length - 1]
+    if (last?.marked === marked) last.text += ch
+    else runs.push({ at, marked, text: ch })
+    at += ch.length
   }
   return (
     <>
       {runs.map((r) =>
         r.marked ? (
-          <mark key={r.at} className="bg-transparent font-semibold text-foreground">
+          <mark
+            key={r.at}
+            className="bg-transparent font-semibold text-foreground"
+          >
             {r.text}
           </mark>
         ) : (
@@ -41,58 +44,92 @@ function Highlight({ text, indices }: { text: string; indices: number[] }) {
         ),
       )}
     </>
-  );
+  )
 }
 
 export function Palette() {
-  const source = useUI((s) => s.paletteSource);
-  const set = useUI((s) => s.set);
-  const go = useUI((s) => s.go);
-  const [q, setQ] = useState('');
-  const [active, setActive] = useState(0);
-  const listRef = useRef<HTMLDivElement>(null);
-  const close = () => set({ palette: false });
+  const source = useUI((s) => s.paletteSource)
+  const set = useUI((s) => s.set)
+  const go = useUI((s) => s.go)
+  const [q, setQ] = useState("")
+  const [active, setActive] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
+  const close = () => set({ palette: false })
 
   const items = useMemo(() => {
-    const out: Item[] = [];
-    const cmds = source?.commands ?? [];
+    const out: Item[] = []
+    const cmds = source?.commands ?? []
     const globals = [
-      { id: 'settings', title: 'Open Settings', keys: ['mod+,'], run: () => go({ name: 'settings', section: null }) },
-      { id: 'shortcuts', title: 'Show keyboard shortcuts', keys: ['?'], run: () => set({ shortcuts: true }) },
-      { id: 'home', title: 'All Reviews', keys: [], run: () => go({ name: 'home' }) },
-    ];
-    for (const c of [...cmds.filter((cmd) => !cmd.paletteHidden && (!cmd.enabled || cmd.enabled())), ...globals]) {
-      const title = 'title' in c ? c.title : '';
-      const m = fuzzy(q, title);
-      if (m) out.push({ id: `c:${c.id}`, kind: 'command', label: title, keys: c.keys, indices: m.indices, score: m.score - 1, run: c.run });
+      {
+        id: "settings",
+        title: "Open Settings",
+        keys: ["mod+,"],
+        run: () => go({ name: "settings", section: null }),
+      },
+      {
+        id: "shortcuts",
+        title: "Show keyboard shortcuts",
+        keys: ["?"],
+        run: () => set({ shortcuts: true }),
+      },
+      {
+        id: "home",
+        title: "All Reviews",
+        keys: [],
+        run: () => go({ name: "home" }),
+      },
+    ]
+    for (const c of [
+      ...cmds.filter(
+        (cmd) => !cmd.paletteHidden && (!cmd.enabled || cmd.enabled()),
+      ),
+      ...globals,
+    ]) {
+      const title = "title" in c ? c.title : ""
+      const m = fuzzy(q, title)
+      if (m)
+        out.push({
+          id: `c:${c.id}`,
+          kind: "command",
+          label: title,
+          keys: c.keys,
+          indices: m.indices,
+          score: m.score - 1,
+          run: c.run,
+        })
     }
     for (const f of source?.files ?? []) {
-      const m = fuzzy(q, f.path);
+      const m = fuzzy(q, f.path)
       if (m)
         out.push({
           id: `f:${f.id}`,
-          kind: 'file',
+          kind: "file",
           label: f.path,
           keys: [],
           indices: m.indices,
           score: m.score,
           run: () => source?.openFile(f.id),
-        });
+        })
     }
-    if (q) out.sort((a, b) => b.score - a.score);
-    return out.slice(0, 80);
-  }, [q, source, go, set]);
+    if (q) out.sort((a, b) => b.score - a.score)
+    return out.slice(0, 80)
+  }, [q, source, go, set])
 
   useEffect(() => {
-    listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
-  }, [active]);
+    listRef.current
+      ?.querySelector(`[data-index="${active}"]`)
+      ?.scrollIntoView({ block: "nearest" })
+  }, [active])
 
-  const files = items.filter((i) => i.kind === 'file');
-  const commands = items.filter((i) => i.kind === 'command');
-  const ordered = q ? items : [...commands, ...files];
+  const files = items.filter((i) => i.kind === "file")
+  const commands = items.filter((i) => i.kind === "command")
+  const ordered = q ? items : [...commands, ...files]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-overlay pt-[12vh]" onMouseDown={close}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-overlay pt-[12vh]"
+      onMouseDown={close}
+    >
       <div
         role="dialog"
         aria-label="Command palette"
@@ -108,40 +145,44 @@ export function Palette() {
             placeholder="Search files and actions"
             value={q}
             onChange={(e) => {
-              setQ(e.target.value);
-              setActive(0);
+              setQ(e.target.value)
+              setActive(0)
             }}
             onKeyDown={(e) => {
-              if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setActive((a) => Math.min(ordered.length - 1, a + 1));
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setActive((a) => Math.max(0, a - 1));
-              } else if (e.key === 'Enter') {
-                e.preventDefault();
-                const item = ordered[active];
+              if (e.key === "ArrowDown") {
+                e.preventDefault()
+                setActive((a) => Math.min(ordered.length - 1, a + 1))
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault()
+                setActive((a) => Math.max(0, a - 1))
+              } else if (e.key === "Enter") {
+                e.preventDefault()
+                const item = ordered[active]
                 if (item) {
-                  close();
-                  item.run();
+                  close()
+                  item.run()
                 }
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                close();
+              } else if (e.key === "Escape") {
+                e.preventDefault()
+                close()
               }
             }}
           />
-          <Kbd keys={['esc']} />
+          <Kbd keys={["esc"]} />
         </div>
         <div className="overflow-auto p-1.5" ref={listRef}>
-          {ordered.length === 0 && <div className="p-2.5 text-sm text-muted-foreground">No matches</div>}
+          {ordered.length === 0 && (
+            <div className="p-2.5 text-sm text-muted-foreground">
+              No matches
+            </div>
+          )}
           {ordered.map((item, i) => {
-            const header = i === 0 || ordered[i - 1]?.kind !== item.kind;
+            const header = i === 0 || ordered[i - 1]?.kind !== item.kind
             return (
               <div key={item.id}>
                 {header && !q && (
                   <div className="px-2.5 pt-2 pb-1 text-xs font-medium text-muted-foreground">
-                    {item.kind === 'file' ? 'Files' : 'Actions'}
+                    {item.kind === "file" ? "Files" : "Actions"}
                   </div>
                 )}
                 <div
@@ -149,34 +190,42 @@ export function Palette() {
                   tabIndex={-1}
                   aria-selected={i === active}
                   data-index={i}
-                  className={cn('flex h-9 cursor-pointer items-center gap-2 rounded-sm px-2', i === active && 'bg-accent')}
+                  className={cn(
+                    "flex h-9 cursor-pointer items-center gap-2 rounded-sm px-2",
+                    i === active && "bg-accent",
+                  )}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => {
-                    close();
-                    item.run();
+                    close()
+                    item.run()
                   }}
                 >
-                  {item.kind === 'file' ? (
+                  {item.kind === "file" ? (
                     <FileCode2 className="size-3.5 shrink-0 text-muted-foreground" />
                   ) : (
                     <Terminal className="size-3.5 shrink-0 text-muted-foreground" />
                   )}
-                  <span className={cn('min-w-0 flex-auto truncate text-sm', item.kind === 'file' && 'font-mono')}>
+                  <span
+                    className={cn(
+                      "min-w-0 flex-auto truncate text-sm",
+                      item.kind === "file" && "font-mono",
+                    )}
+                  >
                     <Highlight text={item.label} indices={item.indices} />
                   </span>
                   {item.keys[0] && <Kbd keys={formatKey(item.keys[0])} />}
                 </div>
               </div>
-            );
+            )
           })}
         </div>
         <div className="flex shrink-0 items-center gap-3.5 border-t px-3.5 py-2.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Kbd keys={['↑', '↓']} />
+            <Kbd keys={["↑", "↓"]} />
             move
           </span>
           <span className="flex items-center gap-1">
-            <Kbd keys={['↵']} />
+            <Kbd keys={["↵"]} />
             open
           </span>
           <span className="grow" />
@@ -184,5 +233,5 @@ export function Palette() {
         </div>
       </div>
     </div>
-  );
+  )
 }
