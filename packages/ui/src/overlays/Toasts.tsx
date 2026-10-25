@@ -1,22 +1,30 @@
 import { AlertTriangle, Info, X } from 'lucide-react';
+import { Button, cn } from '../components/ui';
 import { useUI } from '../state';
 
 export function Toasts() {
   const toasts = useUI((s) => s.toasts);
   const dismiss = useUI((s) => s.dismissToast);
   return (
-    <div className="toasts" aria-live="assertive">
+    <div className="fixed right-4 bottom-4 z-[60] flex max-w-[420px] flex-col gap-2" aria-live="assertive" data-testid="toasts">
       {toasts.map((t) => (
-        <div key={t.id} className={`popover toast ${t.kind}`} role={t.kind === 'error' ? 'alert' : 'status'}>
+        <div
+          key={t.id}
+          role={t.kind === 'error' ? 'alert' : 'status'}
+          className={cn(
+            'flex select-text items-start gap-2.5 rounded-lg border bg-popover px-3 py-2.5 text-sm text-popover-foreground shadow-popover',
+            t.kind === 'error' && 'border-critical-border',
+          )}
+        >
           {t.kind === 'error' ? (
-            <AlertTriangle className="i i-sm" style={{ color: 'var(--risk-critical)', marginTop: 1 }} />
+            <AlertTriangle className="mt-px size-3.5 shrink-0 text-critical" />
           ) : (
-            <Info className="i i-sm muted" style={{ marginTop: 1 }} />
+            <Info className="mt-px size-3.5 shrink-0 text-muted-foreground" />
           )}
           <span className="grow">{t.message}</span>
-          <button className="btn btn-ghost btn-icon btn-xs muted" type="button" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
-            <X className="i i-xs" />
-          </button>
+          <Button variant="muted" size="icon-xs" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
+            <X />
+          </Button>
         </div>
       ))}
     </div>

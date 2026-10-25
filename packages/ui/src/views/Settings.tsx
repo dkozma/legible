@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, RefreshCw, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { usd } from '../components/Inline';
+import { Badge, Button, Callout, Card, cn, Input, Kbd, Radio, Select, Switch, Tab, Tabs, Titlebar } from '../components/ui';
 import { useClient } from '../context';
 import { useUI } from '../state';
 
@@ -22,6 +23,9 @@ const TIER_WORK: Record<ModelTier, string> = {
   mid: 'Walkthrough, Change Brief, Conversations (from M3)',
   fast: 'Explanations',
 };
+
+const settingRow = 'flex flex-wrap items-center gap-3.5 border-b px-[18px] py-3.5 last:border-b-0';
+const fieldLabel = 'text-sm font-medium';
 
 export function SettingsView({ initialSection }: { initialSection: string | null }) {
   const client = useClient();
@@ -47,20 +51,23 @@ export function SettingsView({ initialSection }: { initialSection: string | null
 
   return (
     <>
-      <header className="titlebar">
-        <span className="b sm grow">Settings</span>
-        {save.isPending && <Loader2 className="i i-sm spin muted" />}
-        <button className="btn btn-ghost btn-sm muted" type="button" onClick={() => go(returnTo ?? { name: 'home' })}>
-          Close <span className="kbd">esc</span>
-        </button>
-      </header>
-      <div className="main">
-        <nav className="settings-nav" aria-label="Settings sections">
+      <Titlebar>
+        <span className="grow text-sm font-semibold">Settings</span>
+        {save.isPending && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+        <Button variant="muted" size="sm" onClick={() => go(returnTo ?? { name: 'home' })}>
+          Close <Kbd keys={['esc']} />
+        </Button>
+      </Titlebar>
+      <div className="flex min-h-0 flex-auto">
+        <nav aria-label="Settings sections" className="flex w-[220px] shrink-0 flex-col gap-0.5 border-r bg-sidebar px-3 py-5">
           {SECTIONS.map(([id, label]) => (
             <button
               key={id}
               type="button"
-              className={`nav-item${active === id ? ' active' : ''}`}
+              className={cn(
+                'flex h-8 items-center rounded-md px-2.5 text-left text-base font-medium text-muted-foreground hover:bg-hover',
+                active === id && 'bg-accent text-foreground',
+              )}
               onClick={() => {
                 setActive(id);
                 document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -70,42 +77,39 @@ export function SettingsView({ initialSection }: { initialSection: string | null
             </button>
           ))}
         </nav>
-        <main className="settings-main">
+        <main className="flex-auto overflow-auto px-6 pt-7 pb-16">
           {settings.data && (
-            <div className="settings-inner">
+            <div className="mx-auto flex max-w-[860px] flex-col gap-9">
               <Providers settings={settings.data} update={update} />
               <Tiers settings={settings.data} update={update} />
               <Hosts />
               <Spend settings={settings.data} update={update} />
               <Section id="diff" title="Diff viewer" description="Defaults for new Reviews. Each Review can switch with ⌥S and W.">
-                <div className="card">
-                  <div className="setting-row">
-                    <span className="sm grow">Layout</span>
-                    <div className="tabs" role="tablist" aria-label="Default layout">
+                <Card>
+                  <div className={settingRow}>
+                    <span className="grow text-sm">Layout</span>
+                    <Tabs label="Default layout">
                       {(['unified', 'split'] as const).map((l) => (
-                        <button
+                        <Tab
                           key={l}
-                          className="tab"
-                          type="button"
-                          role="tab"
-                          aria-selected={settings.data.diff.layout === l}
+                          selected={settings.data.diff.layout === l}
                           onClick={() => update((s) => ({ ...s, diff: { ...s.diff, layout: l } }))}
                         >
                           {l === 'unified' ? 'Unified' : 'Split'}
-                        </button>
+                        </Tab>
                       ))}
-                    </div>
+                    </Tabs>
                   </div>
-                  <div className="setting-row">
-                    <span className="sm grow">Hide whitespace-only changes</span>
-                    <Toggle
-                      on={settings.data.diff.ignoreWhitespace}
+                  <div className={settingRow}>
+                    <span className="grow text-sm">Hide whitespace-only changes</span>
+                    <Switch
+                      checked={settings.data.diff.ignoreWhitespace}
                       label="Hide whitespace-only changes"
                       onChange={(v) => update((s) => ({ ...s, diff: { ...s.diff, ignoreWhitespace: v } }))}
                     />
                   </div>
-                  <div className="setting-row">
-                    <span className="sm grow">Context lines around each change</span>
+                  <div className={settingRow}>
+                    <span className="grow text-sm">Context lines around each change</span>
                     <NumberField
                       value={settings.data.diff.contextLines}
                       min={0}
@@ -114,18 +118,17 @@ export function SettingsView({ initialSection }: { initialSection: string | null
                       onCommit={(v) => update((s) => ({ ...s, diff: { ...s.diff, contextLines: v } }))}
                     />
                   </div>
-                </div>
+                </Card>
               </Section>
               <Section
                 id="editor"
                 title="Editor"
                 description="Where “Open in editor” (o) opens the current line. Only for Reviews of a local working tree."
               >
-                <div className="card">
-                  <div className="setting-row">
-                    <span className="sm grow">Editor</span>
-                    <select
-                      className="select"
+                <Card>
+                  <div className={settingRow}>
+                    <span className="grow text-sm">Editor</span>
+                    <Select
                       aria-label="Editor"
                       value={settings.data.editor}
                       onChange={(e) => update((s) => ({ ...s, editor: e.target.value as Settings['editor'] }))}
@@ -135,42 +138,35 @@ export function SettingsView({ initialSection }: { initialSection: string | null
                       <option value="zed">Zed</option>
                       <option value="idea">JetBrains IDE</option>
                       <option value="env">$VISUAL / $EDITOR</option>
-                    </select>
+                    </Select>
                   </div>
-                </div>
+                </Card>
               </Section>
               <Section id="appearance" title="Appearance">
-                <div className="card">
-                  <div className="setting-row">
-                    <span className="sm grow">Theme</span>
-                    <div className="tabs" role="tablist" aria-label="Theme">
+                <Card>
+                  <div className={settingRow}>
+                    <span className="grow text-sm">Theme</span>
+                    <Tabs label="Theme">
                       {(['system', 'dark', 'light'] as const).map((t) => (
-                        <button
-                          key={t}
-                          className="tab"
-                          type="button"
-                          role="tab"
-                          aria-selected={settings.data.theme === t}
-                          onClick={() => update((s) => ({ ...s, theme: t }))}
-                        >
+                        <Tab key={t} selected={settings.data.theme === t} onClick={() => update((s) => ({ ...s, theme: t }))}>
                           {t[0]?.toUpperCase()}
                           {t.slice(1)}
-                        </button>
+                        </Tab>
                       ))}
-                    </div>
+                    </Tabs>
                   </div>
-                </div>
+                </Card>
               </Section>
-              <section id="privacy" className="inset col" style={{ gap: 8, padding: '16px 18px' }} aria-labelledby="priv-h">
-                <h2 className="h3" id="priv-h">
+              <Callout id="privacy" className="flex flex-col gap-2 px-[18px] py-4" aria-labelledby="priv-h">
+                <h2 className="text-base font-semibold" id="priv-h">
                   Where your code goes
                 </h2>
-                <p className="sm muted">
+                <p className="text-sm text-muted-foreground">
                   Only to your git host (to fetch Pull Requests) and to Claude when you ask for an Explanation. Legible collects no
                   telemetry and sends no crash reports. Explanations only read code through Legible's own read-only tools: agents get no
                   shell, no file edits, no network, and never load the reviewed repository's Claude settings, hooks or MCP servers.
                 </p>
-              </section>
+              </Callout>
             </div>
           )}
         </main>
@@ -181,20 +177,16 @@ export function SettingsView({ initialSection }: { initialSection: string | null
 
 function Section({ id, title, description, children }: { id: string; title: string; description?: string; children: ReactNode }) {
   return (
-    <section id={id} className="col" style={{ gap: 14 }} aria-labelledby={`${id}-h`}>
-      <div className="col" style={{ gap: 4 }}>
-        <h2 className="h2" id={`${id}-h`}>
+    <section id={id} className="flex flex-col gap-3.5" aria-labelledby={`${id}-h`}>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-title font-semibold" id={`${id}-h`}>
           {title}
         </h2>
-        {description && <p className="sm muted">{description}</p>}
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {children}
     </section>
   );
-}
-
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return <button className="switch" role="switch" type="button" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} />;
 }
 
 function NumberField({
@@ -222,12 +214,11 @@ function NumberField({
     else setV(String(value));
   };
   return (
-    <span className="row" style={{ gap: 4 }}>
-      {prefix && <span className="sm muted">{prefix}</span>}
-      <input
-        className="input mono"
+    <span className="flex items-center gap-1">
+      {prefix && <span className="text-sm text-muted-foreground">{prefix}</span>}
+      <Input
+        className="w-[90px] text-right font-mono"
         aria-label={label}
-        style={{ width: 90, textAlign: 'right' }}
         type="number"
         min={min}
         max={max}
@@ -257,10 +248,9 @@ function SecretField({ name, placeholder, label }: { name: string; placeholder: 
   });
   const saved = Boolean(status.data?.[name]);
   return (
-    <div className="row" style={{ gap: 6 }}>
-      <input
-        className="input mono"
-        style={{ fontSize: 12 }}
+    <div className="flex items-center gap-1.5">
+      <Input
+        className="font-mono text-sm"
         type="password"
         aria-label={label}
         placeholder={saved ? 'Saved in the keychain' : placeholder}
@@ -268,13 +258,13 @@ function SecretField({ name, placeholder, label }: { name: string; placeholder: 
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && value && set.mutate(value)}
       />
-      <button className="btn btn-outline btn-sm" type="button" disabled={!value} onClick={() => set.mutate(value)}>
+      <Button variant="outline" size="sm" disabled={!value} onClick={() => set.mutate(value)}>
         Save
-      </button>
+      </Button>
       {saved && (
-        <button className="btn btn-ghost btn-sm muted" type="button" onClick={() => set.mutate(null)}>
+        <Button variant="muted" size="sm" onClick={() => set.mutate(null)}>
           Remove
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -287,6 +277,8 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
   const setAuth = (a: ClaudeAuth) => update((s) => ({ ...s, claude: { ...s.claude, auth: a } }));
   const usage: ClaudeAuth = auth === 'claude-code' ? 'anthropic-api' : auth;
   const [path, setPath] = useState(settings.claude.executablePath ?? '');
+  const readyBadge = (ok: string) =>
+    status.data && <Badge tone={status.data.ready ? 'ok' : 'elevated'}>{status.data.ready ? ok : 'Not ready'}</Badge>;
 
   return (
     <Section
@@ -294,85 +286,67 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
       title="Providers"
       description="Explanations run on Claude. Keys are stored in the OS keychain and passed to Claude only as environment variables."
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-        <article className="card col" aria-labelledby="claude-h">
-          <div className="card-head row">
-            <h3 className="h3 grow" id="claude-h">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3.5">
+        <Card aria-labelledby="claude-h" className="flex flex-col">
+          <div className="flex items-center gap-2 px-[18px] pt-4">
+            <h3 className="grow text-base font-semibold" id="claude-h">
               Claude
             </h3>
-            <span className="badge badge-secondary">Default</span>
+            <Badge tone="secondary">Default</Badge>
           </div>
-          <div className="card-body col" style={{ gap: 14 }}>
+          <div className="flex flex-col gap-3.5 px-[18px] py-4">
             <label
-              className="inset col"
-              style={{ padding: 12, gap: 8, cursor: 'pointer', borderColor: auth === 'claude-code' ? 'var(--ring)' : undefined }}
+              className={cn('flex cursor-pointer flex-col gap-2 rounded-lg border bg-inset p-3', auth === 'claude-code' && 'border-ring')}
             >
-              <div className="row">
-                <input
-                  type="radio"
-                  className="rb"
-                  name="claude-auth"
-                  checked={auth === 'claude-code'}
-                  onChange={() => setAuth('claude-code')}
-                />
-                <span className="sm b grow">Use my Claude Code</span>
-                {auth === 'claude-code' && status.data && (
-                  <span className={`badge ${status.data.ready ? 'badge-ok' : 'badge-elev'}`}>
-                    {status.data.ready ? 'Connected' : 'Not ready'}
-                  </span>
-                )}
+              <div className="flex items-center gap-2">
+                <Radio name="claude-auth" checked={auth === 'claude-code'} onChange={() => setAuth('claude-code')} />
+                <span className="grow text-sm font-semibold">Use my Claude Code</span>
+                {auth === 'claude-code' && readyBadge('Connected')}
               </div>
-              <p className="xs muted">
-                Legible runs your installed, signed-in <span className="mono">claude</span> with your own subscription. It never reads or
-                stores its credentials.
+              <p className="text-xs text-muted-foreground">
+                Legible runs your installed, signed-in <span className="font-mono">claude</span> with your own subscription. It never reads
+                or stores its credentials.
               </p>
               {auth === 'claude-code' && (
                 <>
-                  <div className="row xs muted" style={{ gap: 8 }}>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {status.isFetching ? (
-                      <Loader2 className="i i-xs spin" />
+                      <Loader2 className="size-3 animate-spin" />
                     ) : status.data?.ready ? (
-                      <Check className="i i-xs" />
+                      <Check className="size-3" />
                     ) : (
-                      <X className="i i-xs" />
+                      <X className="size-3" />
                     )}
                     <span className="grow truncate" title={status.data?.executablePath ?? ''}>
                       {status.data?.detail ?? 'Checking…'}
                       {status.data?.executablePath ? ` · ${status.data.executablePath}` : ''}
                     </span>
-                    <button className="btn btn-ghost btn-xs muted" type="button" onClick={() => status.refetch()}>
-                      <RefreshCw className="i i-xs" />
+                    <Button variant="muted" size="xs" onClick={() => status.refetch()}>
+                      <RefreshCw />
                       Recheck
-                    </button>
+                    </Button>
                   </div>
-                  <div className="row" style={{ gap: 6 }}>
-                    <input
-                      className="input mono"
-                      style={{ fontSize: 12, height: 28 }}
-                      aria-label="Path to claude"
-                      placeholder="Path to claude (blank = find it on your PATH)"
-                      value={path}
-                      onChange={(e) => setPath(e.target.value)}
-                      onBlur={() => update((s) => ({ ...s, claude: { ...s.claude, executablePath: path.trim() || null } }))}
-                    />
-                  </div>
+                  <Input
+                    className="h-7 font-mono text-sm"
+                    aria-label="Path to claude"
+                    placeholder="Path to claude (blank = find it on your PATH)"
+                    value={path}
+                    onChange={(e) => setPath(e.target.value)}
+                    onBlur={() => update((s) => ({ ...s, claude: { ...s.claude, executablePath: path.trim() || null } }))}
+                  />
                 </>
               )}
             </label>
 
-            <div className="inset col" style={{ padding: 12, gap: 10, borderColor: auth !== 'claude-code' ? 'var(--ring)' : undefined }}>
-              <label className="row" style={{ cursor: 'pointer' }}>
-                <input type="radio" className="rb" name="claude-auth" checked={auth !== 'claude-code'} onChange={() => setAuth(usage)} />
-                <span className="sm b grow">Usage-based</span>
-                {auth !== 'claude-code' && status.data && (
-                  <span className={`badge ${status.data.ready ? 'badge-ok' : 'badge-elev'}`}>
-                    {status.data.ready ? 'Configured' : 'Not ready'}
-                  </span>
-                )}
+            <div className={cn('flex flex-col gap-2.5 rounded-lg border bg-inset p-3', auth !== 'claude-code' && 'border-ring')}>
+              <label className="flex cursor-pointer items-center gap-2">
+                <Radio name="claude-auth" checked={auth !== 'claude-code'} onChange={() => setAuth(usage)} />
+                <span className="grow text-sm font-semibold">Usage-based</span>
+                {auth !== 'claude-code' && readyBadge('Configured')}
               </label>
               {auth !== 'claude-code' && (
                 <>
-                  <div className="tabs" role="tablist" aria-label="Usage-based option" style={{ alignSelf: 'flex-start' }}>
+                  <Tabs label="Usage-based option" className="self-start">
                     {(
                       [
                         ['anthropic-api', 'Anthropic API'],
@@ -381,14 +355,14 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
                         ['foundry', 'Foundry'],
                       ] as const
                     ).map(([a, label]) => (
-                      <button key={a} className="tab" role="tab" type="button" aria-selected={auth === a} onClick={() => setAuth(a)}>
+                      <Tab key={a} selected={auth === a} onClick={() => setAuth(a)}>
                         {label}
-                      </button>
+                      </Tab>
                     ))}
-                  </div>
+                  </Tabs>
                   {auth === 'anthropic-api' && <SecretField name="anthropic-api-key" placeholder="sk-ant-…" label="Anthropic API key" />}
                   {auth === 'bedrock' && (
-                    <div className="col" style={{ gap: 8 }}>
+                    <div className="flex flex-col gap-2">
                       <TextSetting
                         label="AWS region"
                         value={settings.claude.bedrock.region}
@@ -399,11 +373,11 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
                         value={settings.claude.bedrock.profile}
                         onCommit={(v) => update((s) => ({ ...s, claude: { ...s.claude, bedrock: { ...s.claude.bedrock, profile: v } } }))}
                       />
-                      <span className="xs muted">Uses your AWS credentials chain (profile, SSO, or environment).</span>
+                      <span className="text-xs text-muted-foreground">Uses your AWS credentials chain (profile, SSO, or environment).</span>
                     </div>
                   )}
                   {auth === 'vertex' && (
-                    <div className="col" style={{ gap: 8 }}>
+                    <div className="flex flex-col gap-2">
                       <TextSetting
                         label="GCP project ID"
                         value={settings.claude.vertex.projectId}
@@ -414,11 +388,13 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
                         value={settings.claude.vertex.region}
                         onCommit={(v) => update((s) => ({ ...s, claude: { ...s.claude, vertex: { ...s.claude.vertex, region: v } } }))}
                       />
-                      <span className="xs muted">Uses Application Default Credentials (gcloud auth application-default login).</span>
+                      <span className="text-xs text-muted-foreground">
+                        Uses Application Default Credentials (gcloud auth application-default login).
+                      </span>
                     </div>
                   )}
                   {auth === 'foundry' && (
-                    <div className="col" style={{ gap: 8 }}>
+                    <div className="flex flex-col gap-2">
                       <TextSetting
                         label="Foundry resource"
                         value={settings.claude.foundry.resource}
@@ -431,21 +407,19 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
               )}
             </div>
           </div>
-        </article>
+        </Card>
 
-        <article className="card col" aria-labelledby="oai-h" style={{ opacity: 0.7 }}>
-          <div className="card-head row">
-            <h3 className="h3 grow" id="oai-h">
+        <Card aria-labelledby="oai-h" className="flex flex-col opacity-70">
+          <div className="flex items-center gap-2 px-[18px] pt-4">
+            <h3 className="grow text-base font-semibold" id="oai-h">
               OpenAI
             </h3>
-            <span className="badge badge-muted">Coming in M3</span>
+            <Badge tone="muted">Coming in M3</Badge>
           </div>
-          <div className="card-body col" style={{ gap: 10 }}>
-            <p className="sm muted">
-              Continue with ChatGPT or an OpenAI API key, with models chosen per tier. Arrives with the Walkthrough and Change Brief.
-            </p>
-          </div>
-        </article>
+          <p className="px-[18px] py-4 text-sm text-muted-foreground">
+            Continue with ChatGPT or an OpenAI API key, with models chosen per tier. Arrives with the Walkthrough and Change Brief.
+          </p>
+        </Card>
       </div>
     </Section>
   );
@@ -455,11 +429,10 @@ function TextSetting({ label, value, onCommit }: { label: string; value: string;
   const [v, setV] = useState(value);
   useEffect(() => setV(value), [value]);
   return (
-    <label className="col" style={{ gap: 4 }}>
-      <span className="label">{label}</span>
-      <input
-        className="input mono"
-        style={{ fontSize: 12 }}
+    <label className="flex flex-col gap-1">
+      <span className={fieldLabel}>{label}</span>
+      <Input
+        className="font-mono text-sm"
         value={v}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => v !== value && onCommit(v.trim())}
@@ -474,26 +447,21 @@ function Tiers({ settings, update }: { settings: Settings; update: (fn: (s: Sett
   const models = useQuery({ queryKey: ['models'], queryFn: () => client.call('models.list', {}) });
   return (
     <Section id="tiers" title="Model tiers" description="Each kind of agent work runs on a tier. Pick any Claude model for each.">
-      <div className="card">
+      <Card>
         {(['fast', 'mid', 'strong'] as const).map((tier) => {
           const current = settings.tiers[tier];
           const info = models.data?.find((m) => m.id === current.model);
           return (
-            <div key={tier} className="setting-row">
-              <div className="col grow" style={{ gap: 2, minWidth: 240 }}>
-                <span className="sm b">{tier[0]?.toUpperCase() + tier.slice(1)}</span>
-                <span className="xs muted">{TIER_WORK[tier]}</span>
+            <div key={tier} className={settingRow}>
+              <div className="flex min-w-60 grow flex-col gap-0.5">
+                <span className="text-sm font-semibold">{tier[0]?.toUpperCase() + tier.slice(1)}</span>
+                <span className="text-xs text-muted-foreground">{TIER_WORK[tier]}</span>
               </div>
-              {info && <span className={`badge ${info.status === 'recommended' ? 'badge-ok' : 'badge-outline'}`}>{info.status}</span>}
-              {info && (
-                <span className="mono xs muted" style={{ width: 28 }}>
-                  {'$'.repeat(info.costRank)}
-                </span>
-              )}
-              <select
-                className="select"
+              {info && <Badge tone={info.status === 'recommended' ? 'ok' : 'outline'}>{info.status}</Badge>}
+              {info && <span className="w-7 font-mono text-xs text-muted-foreground">{'$'.repeat(info.costRank)}</span>}
+              <Select
                 aria-label={`${tier} tier model`}
-                style={{ width: 220 }}
+                className="w-[220px]"
                 value={current.model}
                 onChange={(e) => update((s) => ({ ...s, tiers: { ...s.tiers, [tier]: { provider: 'anthropic', model: e.target.value } } }))}
               >
@@ -503,12 +471,12 @@ function Tiers({ settings, update }: { settings: Settings; update: (fn: (s: Sett
                     {m.status === 'experimental' ? ' (experimental)' : ''}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           );
         })}
-      </div>
-      <p className="xs muted" style={{ padding: '0 2px' }}>
+      </Card>
+      <p className="px-0.5 text-xs text-muted-foreground">
         Recommended models are the defaults Legible is tuned for; experimental ones aren't evaluated yet. Explanations aim for under five
         seconds on the fast tier.
       </p>
@@ -548,25 +516,22 @@ function Hosts() {
       title="Hosts & accounts"
       description="Used to read Pull Requests and merge requests. Public repositories work without an account; private ones need read access."
     >
-      <div className="card">
+      <Card>
         {(list.data ?? []).map((a) => (
-          <div key={a.hostname} className="setting-row">
-            <span className="sm b" style={{ width: 200 }}>
-              {a.hostname}
-            </span>
-            <span className="xs muted grow">{a.detail}</span>
-            <span className={`badge ${a.connected ? 'badge-ok' : 'badge-elev'}`}>{a.connected ? 'Connected' : 'Not connected'}</span>
-            <button className="btn btn-ghost btn-xs muted" type="button" onClick={() => disconnect.mutate(a.hostname)}>
+          <div key={a.hostname} className={settingRow}>
+            <span className="w-[200px] text-sm font-semibold">{a.hostname}</span>
+            <span className="grow text-xs text-muted-foreground">{a.detail}</span>
+            <Badge tone={a.connected ? 'ok' : 'elevated'}>{a.connected ? 'Connected' : 'Not connected'}</Badge>
+            <Button variant="muted" size="xs" onClick={() => disconnect.mutate(a.hostname)}>
               Remove
-            </button>
+            </Button>
           </div>
         ))}
-        <div className="setting-row" style={{ alignItems: 'flex-end' }}>
-          <label className="col" style={{ gap: 4 }}>
-            <span className="label">Host</span>
-            <input
-              className="input mono"
-              style={{ width: 200, fontSize: 12 }}
+        <div className={cn(settingRow, 'items-end')}>
+          <label className="flex flex-col gap-1">
+            <span className={fieldLabel}>Host</span>
+            <Input
+              className="w-[200px] font-mono text-sm"
               value={hostname}
               onChange={(e) => {
                 setHostname(e.target.value);
@@ -576,44 +541,38 @@ function Hosts() {
               }}
             />
           </label>
-          <label className="col" style={{ gap: 4 }}>
-            <span className="label">Type</span>
-            <select className="select" value={kind} onChange={(e) => setKind(e.target.value as HostKind)}>
+          <label className="flex flex-col gap-1">
+            <span className={fieldLabel}>Type</span>
+            <Select value={kind} onChange={(e) => setKind(e.target.value as HostKind)}>
               <option value="github">GitHub</option>
               <option value="gitlab">GitLab</option>
-            </select>
+            </Select>
           </label>
-          <label className="col" style={{ gap: 4 }}>
-            <span className="label">Credentials</span>
-            <select className="select" value={source} onChange={(e) => setSource(e.target.value as 'gh' | 'glab' | 'token')}>
+          <label className="flex flex-col gap-1">
+            <span className={fieldLabel}>Credentials</span>
+            <Select value={source} onChange={(e) => setSource(e.target.value as 'gh' | 'glab' | 'token')}>
               {kind === 'github' ? <option value="gh">Reuse gh CLI login</option> : <option value="glab">Reuse glab CLI login</option>}
               <option value="token">Personal access token</option>
-            </select>
+            </Select>
           </label>
           {source === 'token' && (
-            <label className="col grow" style={{ gap: 4 }}>
-              <span className="label">Token (read access)</span>
-              <input
-                className="input mono"
-                style={{ fontSize: 12 }}
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-              />
+            <label className="flex grow flex-col gap-1">
+              <span className={fieldLabel}>Token (read access)</span>
+              <Input className="font-mono text-sm" type="password" value={token} onChange={(e) => setToken(e.target.value)} />
             </label>
           )}
-          <button
-            className="btn btn-outline btn-sm"
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             disabled={connect.isPending || !hostname.trim() || (source === 'token' && !token)}
             onClick={() => connect.mutate()}
           >
-            {connect.isPending && <Loader2 className="i i-sm spin" />}
+            {connect.isPending && <Loader2 className="animate-spin" />}
             Connect
-          </button>
+          </Button>
         </div>
-      </div>
-      <p className="xs muted" style={{ padding: '0 2px' }}>
+      </Card>
+      <p className="px-0.5 text-xs text-muted-foreground">
         Choosing the gh or glab CLI lets Legible ask it for a token each time; it never copies the CLI's credentials. Pasted tokens are
         stored in the keychain.
       </p>
@@ -630,9 +589,9 @@ function Spend({ settings, update }: { settings: Settings; update: (fn: (s: Sett
       title="Spend"
       description="Every agent run has a hard cap. With “Use my Claude Code”, costs are estimates against your subscription."
     >
-      <div className="card card-body col" style={{ gap: 16 }}>
-        <div className="row wrap" style={{ gap: 12 }}>
-          <span className="sm grow">Cap per Explanation</span>
+      <Card className="flex flex-col gap-4 px-[18px] py-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="grow text-sm">Cap per Explanation</span>
           <NumberField
             value={settings.spend.explanationCapUsd}
             min={0.01}
@@ -643,8 +602,8 @@ function Spend({ settings, update }: { settings: Settings; update: (fn: (s: Sett
             onCommit={(v) => update((s) => ({ ...s, spend: { ...s.spend, explanationCapUsd: v } }))}
           />
         </div>
-        <div className="row wrap" style={{ gap: 12 }}>
-          <span className="sm grow">Agent runs at once</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="grow text-sm">Agent runs at once</span>
           <NumberField
             value={settings.agents.concurrency}
             min={1}
@@ -653,13 +612,13 @@ function Spend({ settings, update }: { settings: Settings; update: (fn: (s: Sett
             onCommit={(v) => update((s) => ({ ...s, agents: { concurrency: v } }))}
           />
         </div>
-        <hr className="sep" />
-        <div className="row">
-          <span className="sm grow">This month</span>
-          <span className="mono sm b">{usd(spend.data?.monthUsd ?? 0)}</span>
+        <hr className="border-0 border-t" />
+        <div className="flex items-center">
+          <span className="grow text-sm">This month</span>
+          <span className="font-mono text-sm font-semibold">{usd(spend.data?.monthUsd ?? 0)}</span>
         </div>
-        <span className="xs muted">{spend.data?.runsThisMonth ?? 0} agent runs this month.</span>
-      </div>
+        <span className="text-xs text-muted-foreground">{spend.data?.runsThisMonth ?? 0} agent runs this month.</span>
+      </Card>
     </Section>
   );
 }

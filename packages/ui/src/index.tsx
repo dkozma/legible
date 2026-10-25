@@ -1,7 +1,6 @@
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
-import './styles/tokens.css';
-import './styles/app.css';
+import './styles/index.css';
 import type { LegibleBridge } from '@legible/ipc';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

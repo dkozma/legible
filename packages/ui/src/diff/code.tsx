@@ -2,25 +2,26 @@ import { type LineTokens, TOKEN_SCOPES, type TokenScope, type WordRanges } from 
 import type { ReactNode } from 'react';
 
 const SCOPE_CLASS: Record<TokenScope, string> = {
-  keyword: 'k',
-  function: 'f',
-  string: 's',
-  number: 'n',
-  type: 't',
-  comment: 'c',
-  punctuation: 'p',
-  property: 'pr',
+  keyword: 'text-syn-keyword',
+  function: 'text-syn-function',
+  string: 'text-syn-string',
+  number: 'text-syn-number',
+  type: 'text-syn-type',
+  comment: 'text-dim italic',
+  punctuation: 'text-muted-foreground',
+  property: 'text-syn-property',
   variable: '',
-  operator: 'p',
-  constant: 'n',
-  tag: 'tg',
-  attribute: 'at',
-  meta: 'c',
-  heading: 'hd',
-  link: 's',
-  inserted: 'add-t',
-  deleted: 'del-t',
+  operator: 'text-muted-foreground',
+  constant: 'text-syn-number',
+  tag: 'text-syn-keyword',
+  attribute: 'text-syn-number',
+  meta: 'text-dim italic',
+  heading: 'font-semibold text-foreground',
+  link: 'text-syn-string',
+  inserted: 'text-ok',
+  deleted: 'text-critical',
 };
+const WORD_CLASS = { add: 'rounded-[2px] bg-add-word', del: 'rounded-[2px] bg-del-word' } as const;
 const CLASS_BY_ID = TOKEN_SCOPES.map((s) => SCOPE_CLASS[s]);
 
 /**
@@ -36,8 +37,10 @@ export function Code({
   text: string;
   tokens: LineTokens | undefined;
   words: WordRanges | undefined;
-  wordClass: 'wa' | 'wd';
+  wordClass: 'add' | 'del';
 }): ReactNode {
+  // A CR left by CRLF line endings isn't shown; the file header notes the line endings.
+  if (text.endsWith('\r')) text = text.slice(0, -1);
   if (!tokens?.length && !words?.length) return text;
   const cuts = new Set<number>([0, text.length]);
   const scopeAt = new Int16Array(text.length).fill(-1);
@@ -67,7 +70,7 @@ export function Code({
     const e = points[i + 1] as number;
     if (e <= s) continue;
     const scope = scopeAt[s] as number;
-    const cls = [scope >= 0 ? CLASS_BY_ID[scope] : '', inWord[s] ? wordClass : ''].filter(Boolean).join(' ');
+    const cls = [scope >= 0 ? CLASS_BY_ID[scope] : '', inWord[s] ? WORD_CLASS[wordClass] : ''].filter(Boolean).join(' ');
     const piece = text.slice(s, e);
     out.push(
       cls ? (

@@ -1,7 +1,7 @@
 import { FileCode2, Search, Terminal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatKey, fuzzy } from '../commands';
-import { Kbd } from '../components/Inline';
+import { cn, Kbd } from '../components/ui';
 import { useUI } from '../state';
 
 interface Item {
@@ -17,7 +17,19 @@ interface Item {
 function Highlight({ text, indices }: { text: string; indices: number[] }) {
   if (!indices.length) return <>{text}</>;
   const set = new Set(indices);
-  return <>{[...text].map((ch, i) => (set.has(i) ? <mark key={i}>{ch}</mark> : <span key={i}>{ch}</span>))}</>;
+  return (
+    <>
+      {[...text].map((ch, i) =>
+        set.has(i) ? (
+          <mark key={i} className="bg-transparent font-semibold text-foreground">
+            {ch}
+          </mark>
+        ) : (
+          <span key={i}>{ch}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 export function Palette() {
@@ -59,27 +71,34 @@ export function Palette() {
     return out.slice(0, 80);
   }, [q, source, go, set]);
 
-  useEffect(() => setActive(0), []);
   useEffect(() => {
-    listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
-  }, []);
+    listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [active]);
 
   const files = items.filter((i) => i.kind === 'file');
   const commands = items.filter((i) => i.kind === 'command');
   const ordered = q ? items : [...commands, ...files];
 
   return (
-    <div className="overlay" onMouseDown={close}>
-      <div role="dialog" aria-label="Command palette" className="popover palette" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="row" style={{ padding: '0 14px', height: 52, borderBottom: '1px solid var(--border)', gap: 10, flex: 'none' }}>
-          <Search className="i muted" />
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-overlay pt-[12vh]" onMouseDown={close}>
+      <div
+        role="dialog"
+        aria-label="Command palette"
+        className="flex max-h-[70vh] w-[600px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[14px] border bg-popover text-popover-foreground shadow-popover"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b px-3.5">
+          <Search className="size-4 text-muted-foreground" />
           <input
             autoFocus
-            className="palette-input"
+            className="h-full flex-auto select-text border-0 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
             aria-label="Search files and actions"
             placeholder="Search files and actions"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setActive(0);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -100,34 +119,37 @@ export function Palette() {
               }
             }}
           />
-          <span className="kbd">esc</span>
+          <Kbd keys={['esc']} />
         </div>
-        <div className="palette-list" ref={listRef}>
-          {ordered.length === 0 && (
-            <div className="sm muted" style={{ padding: '10px 10px' }}>
-              No matches
-            </div>
-          )}
+        <div className="overflow-auto p-1.5" ref={listRef}>
+          {ordered.length === 0 && <div className="p-2.5 text-sm text-muted-foreground">No matches</div>}
           {ordered.map((item, i) => {
             const header = i === 0 || ordered[i - 1]?.kind !== item.kind;
             return (
               <div key={item.id}>
                 {header && !q && (
-                  <div className="xs muted" style={{ padding: '8px 10px 4px', fontWeight: 500 }}>
+                  <div className="px-2.5 pt-2 pb-1 text-xs font-medium text-muted-foreground">
                     {item.kind === 'file' ? 'Files' : 'Actions'}
                   </div>
                 )}
                 <div
-                  className={`li${i === active ? ' active' : ''}`}
-                  data-active={i === active}
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={i === active}
+                  data-index={i}
+                  className={cn('flex h-9 cursor-pointer items-center gap-2 rounded-sm px-2', i === active && 'bg-accent')}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => {
                     close();
                     item.run();
                   }}
                 >
-                  {item.kind === 'file' ? <FileCode2 className="i i-sm muted" /> : <Terminal className="i i-sm muted" />}
-                  <span className={`sm grow truncate${item.kind === 'file' ? ' mono' : ''}`}>
+                  {item.kind === 'file' ? (
+                    <FileCode2 className="size-3.5 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <Terminal className="size-3.5 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className={cn('min-w-0 flex-auto truncate text-sm', item.kind === 'file' && 'font-mono')}>
                     <Highlight text={item.label} indices={item.indices} />
                   </span>
                   {item.keys[0] && <Kbd keys={formatKey(item.keys[0])} />}
@@ -136,12 +158,12 @@ export function Palette() {
             );
           })}
         </div>
-        <div className="row xs muted" style={{ padding: '10px 14px', gap: 14, borderTop: '1px solid var(--border)', flex: 'none' }}>
-          <span className="row" style={{ gap: 4 }}>
+        <div className="flex shrink-0 items-center gap-3.5 border-t px-3.5 py-2.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
             <Kbd keys={['↑', '↓']} />
             move
           </span>
-          <span className="row" style={{ gap: 4 }}>
+          <span className="flex items-center gap-1">
             <Kbd keys={['↵']} />
             open
           </span>

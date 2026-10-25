@@ -66,26 +66,26 @@ test('explains the current hunk with e', async () => {
 
 test('selects lines by dragging line numbers and explains them', async () => {
   // Head line numbers (the second number column) of added lines.
-  const head = (i: number) => page.locator('.dl.add').nth(i).locator('.ln').nth(1);
+  const head = (i: number) => page.locator('[data-kind="add"]').nth(i).getByTestId('head-line-number');
   await head(0).click();
   await head(2).click({ modifiers: ['Shift'] });
-  await expect(page.locator('.dl.sel')).toHaveCount(3);
+  await expect(page.locator('[data-selected]')).toHaveCount(3);
   await page.keyboard.press('e');
   await expect(page.getByTestId('explanation')).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press('Escape');
-  await expect(page.locator('.dl.sel')).toHaveCount(0);
+  await expect(page.locator('[data-selected]')).toHaveCount(0);
 });
 
 test('switches to split view and marks files viewed', async () => {
   await page.keyboard.press('Alt+s');
-  await expect(page.locator('.split-row').first()).toBeVisible();
+  await expect(page.getByTestId('split-row').first()).toBeVisible();
   await shot('03-split');
   await page.keyboard.press('Alt+s');
-  await expect(page.locator('.split-row')).toHaveCount(0);
+  await expect(page.getByTestId('split-row')).toHaveCount(0);
 
-  const before = await page.locator('.vw.on').count();
-  await page.locator('.file-head .vw').first().click();
-  await expect(page.locator('.vw.on')).toHaveCount(before + 1);
+  const before = await page.locator('[data-testid="viewed-toggle"][aria-pressed="true"]').count();
+  await page.getByTestId('viewed-toggle').first().click();
+  await expect(page.locator('[data-testid="viewed-toggle"][aria-pressed="true"]')).toHaveCount(before + 1);
   await expect(page.getByText(/1 of \d+ files viewed/)).toBeVisible();
 });
 
@@ -96,7 +96,7 @@ test('opens a file from the command palette', async () => {
   await shot('04-palette');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
-  await expect(page.locator('.file-head').filter({ hasText: 'RefundPolicy.ts' })).toBeInViewport();
+  await expect(page.getByTestId('file-head').filter({ hasText: 'RefundPolicy.ts' })).toBeInViewport();
 });
 
 test('offers a refresh when the working tree changes, never applying it silently', async () => {

@@ -5,6 +5,7 @@ import { AlertTriangle, FolderGit2, GitPullRequest, Loader2, Settings as Setting
 import { useState } from 'react';
 import { ClientError } from '../client';
 import { relativeTime } from '../components/Inline';
+import { Badge, Button, Callout, Card, Input, Radio, Select, Tab, Tabs, Titlebar } from '../components/ui';
 import { useClient } from '../context';
 import { useUI } from '../state';
 
@@ -17,53 +18,53 @@ export function Home() {
 
   return (
     <>
-      <header className="titlebar">
-        <span className="b sm grow">Legible</span>
-        <button className="btn btn-ghost btn-sm muted" type="button" onClick={() => go({ name: 'settings', section: null })}>
-          <SettingsIcon className="i i-sm" />
+      <Titlebar>
+        <span className="grow text-sm font-semibold">Legible</span>
+        <Button variant="muted" size="sm" onClick={() => go({ name: 'settings', section: null })}>
+          <SettingsIcon />
           Settings
-        </button>
-      </header>
-      <div className="home">
-        <div className="home-inner">
+        </Button>
+      </Titlebar>
+      <div className="flex-auto overflow-auto px-6 pt-9 pb-16">
+        <div className="mx-auto flex max-w-[960px] flex-col gap-7">
           {info.data && !info.data.gitOk && (
-            <div className="crit-box row" style={{ padding: '10px 14px', alignItems: 'flex-start' }}>
-              <AlertTriangle className="i i-sm" style={{ color: 'var(--risk-critical)', marginTop: 2 }} />
-              <span className="sm">
+            <Callout tone="critical" className="flex items-start gap-2 px-3.5 py-2.5">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-critical" />
+              <span className="text-sm">
                 Legible needs git 2.40 or newer; found {info.data.gitVersion}. Install a newer git (for example with Homebrew) and restart.
               </span>
-            </div>
+            </Callout>
           )}
           {status.data && !status.data.ready && (
-            <div className="elev-box row" style={{ padding: '10px 14px' }}>
-              <AlertTriangle className="i i-sm" style={{ color: 'var(--risk-elevated)' }} />
-              <span className="sm grow">Explanations need Claude. {status.data.detail}.</span>
-              <button className="btn btn-outline btn-xs" type="button" onClick={() => go({ name: 'settings', section: 'providers' })}>
+            <Callout tone="elevated" className="flex items-center gap-2 px-3.5 py-2.5">
+              <AlertTriangle className="size-3.5 shrink-0 text-elevated" />
+              <span className="grow text-sm">Explanations need Claude. {status.data.detail}.</span>
+              <Button variant="outline" size="xs" onClick={() => go({ name: 'settings', section: 'providers' })}>
                 Open Settings
-              </button>
-            </div>
+              </Button>
+            </Callout>
           )}
 
           <OpenCard />
 
-          <section className="col" style={{ gap: 10 }} aria-labelledby="recent-h">
-            <div className="row">
-              <h2 className="h2 grow" id="recent-h">
+          <section className="flex flex-col gap-2.5" aria-labelledby="recent-h">
+            <div className="flex items-center">
+              <h2 className="grow text-title font-semibold" id="recent-h">
                 Reviews
               </h2>
-              {status.data?.ready && <span className="xs muted">{status.data.detail}</span>}
+              {status.data?.ready && <span className="text-xs text-muted-foreground">{status.data.detail}</span>}
             </div>
             {reviews.data && reviews.data.length === 0 && (
-              <div className="inset sm muted" style={{ padding: '18px 16px' }}>
+              <Callout className="px-4 py-[18px] text-sm text-muted-foreground">
                 No Reviews yet. Open a repository with an agent's work in it, or paste a pull request URL.
-              </div>
+              </Callout>
             )}
             {reviews.data && reviews.data.length > 0 && (
-              <div className="card" style={{ overflow: 'hidden' }}>
+              <Card className="overflow-hidden">
                 {reviews.data.map((r) => (
                   <ReviewRow key={r.id} review={r} />
                 ))}
-              </div>
+              </Card>
             )}
           </section>
         </div>
@@ -88,25 +89,30 @@ function ReviewRow({ review }: { review: ReviewSummary }) {
   });
   const open = () => go({ name: 'review', reviewId: review.id });
   return (
-    <div className="review-row" role="button" tabIndex={0} onClick={open} onKeyDown={(e) => e.key === 'Enter' && open()}>
-      <div className="col" style={{ gap: 2, minWidth: 0 }}>
-        <span className="sm b truncate">{review.title}</span>
-        <span className="xs muted truncate">
+    <div
+      className="group grid cursor-pointer grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3.5 border-b px-4 py-3 last:border-b-0 hover:bg-hover"
+      role="button"
+      tabIndex={0}
+      onClick={open}
+      onKeyDown={(e) => e.key === 'Enter' && open()}
+    >
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-sm font-semibold">{review.title}</span>
+        <span className="truncate text-xs text-muted-foreground">
           {review.repo.displayName}
           {review.baseRef ? ` · vs ${review.baseRef}` : ''}
           {review.latestIteration ? ` · Iteration ${review.latestIteration.seq}` : ''}
         </span>
       </div>
-      <div className="row" style={{ gap: 6 }}>
-        <span className="badge badge-muted">{sourceLabel(review)}</span>
-        <span className="badge badge-outline">{review.mode === 'author' ? 'Author mode' : 'Reviewer mode'}</span>
-        <span className="xs muted" style={{ width: 80, textAlign: 'right' }}>
-          {relativeTime(review.updatedAt)}
-        </span>
+      <div className="flex items-center gap-1.5">
+        <Badge tone="muted">{sourceLabel(review)}</Badge>
+        <Badge tone="outline">{review.mode === 'author' ? 'Author mode' : 'Reviewer mode'}</Badge>
+        <span className="w-20 text-right text-xs text-muted-foreground">{relativeTime(review.updatedAt)}</span>
       </div>
-      <button
-        className="btn btn-ghost btn-icon btn-xs muted del"
-        type="button"
+      <Button
+        variant="muted"
+        size="icon-xs"
+        className="opacity-0 group-hover:opacity-100"
         aria-label={`Delete Review ${review.title}`}
         onClick={(e) => {
           e.stopPropagation();
@@ -114,8 +120,8 @@ function ReviewRow({ review }: { review: ReviewSummary }) {
             del.mutate();
         }}
       >
-        <Trash2 className="i i-sm" />
-      </button>
+        <Trash2 />
+      </Button>
     </div>
   );
 }
@@ -164,115 +170,110 @@ function OpenCard() {
   });
 
   return (
-    <section className="card" aria-labelledby="open-h">
-      <div className="card-head row">
-        <h1 className="h2 grow" id="open-h">
+    <Card aria-labelledby="open-h">
+      <div className="flex items-center gap-2 px-[18px] pt-4">
+        <h1 className="grow text-title font-semibold" id="open-h">
           Open a Review
         </h1>
-        <div className="tabs" role="tablist" aria-label="Source">
-          <button className="tab" role="tab" type="button" aria-selected={tab === 'local'} onClick={() => setTab('local')}>
-            <FolderGit2 className="i i-sm" />
+        <Tabs label="Source">
+          <Tab selected={tab === 'local'} onClick={() => setTab('local')}>
+            <FolderGit2 />
             Local repository
-          </button>
-          <button className="tab" role="tab" type="button" aria-selected={tab === 'pr'} onClick={() => setTab('pr')}>
-            <GitPullRequest className="i i-sm" />
+          </Tab>
+          <Tab selected={tab === 'pr'} onClick={() => setTab('pr')}>
+            <GitPullRequest />
             Pull Request
-          </button>
-        </div>
+          </Tab>
+        </Tabs>
       </div>
-      <div className="card-body col" style={{ gap: 14 }}>
+      <div className="flex flex-col gap-3.5 px-[18px] py-4">
         {tab === 'local' ? (
           <>
-            <div className="row wrap" style={{ gap: 10 }}>
-              <button className="btn btn-outline btn-sm" type="button" onClick={() => pick.mutate()} disabled={pick.isPending}>
-                {pick.isPending ? <Loader2 className="i i-sm spin" /> : <FolderGit2 className="i i-sm" />}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button variant="outline" size="sm" onClick={() => pick.mutate()} disabled={pick.isPending}>
+                {pick.isPending ? <Loader2 className="animate-spin" /> : <FolderGit2 />}
                 {repo ? 'Choose another…' : 'Choose folder…'}
-              </button>
+              </Button>
               {repo && (
-                <span className="sm">
-                  <b>{repo.name}</b> <span className="muted">· {repo.branch ? `on ${repo.branch}` : 'detached HEAD'}</span>
+                <span className="text-sm">
+                  <b className="font-semibold">{repo.name}</b>{' '}
+                  <span className="text-muted-foreground">· {repo.branch ? `on ${repo.branch}` : 'detached HEAD'}</span>
                 </span>
               )}
             </div>
             {repo && (
-              <div className="col" style={{ gap: 10 }}>
-                <label className="row sm" style={{ gap: 10, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    className="rb"
-                    name="mode"
-                    checked={mode === 'working_tree'}
-                    onChange={() => setMode('working_tree')}
-                  />
+              <div className="flex flex-col gap-2.5">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                  <Radio name="mode" checked={mode === 'working_tree'} onChange={() => setMode('working_tree')} />
                   <span className="grow">
-                    <b>Working tree</b>{' '}
-                    <span className="muted">
+                    <b className="font-semibold">Working tree</b>{' '}
+                    <span className="text-muted-foreground">
                       — everything on this branch, including uncommitted and untracked files, captured as a Snapshot
                     </span>
                   </span>
                 </label>
-                <label className="row sm" style={{ gap: 10, cursor: 'pointer' }}>
-                  <input type="radio" className="rb" name="mode" checked={mode === 'refs'} onChange={() => setMode('refs')} />
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                  <Radio name="mode" checked={mode === 'refs'} onChange={() => setMode('refs')} />
                   <span className="grow">
-                    <b>Compare refs</b> <span className="muted">— two branches or commits, three-dot (merge-base) semantics</span>
+                    <b className="font-semibold">Compare refs</b>{' '}
+                    <span className="text-muted-foreground">— two branches or commits, three-dot (merge-base) semantics</span>
                   </span>
                 </label>
-                <div className="row wrap" style={{ gap: 8, paddingLeft: 26 }}>
-                  <span className="xs muted">Base</span>
+                <div className="flex flex-wrap items-center gap-2 pl-[26px] text-xs text-muted-foreground">
+                  <span>Base</span>
                   <RefSelect value={baseRef} options={repo.branches} onChange={setBaseRef} label="Base ref" />
                   {mode === 'refs' && (
                     <>
-                      <span className="xs muted">...</span>
-                      <span className="xs muted">Head</span>
+                      <span>...</span>
+                      <span>Head</span>
                       <RefSelect value={headRef} options={repo.branches} onChange={setHeadRef} label="Head ref" />
                     </>
                   )}
-                  {mode === 'working_tree' && <span className="xs muted">vs the working tree</span>}
+                  {mode === 'working_tree' && <span>vs the working tree</span>}
                 </div>
               </div>
             )}
           </>
         ) : (
-          <div className="col" style={{ gap: 6 }}>
-            <label className="label" htmlFor="pr-url">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium" htmlFor="pr-url">
               GitHub pull request or GitLab merge request URL
             </label>
-            <input
+            <Input
               id="pr-url"
-              className="input mono"
-              style={{ fontSize: 12 }}
+              className="font-mono text-sm"
               placeholder="https://github.com/owner/repo/pull/123"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && url.trim() && open.mutate()}
             />
-            <span className="xs muted">Read-only in this version. Private repositories need an account in Settings → Hosts.</span>
+            <span className="text-xs text-muted-foreground">
+              Read-only in this version. Private repositories need an account in Settings → Hosts.
+            </span>
           </div>
         )}
         {error && (
-          <div className="crit-box row sm" style={{ padding: '8px 12px' }}>
+          <Callout tone="critical" className="flex items-center gap-2 px-3 py-2 text-sm">
             <span className="grow">{error.message}</span>
             {error.code === 'needs_auth' && (
-              <button className="btn btn-outline btn-xs" type="button" onClick={() => go({ name: 'settings', section: 'hosts' })}>
+              <Button variant="outline" size="xs" onClick={() => go({ name: 'settings', section: 'hosts' })}>
                 Connect a host
-              </button>
+              </Button>
             )}
-          </div>
+          </Callout>
         )}
-        <div className="row">
-          <span className="grow" />
-          <button
-            className="btn btn-sm"
-            type="button"
+        <div className="flex justify-end">
+          <Button
+            size="sm"
             disabled={open.isPending || (tab === 'local' ? !repo || (mode === 'refs' && (!baseRef || !headRef)) : !url.trim())}
             onClick={() => open.mutate()}
           >
-            {open.isPending && <Loader2 className="i i-sm spin" />}
+            {open.isPending && <Loader2 className="animate-spin" />}
             {open.isPending ? (tab === 'pr' ? 'Fetching…' : 'Taking Snapshot…') : 'Open Review'}
-          </button>
+          </Button>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -289,18 +290,12 @@ function RefSelect({
 }) {
   const all = value && !options.includes(value) ? [value, ...options] : options;
   return (
-    <select
-      className="select mono"
-      style={{ height: 28, fontSize: 12, maxWidth: 260 }}
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
+    <Select className="h-7 max-w-[260px] font-mono text-sm" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
       {all.map((b) => (
         <option key={b} value={b}>
           {b}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

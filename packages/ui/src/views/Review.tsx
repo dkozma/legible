@@ -3,7 +3,8 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Loader2, RefreshCw, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Command, formatKey, useKeyboard } from '../commands';
-import { Kbd, relativeTime, usd } from '../components/Inline';
+import { relativeTime, usd } from '../components/Inline';
+import { Badge, Button, Callout, Kbd, Progress, Select, Switch, Tab, Tabs, Titlebar } from '../components/ui';
 import { useClient } from '../context';
 import { type DiffActions, DiffLoading, DiffView } from '../diff/DiffView';
 import { buildRows, chunkRanges, rangesForRows, rowAt } from '../diff/rows';
@@ -72,6 +73,13 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       }),
     [cs.data, ui.layout, settings.data?.diff.contextLines, viewed, ui.expandedFiles, ui.collapsedFiles, ui.expandedFrags, ui.gapReveal],
   );
+
+  // A selection is row indices into this model; any re-layout (split, gaps,
+  // expanding, viewed) invalidates it, so drop it rather than explain the wrong lines.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on model change by design.
+  useEffect(() => {
+    useUI.getState().set({ selection: null });
+  }, [model]);
 
   // ---- Navigation ------------------------------------------------------------------
 
@@ -172,7 +180,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     }
     if (fileId) {
       const f = files.find((x) => x.id === fileId);
-      const r = rangesForRows(model.rows, from, to);
+      const r = rangesForRows(model.rows, from, to, fileId);
       if (f && (r.baseRange || r.headRange)) return { kind: 'range', fileId: f.id, path: f.path, oldPath: f.oldPath, ...r };
     }
     // The hunk at the top of the viewport.
@@ -393,48 +401,42 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
 
   return (
     <>
-      <header className="titlebar">
-        <nav className="row" aria-label="Trail" style={{ gap: 2 }}>
-          <button
-            className="btn btn-ghost btn-icon btn-xs"
-            type="button"
+      <Titlebar>
+        <nav className="flex items-center gap-0.5" aria-label="Trail">
+          <Button
+            variant="ghost"
+            size="icon-xs"
             aria-label="Back"
             title={`Back (${formatKey('mod+[').join('')})`}
             disabled={ui.trail.back.length === 0}
             onClick={() => trailMove('back')}
           >
-            <ChevronLeft className="i i-sm" />
-          </button>
-          <button
-            className="btn btn-ghost btn-icon btn-xs"
-            type="button"
+            <ChevronLeft />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
             aria-label="Forward"
             title={`Forward (${formatKey('mod+]').join('')})`}
             disabled={ui.trail.forward.length === 0}
             onClick={() => trailMove('forward')}
           >
-            <ChevronRight className="i i-sm" />
-          </button>
+            <ChevronRight />
+          </Button>
         </nav>
-        <nav className="crumbs grow" aria-label="Location">
-          <button
-            className="btn-link"
-            type="button"
-            style={{ color: 'var(--muted-foreground)', textDecoration: 'none', fontSize: 12, border: 0, cursor: 'pointer' }}
-            onClick={() => ui.go({ name: 'home' })}
-          >
+        <nav className="flex min-w-0 grow items-center gap-1.5 text-sm text-muted-foreground" aria-label="Location">
+          <Button variant="plain" size="none" className="text-sm font-normal" onClick={() => ui.go({ name: 'home' })}>
             Reviews
-          </button>
-          <ChevronRight className="i i-xs" />
-          <span>{r?.repo.displayName}</span>
-          <ChevronRight className="i i-xs" />
-          <b className="truncate">{r?.title}</b>
+          </Button>
+          <ChevronRight className="size-3 shrink-0" />
+          <span className="truncate">{r?.repo.displayName}</span>
+          <ChevronRight className="size-3 shrink-0" />
+          <b className="truncate font-medium text-foreground">{r?.title}</b>
         </nav>
-        {r && <span className="badge badge-outline">{r.mode === 'author' ? 'Author mode' : 'Reviewer mode'}</span>}
+        {r && <Badge tone="outline">{r.mode === 'author' ? 'Author mode' : 'Reviewer mode'}</Badge>}
         {iterations.data && iterations.data.length > 1 ? (
-          <select
-            className="select"
-            style={{ height: 28, fontSize: 12 }}
+          <Select
+            className="h-7 text-sm"
             aria-label="Iteration"
             value={iterationId ?? ''}
             onChange={(e) => ui.set({ iterationId: e.target.value === latestId ? null : e.target.value, selection: null })}
@@ -444,145 +446,123 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
                 Iteration {x.seq} of {iterations.data.length} · {relativeTime(x.createdAt)}
               </option>
             ))}
-          </select>
+          </Select>
         ) : (
-          it && <span className="xs muted">Iteration {it.seq}</span>
+          it && <span className="text-xs text-muted-foreground">Iteration {it.seq}</span>
         )}
-        <span className="xs muted mono" title="Spent on this Review">
+        <span className="px-1 font-mono text-xs text-muted-foreground" title="Spent on this Review">
           {usd(spend.data?.reviewUsd ?? 0)}
         </span>
-        <button
-          className="btn btn-outline btn-sm"
-          type="button"
-          style={{ width: 180, justifyContent: 'space-between', color: 'var(--muted-foreground)' }}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-[180px] justify-between text-muted-foreground"
           onClick={() => ui.set({ palette: true })}
         >
-          <span className="row" style={{ gap: 6 }}>
-            <Search className="i i-sm" />
+          <span className="flex items-center gap-1.5">
+            <Search />
             Search or run…
           </span>
           <Kbd keys={formatKey('mod+k')} />
-        </button>
-      </header>
+        </Button>
+      </Titlebar>
 
       {changes && onLatest && (
-        <div className="banner ask-tone" role="status">
-          <RefreshCw className="i i-sm" style={{ color: 'var(--ask)' }} />
-          <span className="sm grow">
-            <b>{changes}</b>
-            <span className="muted">
+        <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ask-border bg-ask-bg px-[18px] py-[9px]">
+          <RefreshCw className="size-3.5 text-ask" />
+          <span className="grow text-sm">
+            <b className="font-semibold">{changes}</b>
+            <span className="text-muted-foreground">
               {' '}
               · {r?.sourceKind === 'working_tree' ? 'Refresh to take a new Snapshot.' : 'Refresh to review the new Iteration.'}
             </span>
           </span>
-          <button className="btn btn-sm" type="button" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
-            {refresh.isPending && <Loader2 className="i i-sm spin" />}
+          <Button size="sm" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+            {refresh.isPending && <Loader2 className="animate-spin" />}
             Refresh
-          </button>
+          </Button>
         </div>
       )}
       {!onLatest && it && (
-        <div className="banner" role="status">
-          <span className="sm grow">
-            <b>Iteration {it.seq}</b> <span className="muted">· an earlier state of this Review</span>
+        <div role="status" className="flex shrink-0 items-center gap-3 border-b bg-sidebar px-[18px] py-[9px]">
+          <span className="grow text-sm">
+            <b className="font-semibold">Iteration {it.seq}</b>{' '}
+            <span className="text-muted-foreground">· an earlier state of this Review</span>
           </span>
-          <button className="btn btn-outline btn-sm" type="button" onClick={() => ui.set({ iterationId: null })}>
+          <Button variant="outline" size="sm" onClick={() => ui.set({ iterationId: null })}>
             Go to latest
-          </button>
+          </Button>
         </div>
       )}
 
-      <div className="main">
-        <aside className="sidebar" aria-label="Files">
-          <div className="row" style={{ padding: '12px 14px 8px' }}>
-            <span className="b sm grow">Files</span>
-            <span className="xs muted">
-              {files.length} changed · <span className="add-t">+{cs.data?.additions ?? 0}</span>{' '}
-              <span className="del-t">−{cs.data?.deletions ?? 0}</span>
+      <div className="flex min-h-0 flex-auto">
+        <aside aria-label="Files" className="flex min-h-0 w-[296px] shrink-0 flex-col border-r bg-sidebar">
+          <div className="flex items-center gap-2 px-3.5 pt-3 pb-2">
+            <span className="grow text-sm font-semibold">Files</span>
+            <span className="text-xs text-muted-foreground">
+              {files.length} changed · <span className="text-ok">+{cs.data?.additions ?? 0}</span>{' '}
+              <span className="text-critical">−{cs.data?.deletions ?? 0}</span>
             </span>
           </div>
-          <div className="scroll" style={{ flex: '1 1 auto', padding: '0 6px 8px' }}>
+          <div className="flex-auto overflow-auto px-1.5 pb-2">
             <FileTree files={files} viewed={viewed} activeFileId={topFile} onOpen={openFile} />
           </div>
-          <div className="col" style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', gap: 6 }}>
-            <div className="row xs">
-              <span className="grow muted">Change Set</span>
+          <div className="flex flex-col gap-1.5 border-t px-4 py-3">
+            <div className="flex items-center text-xs">
+              <span className="grow text-muted-foreground">Change Set</span>
               <span>
                 {viewedCount} of {files.length} files viewed
               </span>
             </div>
-            <div className="progress">
-              <span style={{ width: `${files.length ? (viewedCount / files.length) * 100 : 0}%` }} />
-            </div>
+            <Progress value={files.length ? (viewedCount / files.length) * 100 : 0} />
           </div>
         </aside>
 
-        <section className="center" aria-label="Diff">
-          <div className="row wrap" style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)', gap: 10, flex: 'none' }}>
+        <section aria-label="Diff" className="flex min-w-0 flex-auto flex-col">
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b px-3.5 py-2">
             {r?.intentText && (
-              <span className="sm truncate" style={{ maxWidth: 420 }} title={r.intentText}>
+              <span className="max-w-[420px] truncate text-sm" title={r.intentText}>
                 {r.intentText.split('\n')[0]}
               </span>
             )}
             {cs.data && cs.data.moves.length > 0 && (
-              <span className="badge badge-ask">
+              <Badge tone="ask">
                 {cs.data.moves.length} moved {cs.data.moves.length === 1 ? 'block' : 'blocks'}
-              </span>
+              </Badge>
             )}
             <span className="grow" />
-            <button className="btn btn-ghost btn-sm muted" type="button" onClick={() => runExplain(selectionTarget())} title="Explain (e)">
-              <BookOpen className="i i-sm" />
+            <Button variant="muted" size="sm" onClick={() => runExplain(selectionTarget())} title="Explain (e)">
+              <BookOpen />
               Explain
               <Kbd keys={['e']} />
-            </button>
-            <label className="row xs muted" style={{ gap: 6, cursor: 'pointer' }}>
-              <button
-                className="switch"
-                role="switch"
-                type="button"
-                aria-checked={ui.ignoreWhitespace}
-                aria-label="Hide whitespace changes"
-                onClick={() => ui.set({ ignoreWhitespace: !ui.ignoreWhitespace })}
-              />
+            </Button>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Switch checked={ui.ignoreWhitespace} label="Hide whitespace changes" onChange={(v) => ui.set({ ignoreWhitespace: v })} />
               Hide whitespace
-            </label>
-            <div className="tabs" role="tablist" aria-label="Diff layout" style={{ height: 28, padding: 2 }}>
-              <button
-                className="tab"
-                role="tab"
-                type="button"
-                aria-selected={ui.layout === 'unified'}
-                style={{ padding: '0 8px' }}
-                onClick={() => ui.set({ layout: 'unified' })}
-              >
+            </span>
+            <Tabs label="Diff layout" className="h-7 p-0.5">
+              <Tab selected={ui.layout === 'unified'} className="px-2" onClick={() => ui.set({ layout: 'unified' })}>
                 Unified
-              </button>
-              <button
-                className="tab"
-                role="tab"
-                type="button"
-                aria-selected={ui.layout === 'split'}
-                style={{ padding: '0 8px' }}
-                onClick={() => ui.set({ layout: 'split' })}
-              >
+              </Tab>
+              <Tab selected={ui.layout === 'split'} className="px-2" onClick={() => ui.set({ layout: 'split' })}>
                 Split
-              </button>
-            </div>
+              </Tab>
+            </Tabs>
           </div>
           {cs.isError ? (
-            <div className="empty-state">
-              <span className="sm">{(cs.error as Error).message}</span>
-              <button className="btn btn-outline btn-sm" type="button" onClick={() => ui.go({ name: 'home' })}>
-                <ArrowLeft className="i i-sm" />
+            <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
+              <span className="text-sm">{(cs.error as Error).message}</span>
+              <Button variant="outline" size="sm" onClick={() => ui.go({ name: 'home' })}>
+                <ArrowLeft />
                 All Reviews
-              </button>
+              </Button>
             </div>
           ) : !cs.data ? (
             <DiffLoading />
           ) : files.length === 0 ? (
-            <div className="empty-state">
-              <span className="h3">No changes</span>
-              <span className="sm">
+            <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
+              <span className="text-base font-semibold text-foreground">No changes</span>
+              <span className="text-sm">
                 Base and Head are identical
                 {r?.sourceKind === 'working_tree' ? '. Changes you or an agent make here will show up as a refresh.' : '.'}
               </span>
@@ -603,19 +583,14 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           )}
         </section>
 
-        <aside className="rightpanel" aria-label="Context">
+        <aside aria-label="Context" className="flex min-h-0 w-[360px] shrink-0 flex-col border-l bg-panel" data-testid="context-panel">
           {runtime.data && !runtime.data.ready && (
-            <div className="elev-box sm" style={{ margin: '12px 12px 0', padding: '8px 10px' }}>
+            <Callout tone="elevated" className="mx-3 mt-3 px-2.5 py-2 text-sm">
               {runtime.data.detail}.{' '}
-              <button
-                className="btn-link sm"
-                type="button"
-                style={{ border: 0, cursor: 'pointer' }}
-                onClick={() => ui.go({ name: 'settings', section: 'providers' })}
-              >
+              <Button variant="link" size="none" className="text-sm" onClick={() => ui.go({ name: 'settings', section: 'providers' })}>
                 Settings
-              </button>
-            </div>
+              </Button>
+            </Callout>
           )}
           <ExplainPanel
             job={job}

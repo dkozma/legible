@@ -275,6 +275,8 @@ export function rangesForRows(
   rows: Row[],
   from: number,
   to: number,
+  /** Only rows of this file count. */
+  fileId: string | null = null,
 ): { baseRange: [number, number] | null; headRange: [number, number] | null } {
   let b0 = Number.POSITIVE_INFINITY;
   let b1 = -1;
@@ -282,7 +284,7 @@ export function rangesForRows(
   let h1 = -1;
   for (let i = Math.min(from, to); i <= Math.max(from, to); i++) {
     const r = rows[i];
-    if (!r) continue;
+    if (!r || (fileId !== null && r.k !== 'end' && r.fileId !== fileId)) continue;
     let base = -1;
     let head = -1;
     if (r.k === 'line') {

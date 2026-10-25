@@ -35,6 +35,7 @@ function file(over: Partial<FileChange> = {}): FileChange {
     ],
     fragments: [{ id: 'fr1', chunkIndex: 1, kind: 'behavioral', proof: null }],
     baseLineCount: 41,
+    notes: [],
     headLineCount: 41,
     ...over,
   };

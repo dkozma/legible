@@ -7,7 +7,7 @@ export function Inline({ text }: { text: string }) {
     <>
       {parts.map((p, i) =>
         p.startsWith('`') && p.endsWith('`') && p.length > 2 ? (
-          <code key={i} className="code-inline">
+          <code key={i} className="rounded-[4px] bg-muted px-[5px] py-px font-mono text-[0.92em]">
             {p.slice(1, -1)}
           </code>
         ) : (
@@ -15,18 +15,6 @@ export function Inline({ text }: { text: string }) {
         ),
       )}
     </>
-  );
-}
-
-export function Kbd({ keys }: { keys: string[] }) {
-  return (
-    <span className="kbd-group">
-      {keys.map((k, i) => (
-        <span key={i} className="kbd">
-          {k}
-        </span>
-      ))}
-    </span>
   );
 }
 

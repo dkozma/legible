@@ -1,6 +1,6 @@
 import { Keyboard } from 'lucide-react';
 import { formatKey } from '../commands';
-import { Kbd } from '../components/Inline';
+import { Eyebrow, Kbd } from '../components/ui';
 import { useUI } from '../state';
 
 const GROUPS: { title: string; rows: [string, string[]][] }[] = [
@@ -44,32 +44,31 @@ const GROUPS: { title: string; rows: [string, string[]][] }[] = [
 export function Shortcuts() {
   const set = useUI((s) => s.set);
   return (
-    <div className="overlay" onMouseDown={() => set({ shortcuts: false })}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-overlay pt-[12vh]" onMouseDown={() => set({ shortcuts: false })}>
       <div
         role="dialog"
         aria-labelledby="kb-h"
-        className="popover"
-        style={{ width: 640, maxWidth: 'calc(100vw - 32px)', borderRadius: 14, overflow: 'hidden' }}
+        className="w-[640px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[14px] border bg-popover text-popover-foreground shadow-popover"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="row" style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)' }}>
-          <Keyboard className="i muted" />
-          <h2 className="h3 grow" id="kb-h">
+        <div className="flex items-center gap-2 border-b px-[18px] py-4">
+          <Keyboard className="size-4 text-muted-foreground" />
+          <h2 className="grow text-base font-semibold" id="kb-h">
             Keyboard shortcuts
           </h2>
-          <span className="kbd">?</span>
+          <Kbd keys={['?']} />
         </div>
-        <div style={{ padding: '16px 18px 20px', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '22px 28px' }}>
+        <div className="grid grid-cols-2 gap-x-7 gap-y-[22px] px-[18px] pt-4 pb-5">
           {GROUPS.map((g) => (
-            <section key={g.title} className="col" style={{ gap: 8 }}>
-              <h3 className="eyebrow">{g.title}</h3>
+            <section key={g.title} className="flex flex-col gap-2">
+              <Eyebrow>{g.title}</Eyebrow>
               {g.rows.map(([label, keys]) => (
-                <div key={label} className="row sm">
+                <div key={label} className="flex items-center gap-2 text-sm">
                   <span className="grow">{label}</span>
-                  <span className="row" style={{ gap: 4 }}>
+                  <span className="flex items-center gap-1">
                     {keys.map((k) =>
                       k.includes(' ') ? (
-                        <span key={k} className="xs muted">
+                        <span key={k} className="text-xs text-muted-foreground">
                           {k}
                         </span>
                       ) : (

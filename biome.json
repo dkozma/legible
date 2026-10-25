@@ -27,14 +27,26 @@
         "useKeyWithClickEvents": "off",
         "noSvgWithoutTitle": "off",
         "noAutofocus": "off",
-        "useSemanticElements": "off"
+        "useSemanticElements": "off",
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": {
+            "inputComponents": ["Input", "Radio", "Select", "Switch"]
+          }
+        }
       },
       "suspicious": {
-        "noArrayIndexKey": "off"
+        "noArrayIndexKey": "off",
+        "noTemplateCurlyInString": "off"
       }
     }
   },
   "assist": {
     "enabled": true
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   }
 }

@@ -104,12 +104,12 @@ node fixtures/make-refund-repo.mjs /tmp/refunds  # the M0 design fixture as a re
 
 `LEGIBLE_FAKE_AGENT=1` answers every Explanation with canned text, and `LEGIBLE_USER_DATA=<dir>` uses a throwaway data folder.
 
-Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `hosts`, `agent-runtime` and `pipelines`. The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents run in a separate utility process.
+Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `hosts`, `agent-runtime` and `pipelines`. The UI is React with Tailwind CSS v4, themed with the M0 tokens ([ADR 0010](./adr/0010-tailwind-css.md)). The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents run in a separate utility process.
 
 ## Known rough edges
 
 - The first Explanation after launch takes a second or two longer while Claude Code starts.
-- Watching a working tree polls every few seconds on Linux. On macOS it uses file events.
+- Watching a working tree polls every six seconds on Linux. On macOS it uses file events.
 - On a very large Change Set the first open takes a few seconds, while every file is diffed and highlighted. After that, scrolling and switching layouts are immediate.
 
 File issues as you hit them. They're the M2–M3 backlog.

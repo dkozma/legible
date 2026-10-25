@@ -3,8 +3,9 @@
 
 import type { ChangeSetSummary, FileChange, FileDiff } from '@legible/domain';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { BookOpen, ChevronsUpDown, ExternalLink, FileCode2, Loader2 } from 'lucide-react';
+import { BookOpen, Check, ChevronsUpDown, ExternalLink, FileCode2, Loader2 } from 'lucide-react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Badge, Button, cn } from '../components/ui';
 import { useUI } from '../state';
 import { Code } from './code';
 import { ROW_HEIGHT, type Row, type RowModel, rowAt } from './rows';
@@ -135,16 +136,27 @@ export function DiffView({ summary, model, diffs, viewed, actions, onScrollTop, 
   }, [model, scrollRef]);
 
   return (
-    <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex' }}>
-      <div ref={scrollRef} className="diff" onScroll={onScroll} data-testid="diff" style={{ ['--vw' as string]: `${width}px` }}>
-        <div className="diff-inner" style={{ height: virtualizer.getTotalSize(), width: contentWidth }}>
+    <div className="flex min-h-0 flex-auto">
+      <div
+        ref={scrollRef}
+        className="relative min-h-0 flex-auto overflow-auto bg-background font-mono text-sm leading-5 [tab-size:4]"
+        onScroll={onScroll}
+        data-testid="diff"
+        style={{ ['--vw' as string]: `${width}px` }}
+      >
+        <div className="relative" style={{ height: virtualizer.getTotalSize(), width: contentWidth }}>
           {virtualizer.getVirtualItems().map((v) => {
             const row = model.rows[v.index] as Row;
             const file = row.k === 'end' ? undefined : filesById.get(row.fileId);
             const isCur = Boolean(cur && row.k !== 'end' && row.fileId === cur.fileId && 'chunk' in row && row.chunk === cur.chunk);
             const isSel = Boolean(sel && row.k !== 'end' && row.fileId === sel.fileId && v.index >= sel.lo && v.index <= sel.hi);
             return (
-              <div key={v.key} className="vrow" data-row={v.index} style={{ transform: `translateY(${v.start}px)`, height: v.size }}>
+              <div
+                key={v.key}
+                className="group/row absolute top-0 left-0 w-full"
+                data-row={v.index}
+                style={{ transform: `translateY(${v.start}px)`, height: v.size }}
+              >
                 <RowView
                   row={row}
                   index={v.index}
@@ -180,72 +192,104 @@ interface RowProps {
   onSelect(row: number, fileId: string, extend: boolean): void;
 }
 
+type LineState = 'add' | 'del' | 'ctx' | 'moved' | 'selected';
+
+/** Row tint, and the same tint over an opaque base for the sticky gutter. */
+const LINE_BG: Record<LineState, { row: string; gutter: string; sign: string }> = {
+  ctx: { row: '', gutter: 'bg-background', sign: 'text-dim' },
+  add: { row: 'bg-add', gutter: 'bg-background bg-linear-to-r from-add to-add', sign: 'text-ok' },
+  del: { row: 'bg-del', gutter: 'bg-background bg-linear-to-r from-del to-del', sign: 'text-critical' },
+  moved: { row: 'bg-move/8', gutter: 'bg-background bg-linear-to-r from-move/8 to-move/8', sign: 'text-move' },
+  selected: {
+    row: 'bg-ask-bg shadow-[inset_0_1px_0_var(--ask-border),inset_0_-1px_0_var(--ask-border)]',
+    gutter: 'bg-background bg-linear-to-r from-ask-bg to-ask-bg',
+    sign: 'text-ask',
+  },
+};
+
+const lineNumber = 'w-11 shrink-0 cursor-pointer pr-2 text-right text-dim hover:text-foreground';
+
+function lineState(t: '-' | '+' | ' ', moved: boolean, selected: boolean): LineState {
+  if (selected) return 'selected';
+  if (moved && t !== ' ') return 'moved';
+  return t === '+' ? 'add' : t === '-' ? 'del' : 'ctx';
+}
+
+const kindOf = (t: '-' | '+' | ' ') => (t === '+' ? 'add' : t === '-' ? 'del' : 'ctx');
+
 const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, isSel, actions, onSelect }: RowProps) {
   const ui = useUI.getState;
   switch (row.k) {
     case 'end':
-      return <div className="diff-end">End of Change Set</div>;
+      return <div className="flex h-16 items-center justify-center font-sans text-sm text-dim">End of Change Set</div>;
     case 'file': {
       if (!file) return null;
       const renamed = file.oldPath && file.oldPath !== file.path;
       return (
-        <div className={`file-head${row.first ? ' first' : ''}`} style={{ width: 'var(--vw)' }} data-file={file.id}>
+        <div
+          className={cn(
+            'sticky left-0 flex h-10 w-(--vw) items-center gap-2.5 border-y bg-sidebar pr-3.5 pl-3 font-sans',
+            row.first && 'border-t-0',
+          )}
+          data-testid="file-head"
+          data-file={file.id}
+        >
           <button
-            className={`vw${viewed ? ' on' : ''}`}
             type="button"
             title={viewed ? 'Viewed (v)' : 'Mark viewed (v)'}
             aria-label={viewed ? `Mark ${file.path} not viewed` : `Mark ${file.path} viewed`}
             aria-pressed={viewed}
+            data-testid="viewed-toggle"
             onClick={() => actions.toggleViewed(file.id)}
-          >
-            {viewed && (
-              <svg className="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
+            className={cn(
+              'inline-flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] border-foreground/25',
+              viewed && 'border-foreground bg-foreground text-background',
             )}
+          >
+            {viewed && <Check className="size-2.5" strokeWidth={3} />}
           </button>
-          <FileCode2 className="i i-sm muted" />
-          <span className="path truncate" title={file.path}>
+          <FileCode2 className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate font-mono text-sm" title={file.path}>
             {renamed ? (
               <>
-                <span className="muted">{file.oldPath} → </span>
+                <span className="text-muted-foreground">{file.oldPath} → </span>
                 {file.path}
               </>
             ) : (
               file.path
             )}
           </span>
-          <span className="mono xs add-t">+{file.additions}</span>
-          <span className="mono xs del-t">−{file.deletions}</span>
-          {file.status !== 'modified' && <span className="badge badge-muted">{STATUS_TEXT[file.status]}</span>}
-          {file.structural && <span className="badge badge-muted">Structural · {file.structural}</span>}
-          {file.collapse && <span className="badge badge-muted">{file.collapse}</span>}
+          <span className="font-mono text-xs text-ok">+{file.additions}</span>
+          <span className="font-mono text-xs text-critical">−{file.deletions}</span>
+          {file.status !== 'modified' && <Badge tone="muted">{STATUS_TEXT[file.status]}</Badge>}
+          {file.structural && <Badge tone="muted">Structural · {file.structural}</Badge>}
+          {file.collapse && <Badge tone="muted">{file.collapse}</Badge>}
+          {file.notes.map((n) => (
+            <Badge key={n} tone="elevated">
+              {n}
+            </Badge>
+          ))}
           <span className="grow" />
           {!file.binary && (
-            <button
-              className="btn btn-ghost btn-xs muted"
-              type="button"
-              onClick={() => actions.explainFile(file.id)}
-              title="Explain this file (⇧E)"
-            >
-              <BookOpen className="i i-sm" />
+            <Button variant="muted" size="xs" onClick={() => actions.explainFile(file.id)} title="Explain this file (⇧E)">
+              <BookOpen />
               Explain file
-            </button>
+            </Button>
           )}
           {actions.canOpenInEditor && file.status !== 'deleted' && (
-            <button
-              className="btn btn-ghost btn-icon btn-xs muted"
-              type="button"
+            <Button
+              variant="muted"
+              size="icon-xs"
               aria-label="Open in editor"
               title="Open in editor (o)"
               onClick={() => actions.openInEditor(file.path, 1)}
             >
-              <ExternalLink className="i i-sm" />
-            </button>
+              <ExternalLink />
+            </Button>
           )}
-          <button
-            className="btn btn-ghost btn-icon btn-xs muted"
-            type="button"
+          <Button
+            variant="muted"
+            size="icon-xs"
             aria-label="Collapse or expand file"
             title="Collapse or expand"
             onClick={() => {
@@ -262,50 +306,51 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
               }
             }}
           >
-            <ChevronsUpDown className="i i-sm" />
-          </button>
+            <ChevronsUpDown />
+          </Button>
         </div>
       );
     }
-    case 'collapsed':
+    case 'collapsed': {
+      const fixed = row.reason === 'binary' || row.reason === 'unchanged';
       return (
         <button
           type="button"
-          className="collapsed-file"
-          style={{
-            width: 'var(--vw)',
-            border: 0,
-            cursor: row.reason === 'binary' || row.reason === 'unchanged' ? 'default' : 'pointer',
-            textAlign: 'left',
-          }}
+          disabled={fixed}
+          className="sticky left-0 flex h-[34px] w-(--vw) items-center gap-2 border-b bg-frag pr-3.5 pl-[25px] text-left font-sans text-sm text-muted-foreground disabled:cursor-default"
           onClick={() => {
-            if (row.reason === 'binary' || row.reason === 'unchanged') return;
             const s = ui();
             s.toggleIn('collapsedFiles', row.fileId, false);
             s.toggleIn('expandedFiles', row.fileId, true);
           }}
         >
-          <ChevronsUpDown className="i i-xs" />
-          <span>{COLLAPSE_TEXT[row.reason]}</span>
-          {row.reason !== 'binary' && row.reason !== 'unchanged' && <span className="dim">· show</span>}
+          <ChevronsUpDown className="size-3" />
+          <span>{row.reason === 'unchanged' && file?.notes.length ? file.notes.join(' · ') : COLLAPSE_TEXT[row.reason]}</span>
+          {!fixed && <span className="text-dim">· show</span>}
         </button>
       );
+    }
     case 'hunk':
       return (
-        <div className={`hunk${isCur ? ' cur' : ''}`}>
+        <div
+          className={cn(
+            'flex h-6 items-center gap-2.5 border-y bg-hunk pr-3 pl-[25px] text-xs text-muted-foreground',
+            isCur && 'text-foreground',
+          )}
+        >
           <span>
             @@ −{row.base + 1},{row.baseLen} +{row.head + 1},{row.headLen} @@
           </span>
-          <span className="hunk-actions">
-            <button className="btn btn-ghost btn-xs" type="button" onClick={() => actions.explainChunk(row.fileId, row.chunk)}>
-              <BookOpen className="i i-xs" />
+          <span className={cn('sticky right-3 ml-auto flex gap-1 opacity-0 group-hover/row:opacity-100', isCur && 'opacity-100')}>
+            <Button variant="ghost" size="xs" className="font-sans" onClick={() => actions.explainChunk(row.fileId, row.chunk)}>
+              <BookOpen />
               Explain
-            </button>
+            </Button>
             {actions.canOpenInEditor && file && file.status !== 'deleted' && (
-              <button className="btn btn-ghost btn-xs" type="button" onClick={() => actions.openInEditor(file.path, row.head + 1)}>
-                <ExternalLink className="i i-xs" />
+              <Button variant="ghost" size="xs" className="font-sans" onClick={() => actions.openInEditor(file.path, row.head + 1)}>
+                <ExternalLink />
                 Open
-              </button>
+              </Button>
             )}
           </span>
         </div>
@@ -314,27 +359,30 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
       return (
         <button
           type="button"
-          className="gap"
-          style={{ border: 0 }}
+          className="flex h-6 w-full items-center justify-center gap-1.5 border-y bg-hunk font-sans text-xs text-muted-foreground hover:text-foreground"
           onClick={(e) => ui().revealGap(row.gapKey, e.altKey || row.count <= 60 ? row.count : 25)}
           title="Show unchanged lines (⌥-click for all)"
         >
-          <ChevronsUpDown className="i i-xs" />
+          <ChevronsUpDown className="size-3" />
           {row.count} unchanged {row.count === 1 ? 'line' : 'lines'}
         </button>
       );
     case 'frag':
       return (
         <div
-          className={`frag${row.proof === 'move' ? ' move' : ''}`}
+          className={cn(
+            'flex h-7 items-center gap-2 border-y bg-frag pr-3 pl-[25px] font-sans text-sm text-muted-foreground',
+            row.proof === 'move' && 'bg-move/8 text-move',
+          )}
           onClick={() => ui().toggleIn('expandedFrags', row.fragmentId)}
           role="button"
           tabIndex={-1}
+          data-testid="structural-fragment"
         >
-          <ChevronsUpDown className="i i-xs" />
+          <ChevronsUpDown className="size-3" />
           <span>{row.label}</span>
           <span className="grow" />
-          <span className="xs">
+          <span className="text-xs">
             {row.lines} {row.lines === 1 ? 'line' : 'lines'} · {row.expanded ? 'collapse' : 'expand'}
           </span>
         </div>
@@ -345,21 +393,26 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
       const text = diff ? (row.t === '-' ? diff.baseLines[base] : diff.headLines[head]) : null;
       const tokens = diff ? (row.t === '-' ? diff.baseTokens?.[base] : diff.headTokens?.[head]) : undefined;
       const words = diff ? (row.t === '-' ? diff.baseWords[base] : row.t === '+' ? diff.headWords[head] : undefined) : undefined;
-      const cls = `dl${row.t === '+' ? ' add' : row.t === '-' ? ' del' : ''}${row.moved ? ' mv' : ''}${isCur ? ' cur' : ''}${isSel ? ' sel' : ''}${text === null ? ' placeholder' : ''}`;
+      const bg = LINE_BG[lineState(row.t, row.moved, isSel)];
       return (
-        <div className={cls}>
-          <span className="gut">
-            <span className="st" />
-            <span className="ln" onMouseDown={(e) => onSelect(index, row.fileId, e.shiftKey)}>
+        <div
+          className={cn('flex h-5', bg.row)}
+          data-kind={kindOf(row.t)}
+          data-selected={isSel || undefined}
+          data-current={isCur || undefined}
+        >
+          <span className={cn('sticky left-0 z-[1] flex', bg.gutter)}>
+            <span className={cn('w-[3px] shrink-0', isCur && 'bg-foreground')} />
+            <span className={lineNumber} data-testid="base-line-number" onMouseDown={(e) => onSelect(index, row.fileId, e.shiftKey)}>
               {base >= 0 ? base + 1 : ''}
             </span>
-            <span className="ln" onMouseDown={(e) => onSelect(index, row.fileId, e.shiftKey)}>
+            <span className={lineNumber} data-testid="head-line-number" onMouseDown={(e) => onSelect(index, row.fileId, e.shiftKey)}>
               {head >= 0 ? head + 1 : ''}
             </span>
-            <span className="sg">{row.t === ' ' ? '' : row.t === '-' ? '−' : '+'}</span>
+            <span className={cn('w-[18px] shrink-0 text-center', bg.sign)}>{row.t === ' ' ? '' : row.t === '-' ? '−' : '+'}</span>
           </span>
-          <span className="cd">
-            {text === null ? '…' : <Code text={text ?? ''} tokens={tokens} words={words} wordClass={row.t === '-' ? 'wd' : 'wa'} />}
+          <span className={cn('flex-auto select-text whitespace-pre pr-4', text === null && 'text-dim')}>
+            {text === null ? '…' : <Code text={text ?? ''} tokens={tokens} words={words} wordClass={row.t === '-' ? 'del' : 'add'} />}
           </span>
         </div>
       );
@@ -368,32 +421,33 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
       const half = (side: 'l' | 'r') => {
         const idx = side === 'l' ? row.l : row.r;
         const t = side === 'l' ? row.lt : row.rt;
-        if (idx < 0 || t === null) return <div className="empty" />;
+        if (idx < 0 || t === null)
+          return <div className="w-full bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--inset)_6px_7px)]" />;
         const lines = side === 'l' ? diff?.baseLines : diff?.headLines;
         const tokens = side === 'l' ? diff?.baseTokens?.[idx] : diff?.headTokens?.[idx];
         const words = t === ' ' ? undefined : side === 'l' ? diff?.baseWords[idx] : diff?.headWords[idx];
         const moved = side === 'l' ? row.lmoved : row.rmoved;
         const text = lines?.[idx];
-        const cls = `dl${t === '+' ? ' add' : t === '-' ? ' del' : ''}${moved ? ' mv' : ''}${isCur ? ' cur' : ''}${isSel ? ' sel' : ''}`;
+        const bg = LINE_BG[lineState(t, moved, isSel)];
         return (
-          <div className={cls}>
-            <span className="gut">
-              <span className="st" />
-              <span className="ln" onMouseDown={(e) => onSelect(index, row.fileId, e.shiftKey)}>
+          <div className={cn('flex h-5 w-full', bg.row)} data-kind={kindOf(t)} data-selected={isSel || undefined}>
+            <span className={cn('sticky left-0 z-[1] flex', bg.gutter)}>
+              <span className={cn('w-[3px] shrink-0', isCur && 'bg-foreground')} />
+              <span className={lineNumber} onMouseDown={(e) => onSelect(index, row.fileId, e.shiftKey)}>
                 {idx + 1}
               </span>
-              <span className="sg">{t === ' ' ? '' : t === '-' ? '−' : '+'}</span>
+              <span className={cn('w-[18px] shrink-0 text-center', bg.sign)}>{t === ' ' ? '' : t === '-' ? '−' : '+'}</span>
             </span>
-            <span className="cd">
-              {text === undefined ? '…' : <Code text={text} tokens={tokens} words={words} wordClass={t === '-' ? 'wd' : 'wa'} />}
+            <span className="flex-auto select-text overflow-hidden text-ellipsis whitespace-pre pr-4">
+              {text === undefined ? '…' : <Code text={text} tokens={tokens} words={words} wordClass={t === '-' ? 'del' : 'add'} />}
             </span>
           </div>
         );
       };
       return (
-        <div className="split-row">
-          <div className="half">{half('l')}</div>
-          <div className="half">{half('r')}</div>
+        <div className="flex h-5" data-testid="split-row">
+          <div className="flex w-1/2 min-w-0">{half('l')}</div>
+          <div className="flex w-1/2 min-w-0 border-l">{half('r')}</div>
         </div>
       );
     }
@@ -466,7 +520,7 @@ function Ruler({
       m.scale(dpr, dpr);
       const colors = {
         add: cssVar('--ok'),
-        del: cssVar('--risk-critical'),
+        del: cssVar('--critical'),
         move: cssVar('--move'),
         frag: cssVar('--dim'),
         sel: cssVar('--ask'),
@@ -512,7 +566,7 @@ function Ruler({
 
   return (
     <div
-      className="ruler"
+      className="relative w-3.5 shrink-0 cursor-pointer border-l bg-inset"
       aria-hidden="true"
       onMouseDown={(e) => {
         const el = scrollRef.current;
@@ -522,16 +576,16 @@ function Ruler({
         el.scrollTop = frac * model.totalHeight - el.clientHeight / 2;
       }}
     >
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} className="absolute inset-0 size-full" />
     </div>
   );
 }
 
 export function DiffLoading() {
   return (
-    <div className="empty-state">
-      <Loader2 className="i spin" />
-      <span className="sm">Reading the Change Set…</span>
+    <div className="flex flex-auto flex-col items-center justify-center gap-2.5 text-muted-foreground">
+      <Loader2 className="size-4 animate-spin" />
+      <span className="text-sm">Reading the Change Set…</span>
     </div>
   );
 }

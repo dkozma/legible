@@ -113,7 +113,7 @@ export function App() {
   useKeyboard(global);
 
   return (
-    <div className={`app platform-${client.platform}`}>
+    <div className={`flex h-full flex-col platform-${client.platform}`}>
       {view.name === 'home' && <Home />}
       {view.name === 'review' && <ReviewView key={view.reviewId} reviewId={view.reviewId} />}
       {view.name === 'settings' && <SettingsView initialSection={view.section} />}

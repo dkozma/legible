@@ -1,7 +1,8 @@
 import type { Explanation, ExplanationJob } from '@legible/domain';
 import { AlertTriangle, BookOpen, Loader2, RefreshCw, X } from 'lucide-react';
 import { formatKey } from '../commands';
-import { Inline, Kbd, usd } from '../components/Inline';
+import { Inline, usd } from '../components/Inline';
+import { Button, Callout, cn, Eyebrow, Kbd, LineTab, Skeleton } from '../components/ui';
 
 const MODEL_NAMES: Record<string, string> = {
   'claude-haiku-5-5': 'Claude Haiku 5.5',
@@ -23,67 +24,70 @@ export function ExplainPanel({ job, explanation, history, onShow, onJump, onRetr
   const running = job && (job.status === 'queued' || job.status === 'running');
   const shown = explanation ?? (job?.status === 'done' ? job.explanation : null);
   return (
-    <div className="col" style={{ flex: '1 1 auto', minHeight: 0 }}>
-      <div className="ltabs" role="tablist">
-        <button className="ltab" role="tab" type="button" aria-selected="true">
-          <BookOpen className="i i-sm" />
+    <div className="flex min-h-0 flex-auto flex-col">
+      <div role="tablist" className="flex shrink-0 items-stretch gap-0.5 border-b px-2">
+        <LineTab selected>
+          <BookOpen />
           Explain
-        </button>
+        </LineTab>
       </div>
-      <div className="scroll" style={{ flex: '1 1 auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="flex flex-auto flex-col gap-4 overflow-auto p-4">
         {running && job && (
-          <div className="col" style={{ gap: 12 }} aria-live="polite" data-testid="explain-running">
-            <div className="row">
-              <span className="eyebrow grow">Explaining</span>
-              <button className="btn btn-ghost btn-xs muted" type="button" onClick={onCancel}>
-                <X className="i i-xs" />
+          <div className="flex flex-col gap-3" aria-live="polite" data-testid="explain-running">
+            <div className="flex items-center">
+              <Eyebrow className="grow">Explaining</Eyebrow>
+              <Button variant="muted" size="xs" onClick={onCancel}>
+                <X />
                 Cancel
-              </button>
+              </Button>
             </div>
-            <div className="mono sm truncate" title={job.label}>
+            <div className="truncate font-mono text-sm" title={job.label}>
               {job.label}
             </div>
-            <div className="row xs muted">
-              <Loader2 className="i i-xs spin" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" />
               {job.progress ?? 'Working'}
             </div>
-            <div className="col" style={{ gap: 8 }}>
-              <div className="skeleton" style={{ width: '40%' }} />
-              <div className="skeleton" />
-              <div className="skeleton" style={{ width: '85%' }} />
-              <div className="skeleton" style={{ width: '60%' }} />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="w-2/5" />
+              <Skeleton />
+              <Skeleton className="w-[85%]" />
+              <Skeleton className="w-3/5" />
             </div>
           </div>
         )}
         {!running && job?.status === 'error' && (
-          <div className="crit-box col" style={{ padding: '10px 12px', gap: 8 }} role="alert">
-            <div className="row xs b" style={{ color: 'var(--risk-critical)' }}>
-              <AlertTriangle className="i i-sm" />
+          <Callout tone="critical" className="flex flex-col gap-2 px-3 py-2.5" role="alert">
+            <div className="flex items-center gap-2 text-xs font-semibold text-critical">
+              <AlertTriangle className="size-3.5" />
               Couldn't explain {job.label}
             </div>
-            <p className="sm ex-text">{job.error}</p>
-            <div className="row">
-              <button className="btn btn-outline btn-xs" type="button" onClick={() => onRetry(true)}>
+            <p className="select-text text-sm">{job.error}</p>
+            <div>
+              <Button variant="outline" size="xs" onClick={() => onRetry(true)}>
                 Try again
-              </button>
+              </Button>
             </div>
-          </div>
+          </Callout>
         )}
         {!running && shown && <ExplanationCard e={shown} onJump={() => onJump(shown)} onRefresh={() => onRetry(true)} />}
         {!running && !shown && job?.status !== 'error' && <EmptyExplain />}
 
         {history.length > 0 && (
-          <div className="col" style={{ gap: 4, marginTop: 8 }}>
-            <div className="eyebrow" style={{ padding: '0 4px 4px' }}>
-              Earlier in this Review
-            </div>
+          <div className="mt-2 flex flex-col gap-1">
+            <Eyebrow className="px-1 pb-1">Earlier in this Review</Eyebrow>
             {history.map((h) => (
-              <div key={h.id} className={`li${shown?.id === h.id ? ' active' : ''}`} onClick={() => onShow(h)}>
-                <BookOpen className="i i-xs muted" />
-                <span className="mono xs truncate grow" title={h.label}>
+              <button
+                type="button"
+                key={h.id}
+                className={cn('flex items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-hover', shown?.id === h.id && 'bg-accent')}
+                onClick={() => onShow(h)}
+              >
+                <BookOpen className="size-3 shrink-0 text-muted-foreground" />
+                <span className="truncate font-mono text-xs" title={h.label}>
                   {h.label}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -94,101 +98,109 @@ export function ExplainPanel({ job, explanation, history, onShow, onJump, onRetr
 
 function EmptyExplain() {
   return (
-    <div className="col" style={{ gap: 10 }}>
-      <span className="eyebrow">Explanation</span>
-      <p className="sm muted">
+    <div className="flex flex-col gap-2.5">
+      <Eyebrow>Explanation</Eyebrow>
+      <p className="text-sm text-muted-foreground">
         Select lines by clicking or dragging their line numbers, then press <Kbd keys={['e']} />. Without a selection, <Kbd keys={['e']} />{' '}
         explains the current hunk and <Kbd keys={formatKey('shift+e')} /> the current file.
       </p>
-      <p className="xs dim">
+      <p className="text-xs text-dim">
         Each Explanation says what the code did before, what it does now, and what changed, with up to two things to watch out for.
       </p>
     </div>
   );
 }
 
+const GLYPH = {
+  behavior: 'rounded-full bg-scope-requested',
+  connection: 'rounded-[2px] border-[1.5px] border-ask',
+  intent: 'rounded-full border-[1.5px] border-scope-supporting',
+} as const;
+
+function Section({ label, children, first }: { label: string; children: React.ReactNode; first?: boolean }) {
+  return (
+    <>
+      <div className={cn('py-[11px] text-xs font-semibold text-muted-foreground', !first && 'border-t')}>{label}</div>
+      <div className={cn('py-[11px]', !first && 'border-t')}>{children}</div>
+    </>
+  );
+}
+
 function ExplanationCard({ e, onJump, onRefresh }: { e: Explanation; onJump(): void; onRefresh(): void }) {
   const b = e.body;
   return (
-    <article className="col" style={{ gap: 12 }} data-testid="explanation">
-      <header className="col" style={{ gap: 4 }}>
-        <div className="row">
-          <span className="eyebrow grow">Explanation</span>
-          <span className="xs muted">
+    <article className="flex flex-col gap-3" data-testid="explanation">
+      <header className="flex flex-col gap-1">
+        <div className="flex items-center">
+          <Eyebrow className="grow">Explanation</Eyebrow>
+          <span className="text-xs text-muted-foreground">
             Fast tier · {MODEL_NAMES[e.model] ?? e.model}
             {e.cached ? ' · cached' : ''}
           </span>
         </div>
-        <button
-          className="btn-link mono sm"
-          style={{ textAlign: 'left', textDecoration: 'none', border: 0, cursor: 'pointer' }}
-          type="button"
+        <Button
+          variant="plain"
+          size="none"
+          className="justify-start font-mono text-sm text-foreground"
           onClick={onJump}
           title="Go to these lines"
         >
           {e.label}
-        </button>
+        </Button>
       </header>
-      <div className="ex-section ex-text">
-        <div className="xs b muted">Before</div>
-        {b.before ? (
-          <p className="sm">
-            <Inline text={b.before} />
+      <div className="grid select-text grid-cols-[88px_minmax(0,1fr)] gap-x-3.5">
+        <Section label="Before" first>
+          {b.before ? (
+            <p className="text-sm">
+              <Inline text={b.before} />
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">Omitted. This code is new.</p>
+          )}
+        </Section>
+        <Section label="After">
+          <p className="text-sm">
+            <Inline text={b.after} />
           </p>
-        ) : (
-          <p className="sm muted" style={{ fontStyle: 'italic' }}>
-            Omitted. This code is new.
-          </p>
-        )}
-        <div className="xs b muted">After</div>
-        <p className="sm">
-          <Inline text={b.after} />
-        </p>
+        </Section>
         {b.whatChanged.length > 0 && (
-          <>
-            <div className="xs b muted">What changed</div>
-            <ul className="col sm" style={{ gap: 6 }}>
+          <Section label="What changed">
+            <ul className="flex flex-col gap-1.5 text-sm">
               {b.whatChanged.map((w, i) => (
-                <li key={i} className="row" style={{ alignItems: 'flex-start', gap: 8 }}>
-                  <span
-                    className={`g ${w.kind === 'connection' ? 'g-conn' : w.kind === 'intent' ? 'g-intent' : 'g-req'}`}
-                    style={{ marginTop: 6 }}
-                    title={w.kind}
-                  />
+                <li key={i} className="flex items-start gap-2">
+                  <span className={cn('mt-1.5 inline-block size-2 shrink-0', GLYPH[w.kind])} title={w.kind} />
                   <span>
                     <Inline text={w.text} />
                   </span>
                 </li>
               ))}
             </ul>
-          </>
+          </Section>
         )}
       </div>
       {b.watchOut.length > 0 && (
-        <div className="elev-box col" style={{ padding: '10px 12px', gap: 6 }}>
-          <div className="xs b row" style={{ gap: 6, color: 'var(--risk-elevated)' }}>
-            <AlertTriangle className="i i-sm" />
+        <Callout tone="elevated" className="flex flex-col gap-1.5 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-elevated">
+            <AlertTriangle className="size-3.5" />
             Watch out
           </div>
-          <ol className="col sm ex-text" style={{ gap: 8 }}>
+          <ol className="flex select-text flex-col gap-2 text-sm">
             {b.watchOut.map((w, i) => (
-              <li key={i} className="row" style={{ alignItems: 'flex-start', gap: 8 }}>
-                <span className="mono xs" style={{ color: 'var(--risk-elevated)', marginTop: 1 }}>
-                  {i + 1}
-                </span>
+              <li key={i} className="flex items-start gap-2">
+                <span className="mt-px font-mono text-xs text-elevated">{i + 1}</span>
                 <span>
                   <Inline text={w} />
                 </span>
               </li>
             ))}
           </ol>
-        </div>
+        </Callout>
       )}
-      <footer className="row xs muted">
-        <button className="btn btn-ghost btn-xs muted" type="button" onClick={onRefresh} title="Ask again, ignoring the cache">
-          <RefreshCw className="i i-xs" />
+      <footer className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Button variant="muted" size="xs" onClick={onRefresh} title="Ask again, ignoring the cache">
+          <RefreshCw />
           Re-explain
-        </button>
+        </Button>
         <span className="grow" />
         {!e.cached && e.durationMs !== null && <span>{(e.durationMs / 1000).toFixed(1)}s</span>}
         {!e.cached && <span>{usd(e.costUsd)}</span>}

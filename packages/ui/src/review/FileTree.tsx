@@ -1,6 +1,7 @@
 import type { FileChange } from '@legible/domain';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { cn } from '../components/ui';
 
 interface Dir {
   name: string;
@@ -38,12 +39,12 @@ function buildTree(files: FileChange[]): Dir {
 }
 
 const STATUS: Record<FileChange['status'], [string, string]> = {
-  added: ['A', 'add-t'],
-  deleted: ['D', 'del-t'],
-  modified: ['M', 'muted'],
-  renamed: ['R', 'muted'],
-  copied: ['C', 'muted'],
-  typechange: ['T', 'muted'],
+  added: ['A', 'text-ok'],
+  deleted: ['D', 'text-critical'],
+  modified: ['M', 'text-muted-foreground'],
+  renamed: ['R', 'text-muted-foreground'],
+  copied: ['C', 'text-muted-foreground'],
+  typechange: ['T', 'text-muted-foreground'],
 };
 
 export function FileTree({
@@ -65,10 +66,12 @@ export function FileTree({
     for (const child of d.dirs.values()) {
       const isClosed = closed.has(child.path);
       out.push(
-        <div
+        <button
+          type="button"
           key={`d:${child.path}`}
-          className="tree-row dir"
-          style={{ paddingLeft: 8 + depth * 12, cursor: 'pointer' }}
+          aria-expanded={!isClosed}
+          className="flex h-[26px] w-full items-center gap-1.5 rounded-sm px-2 text-left text-sm text-muted-foreground"
+          style={{ paddingLeft: 8 + depth * 12 }}
           onClick={() =>
             setClosed((s) => {
               const n = new Set(s);
@@ -78,9 +81,9 @@ export function FileTree({
             })
           }
         >
-          {isClosed ? <ChevronRight className="i i-xs" /> : <ChevronDown className="i i-xs" />}
+          {isClosed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
           <span className="truncate">{child.name}</span>
-        </div>,
+        </button>,
       );
       if (!isClosed) out.push(...renderDir(child, depth + 1));
     }
@@ -91,31 +94,30 @@ export function FileTree({
       out.push(
         <div
           key={f.id}
-          className={`tree-row${activeFileId === f.id ? ' active' : ''}${isViewed ? ' viewed' : ''}`}
+          className={cn(
+            'flex h-[26px] cursor-pointer items-center gap-1.5 rounded-sm px-2 text-sm text-foreground hover:bg-hover',
+            activeFileId === f.id && 'bg-accent shadow-[inset_0_0_0_1px_var(--input)]',
+          )}
           style={{ paddingLeft: 8 + depth * 12 + 14 }}
           title={f.oldPath && f.oldPath !== f.path ? `${f.oldPath} → ${f.path}` : f.path}
           onClick={() => onOpen(f.id)}
           data-testid="tree-file"
         >
-          <span className={`status-letter ${cls}`}>{letter}</span>
-          <span className="name truncate grow">{name}</span>
-          {f.structural && <span className="xs dim">structural</span>}
-          {f.collapse && <span className="xs dim">{f.collapse}</span>}
+          <span className={cn('w-3 shrink-0 text-center font-mono text-[10px]', cls)}>{letter}</span>
+          <span className={cn('min-w-0 flex-auto truncate', isViewed && 'text-muted-foreground')}>{name}</span>
+          {f.structural && <span className="text-xs text-dim">structural</span>}
+          {f.collapse && <span className="text-xs text-dim">{f.collapse}</span>}
           {!f.collapse && !f.structural && (
-            <span className="stat">
-              <span className="add-t">+{f.additions}</span> <span className="del-t">−{f.deletions}</span>
+            <span className="font-mono text-[10.5px]">
+              <span className="text-ok">+{f.additions}</span> <span className="text-critical">−{f.deletions}</span>
             </span>
           )}
-          {isViewed && <Check className="i i-xs muted" aria-label="Viewed" />}
+          {isViewed && <Check className="size-3 text-muted-foreground" aria-label="Viewed" />}
         </div>,
       );
     }
     return out;
   };
 
-  return (
-    <div className="col" style={{ gap: 1 }}>
-      {renderDir(tree, 0)}
-    </div>
-  );
+  return <div className="flex flex-col gap-px">{renderDir(tree, 0)}</div>;
 }
