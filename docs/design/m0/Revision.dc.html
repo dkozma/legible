@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Revision review</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; display: flex; flex-direction: column">
+
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="crumbs grow" aria-label="Location"><span>PR #482</span><svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><b>Revision 1</b></nav>
+    <span class="badge badge-outline">Author mode</span>
+    <span class="xs muted mono" style="padding: 0 4px">$1.15</span>
+  </header>
+
+  <div class="row wrap" style="padding: 14px 20px; gap: 12px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+    <div class="col" style="gap: 2px">
+      <div class="row" style="gap: 8px"><h1 class="h2">Revision 1</h1><span class="badge badge-ask">From Batch · 2 Change Requests</span></div>
+      <div class="row wrap xs muted" style="gap: 12px"><span>Base = Iteration 2 Head <span class="mono">a3f9c1e</span></span><span>4 hunks · 3 files · +9 −3</span><span>Claude · Strong tier · $0.74</span><span>Ran in an isolated worktree</span></div>
+    </div>
+    <span class="grow"></span>
+    <div class="tabs" role="tablist" aria-label="Diff layout">
+      <button class="tab" role="tab" aria-selected="false">Unified</button>
+      <button class="tab" role="tab" aria-selected="true">Split</button>
+    </div>
+    <button class="btn btn-outline btn-sm" type="button">Accept all</button>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; min-height: 760px">
+    <aside aria-label="Change Requests" style="flex: 1 1 260px; max-width: 100%; border-right: 1px solid oklch(1 0 0 / 10%); background: oklch(0.205 0 0); padding: 12px 10px; display: flex; flex-direction: column; gap: 10px">
+      <div class="eyebrow" style="padding: 0 6px">Change Requests</div>
+      <a class="li active" href="#" style="align-items: flex-start; color: inherit; text-decoration: none; padding: 10px">
+        <span class="mono xs muted" style="margin-top: 2px">1</span>
+        <span class="col grow" style="gap: 4px"><span class="sm">Restore operator in the event payload and audit entry</span><span class="xs muted">2 hunks · 1 accepted, 1 rejected</span></span>
+      </a>
+      <a class="li" href="#" style="align-items: flex-start; color: inherit; text-decoration: none; padding: 10px">
+        <span class="mono xs muted" style="margin-top: 2px">2</span>
+        <span class="col grow" style="gap: 4px"><span class="sm">Idempotency key from a refund sequence</span><span class="xs muted">2 hunks · 2 accepted</span></span>
+      </a>
+      <span class="grow"></span>
+      <div class="inset xs muted" style="padding: 10px 12px">Accept whole or per hunk. Rejected hunks stay here; turn one into a new Change Request to try again.</div>
+    </aside>
+
+    <section aria-label="Revision diff" style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 16px 18px 24px">
+
+      <article class="panel" style="overflow: hidden; border-color: oklch(0.765 0.177 163.223 / 35%)">
+        <div class="row wrap" style="padding: 8px 12px; gap: 10px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+          <span class="mono sm">RefundService.ts</span><span class="badge badge-muted">CR 1</span>
+          <span class="xs muted grow">Add operator to the refund.issued payload</span>
+          <span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Accepted</span>
+          <button class="btn btn-ghost btn-xs muted" type="button">Reject</button>
+        </div>
+        <div class="diff" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)">
+          <div style="border-right: 1px solid oklch(1 0 0 / 10%)">
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">54</span><span class="sg"></span><span class="cd">    });</span></div>
+            <div class="dl split del"><span class="st"></span><span class="mk"></span><span class="ln">55</span><span class="sg">−</span><span class="cd">    <span class="k">this</span>.events.<span class="f">emit</span>(<span class="s">'refund.issued'</span>, { orderId, amount: requested });</span></div>
+          </div>
+          <div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">54</span><span class="sg"></span><span class="cd">    });</span></div>
+            <div class="dl split add"><span class="st"></span><span class="mk"></span><span class="ln">55</span><span class="sg">+</span><span class="cd">    <span class="k">this</span>.events.<span class="f">emit</span>(<span class="s">'refund.issued'</span>, { orderId, amount: requested, <span class="wa">operator: operator.id</span> });</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel" style="overflow: hidden; opacity: 0.62">
+        <div class="row wrap" style="padding: 8px 12px; gap: 10px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+          <span class="mono sm">RefundAuditSubscriber.ts</span><span class="badge badge-muted">CR 1</span>
+          <span class="xs muted grow">Fall back to “system” when no operator</span>
+          <span class="badge badge-muted"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>Rejected</span>
+          <button class="btn btn-ghost btn-xs muted" type="button">Undo</button>
+          <button class="btn btn-ghost btn-xs muted" type="button">Re-ask</button>
+        </div>
+        <div class="diff" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)">
+          <div style="border-right: 1px solid oklch(1 0 0 / 10%)">
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">21</span><span class="sg"></span><span class="cd">      orderId: event.orderId,</span></div>
+            <div class="dl split" style="background: oklch(1 0 0 / 2%)"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="sg"></span><span class="cd"></span></div>
+          </div>
+          <div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">21</span><span class="sg"></span><span class="cd">      orderId: event.orderId,</span></div>
+            <div class="dl split add"><span class="st"></span><span class="mk"></span><span class="ln">22</span><span class="sg">+</span><span class="cd">      operator: event.operator ?? <span class="s">'system'</span>,</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel" style="overflow: hidden; border-color: oklch(0.765 0.177 163.223 / 35%)">
+        <div class="row wrap" style="padding: 8px 12px; gap: 10px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+          <span class="mono sm">RefundService.ts</span><span class="badge badge-muted">CR 2</span>
+          <span class="xs muted grow">Take the next refund sequence before calling the gateway</span>
+          <span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Accepted</span>
+          <button class="btn btn-ghost btn-xs muted" type="button">Reject</button>
+        </div>
+        <div class="diff" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)">
+          <div style="border-right: 1px solid oklch(1 0 0 / 10%)">
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">50</span><span class="sg"></span><span class="cd">    <span class="k">const</span> isFinal = requested.<span class="f">eq</span>(balance.remaining);</span></div>
+            <div class="dl split" style="background: oklch(1 0 0 / 2%)"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="sg"></span><span class="cd"></span></div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">51</span><span class="sg"></span><span class="cd">    <span class="k">const</span> refund = <span class="k">await</span> <span class="k">this</span>.gateway.<span class="f">refund</span>(…, {</span></div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">52</span><span class="sg"></span><span class="cd">      includeShipping: isFinal,</span></div>
+            <div class="dl split del"><span class="st"></span><span class="mk"></span><span class="ln">53</span><span class="sg">−</span><span class="cd">      idempotencyKey: <span class="s">`${orderId}:<span class="wd">${balance.count}</span>`</span>,</span></div>
+          </div>
+          <div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">50</span><span class="sg"></span><span class="cd">    <span class="k">const</span> isFinal = requested.<span class="f">eq</span>(balance.remaining);</span></div>
+            <div class="dl split add"><span class="st"></span><span class="mk"></span><span class="ln">51</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> seq = <span class="k">await</span> <span class="k">this</span>.orders.<span class="f">nextRefundSeq</span>(orderId);</span></div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">52</span><span class="sg"></span><span class="cd">    <span class="k">const</span> refund = <span class="k">await</span> <span class="k">this</span>.gateway.<span class="f">refund</span>(…, {</span></div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">53</span><span class="sg"></span><span class="cd">      includeShipping: isFinal,</span></div>
+            <div class="dl split add"><span class="st"></span><span class="mk"></span><span class="ln">54</span><span class="sg">+</span><span class="cd">      idempotencyKey: <span class="s">`${orderId}:<span class="wa">${seq}</span>`</span>,</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel" style="overflow: hidden; border-color: oklch(0.765 0.177 163.223 / 35%)">
+        <div class="row wrap" style="padding: 8px 12px; gap: 10px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+          <span class="mono sm">…_partial_refunds.sql</span><span class="badge badge-muted">CR 2</span>
+          <span class="xs muted grow">Store the sequence on the order</span>
+          <span class="badge badge-elev">Migration</span>
+          <span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Accepted</span>
+          <button class="btn btn-ghost btn-xs muted" type="button">Reject</button>
+        </div>
+        <div class="diff" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)">
+          <div style="border-right: 1px solid oklch(1 0 0 / 10%)">
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">8</span><span class="sg"></span><span class="cd"><span class="k">ALTER TABLE</span> refunds <span class="k">ADD COLUMN</span> amount_cents …;</span></div>
+            <div class="dl split" style="background: oklch(1 0 0 / 2%)"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="sg"></span><span class="cd"></span></div>
+          </div>
+          <div>
+            <div class="dl split"><span class="st"></span><span class="mk"></span><span class="ln">8</span><span class="sg"></span><span class="cd"><span class="k">ALTER TABLE</span> refunds <span class="k">ADD COLUMN</span> amount_cents …;</span></div>
+            <div class="dl split add"><span class="st"></span><span class="mk"></span><span class="ln">9</span><span class="sg">+</span><span class="cd"><span class="k">ALTER TABLE</span> orders <span class="k">ADD COLUMN</span> refund_seq <span class="t">integer</span> <span class="k">NOT NULL DEFAULT</span> <span class="n">0</span>;</span></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <aside aria-label="Outcome" style="flex: 1 1 340px; max-width: 100%; border-left: 1px solid oklch(1 0 0 / 10%); background: oklch(0.175 0 0); padding: 16px; display: flex; flex-direction: column; gap: 14px">
+      <div class="col" style="gap: 6px">
+        <div class="row"><span class="h3 grow">3 of 4 hunks accepted</span></div>
+        <div class="progress"><span style="width: 75%; background: oklch(0.765 0.177 163.223)"></span></div>
+      </div>
+
+      <section class="card card-body col" style="gap: 12px" aria-labelledby="commit-h">
+        <div class="row"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><line x1="3" x2="9" y1="12" y2="12"></line><line x1="15" x2="21" y1="12" y2="12"></line></svg><h2 class="h3 grow" id="commit-h">Commit to your branch</h2></div>
+        <p class="xs muted">Author mode · <span class="mono">claude/refund-window-partial</span></p>
+        <div class="col" style="gap: 6px">
+          <label class="label" for="commit-msg">Commit message</label>
+          <textarea id="commit-msg" class="textarea mono" style="font-size: 12px; min-height: 76px">Fix refund idempotency key; restore operator on refund events</textarea>
+        </div>
+        <label class="row sm" style="gap: 8px"><input type="checkbox" class="cb" checked>One commit per accepted Revision</label>
+        <button class="btn" type="button" style="width: 100%">Accept 3 hunks &amp; commit</button>
+        <p class="xs muted">Creates Iteration 3. The Interdiff opens next, so you see only what this Revision changed.</p>
+      </section>
+
+      <section class="inset col" style="gap: 8px; padding: 12px 14px" aria-labelledby="rev-h">
+        <div class="row"><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><h2 class="xs b muted grow" id="rev-h">Same Revision in Reviewer mode</h2></div>
+        <p class="sm">Accepted hunks become <b>3 suggestion comments</b> in your Pending Review.</p>
+        <button class="btn btn-outline btn-sm" type="button" style="align-self: flex-start">Add 3 suggestions to Pending Review</button>
+        <p class="xs muted">Legible never pushes to someone else's branch.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

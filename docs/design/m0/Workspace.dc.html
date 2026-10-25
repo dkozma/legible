@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review workspace</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; display: flex; flex-direction: column">
+
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="row" aria-label="Trail" style="gap: 2px">
+      <button class="btn btn-ghost btn-icon btn-xs" type="button" aria-label="Back (⌘[)"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+      <button class="btn btn-ghost btn-icon btn-xs muted" type="button" aria-label="Forward (⌘])"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
+    </nav>
+    <nav class="crumbs grow" aria-label="Location">
+      <a href="Main.dc.html" style="color: oklch(0.708 0 0); text-decoration: none">Change Brief</a>
+      <svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+      <span>Step 3 · calculateRefundable</span>
+      <svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+      <b>Step 4 · refundOrder</b>
+    </nav>
+    <span class="badge badge-outline">Author mode</span>
+    <span class="xs muted">PR #482 · Iteration 2</span>
+    <span class="xs muted mono" style="padding: 0 4px">$0.41</span>
+    <button class="btn btn-outline btn-sm" type="button" style="width: 180px; justify-content: space-between; color: oklch(0.708 0 0)"><span class="row" style="gap: 6px"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Search or run…</span><span class="kbd">⌘K</span></button>
+  </header>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; min-height: 856px">
+
+    <!-- Walkthrough -->
+    <aside aria-label="Walkthrough" style="flex: 1 1 296px; max-width: 100%; border-right: 1px solid oklch(1 0 0 / 10%); background: oklch(0.205 0 0); display: flex; flex-direction: column">
+      <div style="padding: 10px 10px 6px; display: flex; flex-direction: column; gap: 10px">
+        <div class="tabs" role="tablist" style="width: 100%">
+          <button class="tab" role="tab" aria-selected="true" style="flex: 1">Walkthrough</button>
+          <button class="tab" role="tab" aria-selected="false" style="flex: 1">Files</button>
+          <button class="tab" role="tab" aria-selected="false" style="flex: 1">Findings<span class="badge badge-secondary" style="height: 16px; padding: 0 5px">3</span></button>
+        </div>
+      </div>
+
+      <div style="flex: 1 1 auto; padding: 0 8px; display: flex; flex-direction: column">
+        <div class="sitting">
+          <span class="b sm grow">Sitting 1 · Rules &amp; data</span>
+          <span class="xs muted">3 of 5 · ~16 min left</span>
+        </div>
+        <div class="progress" style="margin: 0 8px 8px"><span style="width: 60%"></span></div>
+
+        <a class="step" href="#">
+          <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">1</span><span class="sm truncate">Add partial-refund columns</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-sup"></span>Supporting · +46 −2</span></span>
+          <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">2</span><span class="sm truncate">Extend refund window to 60 days</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +18 −6</span></span>
+          <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">3</span><span class="sm truncate">Calculate refundable balance</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +112 −8 · 4 tests</span></span>
+          <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical risk</span></span>
+        </a>
+        <a class="step active" href="#" aria-current="step">
+          <span class="vw part"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">4</span><span class="sm truncate b">Issue partial refunds</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +96 −31</span></span>
+          <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical risk</span></span>
+        </a>
+        <a class="step unreq" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">5</span><span class="sm truncate">Move audit logging to a subscriber</span></span><span class="row xs" style="gap: 6px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>Unrequested · +54 −12</span></span>
+          <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated risk</span></span>
+        </a>
+
+        <div class="row" style="margin: 14px 8px 0; gap: 8px">
+          <span class="sep grow"></span><span class="xs muted">End of Sitting 1</span><span class="sep grow"></span>
+        </div>
+        <div class="sitting" style="padding-top: 8px">
+          <span class="b sm grow muted">Sitting 2 · API &amp; UI</span>
+          <span class="xs muted">0 of 4 · ~35 min</span>
+        </div>
+
+        <a class="step" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">6</span><span class="sm truncate">Accept amount on refund endpoint</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +64 −9</span></span>
+          <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">7</span><span class="sm truncate">Track partial refunds in the store</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +58 −14</span></span>
+          <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Low risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">8</span><span class="sm truncate">Amount field in refund dialog</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-req"></span>Requested · +121 −22</span></span>
+          <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Low risk</span></span>
+        </a>
+        <a class="step" href="#">
+          <span class="vw"></span>
+          <span class="col" style="gap: 2px; min-width: 0"><span class="row" style="gap: 6px"><span class="num">9</span><span class="sm truncate muted">Rename refundUtils → refund-math</span></span><span class="row xs muted" style="gap: 6px"><span class="g g-sup"></span>Structural · verified · 31 lines</span></span>
+          <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Low risk</span></span>
+        </a>
+        <span class="grow"></span>
+      </div>
+
+      <div style="padding: 12px 16px; border-top: 1px solid oklch(1 0 0 / 10%); display: flex; flex-direction: column; gap: 6px">
+        <div class="row xs"><span class="grow muted">Change Set</span><span>3 of 9 Steps viewed</span></div>
+        <div class="progress"><span style="width: 33%"></span></div>
+      </div>
+    </aside>
+
+    <!-- Diff -->
+    <section aria-label="Step 4 diff" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+      <div style="padding: 14px 18px 12px; border-bottom: 1px solid oklch(1 0 0 / 10%); display: flex; flex-direction: column; gap: 8px">
+        <div class="row wrap">
+          <span class="xs muted mono">Step 4 of 9</span>
+          <h1 class="h2">Issue partial refunds</h1>
+          <span class="badge badge-outline"><span class="g g-req" style="width: 6px; height: 6px"></span>Requested</span>
+          <span class="badge badge-crit"><span class="risk crit" style="height: 10px"><i></i><i></i><i></i></span>Critical · payments</span>
+          <span class="grow"></span>
+          <button class="btn btn-outline btn-sm" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark viewed<span class="kbd">v</span></button>
+        </div>
+        <p class="sm" style="color: oklch(0.87 0 0); max-width: 760px">Uses the new refundable balance so <span class="code-inline">refundOrder</span> can refund any amount up to what remains. Shipping is included only when the refund clears the balance.</p>
+      </div>
+
+      <div class="row wrap" style="padding: 8px 18px; border-bottom: 1px solid oklch(1 0 0 / 10%); gap: 10px">
+        <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path></svg>
+        <span class="mono sm">src/refunds/RefundService.ts</span>
+        <span class="mono xs" style="color: oklch(0.765 0.177 163.223)">+14</span><span class="mono xs" style="color: oklch(0.704 0.191 22.216)">−2</span>
+        <span class="grow"></span>
+        <div class="tabs" role="tablist" aria-label="Diff layout" style="height: 28px; padding: 2px">
+          <button class="tab" role="tab" aria-selected="true" style="padding: 0 8px">Unified</button>
+          <button class="tab" role="tab" aria-selected="false" style="padding: 0 8px">Split</button>
+        </div>
+        <button class="btn btn-ghost btn-sm muted" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>Open in Cursor</button>
+      </div>
+
+      <div style="flex: 1 1 auto; display: flex; min-height: 0">
+        <div class="diff grow" style="overflow: auto; padding-bottom: 12px">
+          <div class="frag s"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg><span>Structural · verified equivalent · import path <span class="mono">refundUtils</span> → <span class="mono">refund-math</span></span><span class="grow"></span><span class="xs">1 line · expand</span></div>
+
+          <div class="hunk"><span>@@ -38,10 +38,20 @@</span><span style="color: oklch(0.87 0 0)">class RefundService</span><span class="grow"></span><span>Expand to enclosing Symbol</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">38</span><span class="ln">38</span><span class="sg"></span><span class="cd">  <span class="k">async</span> <span class="f">refundOrder</span>(</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">39</span><span class="ln">39</span><span class="sg"></span><span class="cd">    orderId: <span class="t">OrderId</span>,</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">40</span><span class="ln">40</span><span class="sg"></span><span class="cd">    operator: <span class="t">Operator</span>,</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">41</span><span class="sg">+</span><span class="cd">    amount?: <span class="t">Money</span>,</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">41</span><span class="ln">42</span><span class="sg"></span><span class="cd">  ): <span class="t">Promise</span>&lt;<span class="t">Refund</span>&gt; {</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">42</span><span class="ln">43</span><span class="sg"></span><span class="cd">    <span class="k">const</span> order = <span class="k">await</span> <span class="k">this</span>.orders.<span class="f">get</span>(orderId);</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">43</span><span class="ln">44</span><span class="sg"></span><span class="cd">    <span class="k">this</span>.policy.<span class="f">assertWithinWindow</span>(order);</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">45</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> balance = <span class="k">this</span>.<span class="f">calculateRefundable</span>(order);</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"><span class="gm gm-note" title="Note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span></span><span class="ln"></span><span class="ln">46</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> requested = amount ?? balance.remaining;</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">47</span><span class="sg">+</span><span class="cd">    <span class="k">if</span> (requested.<span class="f">gt</span>(balance.remaining)) {</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">48</span><span class="sg">+</span><span class="cd">      <span class="k">throw new</span> <span class="t">RefundExceedsBalance</span>(requested, balance.remaining);</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">49</span><span class="sg">+</span><span class="cd">    }</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"><span class="gm gm-ask" title="Ask"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></span></span><span class="ln"></span><span class="ln">50</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> isFinal = requested.<span class="f">eq</span>(balance.remaining);</span></div>
+          <div class="dl del"><span class="st"></span><span class="mk"></span><span class="ln">44</span><span class="ln"></span><span class="sg">−</span><span class="cd">    <span class="k">const</span> refund = <span class="k">await</span> <span class="k">this</span>.gateway.<span class="f">refund</span>(order.paymentId, <span class="wd">order.total</span>);</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">51</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> refund = <span class="k">await</span> <span class="k">this</span>.gateway.<span class="f">refund</span>(order.paymentId, <span class="wa">requested, {</span></span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">52</span><span class="sg">+</span><span class="cd">      includeShipping: isFinal,</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"><span class="gm gm-find" title="Finding · warning"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span></span><span class="ln"></span><span class="ln">53</span><span class="sg">+</span><span class="cd">      idempotencyKey: <span class="s">`${orderId}:${balance.count}`</span>,</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">54</span><span class="sg">+</span><span class="cd">    });</span></div>
+
+          <div class="frag u"><span class="g g-unreq"></span><span><b>Step 5 · Unrequested</b> — Move audit logging to an event subscriber</span><span class="grow"></span><span class="xs">shown in context · reviewed in Step 5</span></div>
+          <div class="dl del u"><span class="st"></span><span class="mk"></span><span class="ln">45</span><span class="ln"></span><span class="sg">−</span><span class="cd">    <span class="k">await</span> <span class="f">auditLog</span>(<span class="s">'refund.issued'</span>, { orderId, <span class="wd">operator: operator.id</span> });</span></div>
+          <div class="dl add u"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">55</span><span class="sg">+</span><span class="cd">    <span class="k">this</span>.events.<span class="f">emit</span>(<span class="s">'refund.issued'</span>, { orderId, <span class="wa">amount: requested</span> });</span></div>
+          <div class="dl" style="border-top: 1px solid oklch(0.702 0.183 293.541 / 45%)"><span class="st"></span><span class="mk"></span><span class="ln">46</span><span class="ln">56</span><span class="sg"></span><span class="cd">    <span class="k">return</span> refund;</span></div>
+          <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">47</span><span class="ln">57</span><span class="sg"></span><span class="cd">  }</span></div>
+          <div class="hunk" style="justify-content: center; padding-left: 12px"><svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>23 unchanged lines</div>
+
+          <div class="row wrap" style="padding: 18px 18px 8px; gap: 10px">
+            <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path></svg>
+            <span class="mono sm" style="font-family: 'Geist Mono', monospace">src/refunds/RefundService.test.ts</span>
+            <span class="badge badge-muted">Tests for this Step</span>
+            <span class="mono xs" style="color: oklch(0.765 0.177 163.223)">+21</span>
+          </div>
+          <div class="hunk"><span>@@ -0,0 +88,21 @@</span><span style="color: oklch(0.87 0 0)">describe('refundOrder')</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">88</span><span class="sg">+</span><span class="cd">  <span class="f">it</span>(<span class="s">'refunds part of the balance without shipping'</span>, <span class="k">async</span> () =&gt; {</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">89</span><span class="sg">+</span><span class="cd">    <span class="k">const</span> refund = <span class="k">await</span> service.<span class="f">refundOrder</span>(order.id, op, <span class="f">usd</span>(<span class="n">20</span>));</span></div>
+          <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">90</span><span class="sg">+</span><span class="cd">    <span class="f">expect</span>(gateway.refund).<span class="f">toHaveBeenCalledWith</span>(pid, <span class="f">usd</span>(<span class="n">20</span>), { includeShipping: <span class="k">false</span>, … });</span></div>
+        </div>
+
+        <div class="ruler" aria-hidden="true">
+          <i class="r-view" style="top: 0; height: 46%"></i>
+          <i class="r-crit" style="top: 6%; height: 34%"></i>
+          <i class="r-unreq" style="top: 52%; height: 6%"></i>
+          <i class="r-elev" style="top: 52%; height: 6%"></i>
+          <i class="r-note" style="top: 19%"></i>
+          <i class="r-ask" style="top: 27%"></i>
+          <i class="r-find" style="top: 35%"></i>
+          <i class="r-crit" style="top: 70%; height: 12%"></i>
+        </div>
+      </div>
+
+      <div class="row wrap" style="padding: 10px 18px; border-top: 1px solid oklch(1 0 0 / 10%); gap: 10px">
+        <span class="xs muted">Next</span>
+        <span class="g g-unreq"></span>
+        <span class="sm">Step 5 · Move audit logging to an event subscriber</span>
+        <span class="grow"></span>
+        <span class="xs muted row" style="gap: 6px"><span class="kbd">j</span><span class="kbd">k</span>hunks</span>
+        <a class="btn btn-secondary btn-sm" href="#">Next Step<span class="kbd" style="background: oklch(0.145 0 0 / 40%)">n</span></a>
+      </div>
+    </section>
+
+    <!-- Right panel -->
+    <aside aria-label="Context" style="flex: 1 1 340px; max-width: 100%; border-left: 1px solid oklch(1 0 0 / 10%); background: oklch(0.175 0 0); display: flex; flex-direction: column">
+      <div class="ltabs" role="tablist">
+        <button class="ltab" role="tab" aria-selected="{{selConn}}" onClick="{{toConn}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg>Connections</button>
+        <button class="ltab" role="tab" aria-selected="{{selExplain}}" onClick="{{toExplain}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"></path></svg>Explain</button>
+        <button class="ltab" role="tab" aria-selected="{{selPad}}" onClick="{{toPad}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"></path><path d="M15 3v6h6"></path></svg>Scratchpad<span class="badge badge-secondary" style="height: 16px; padding: 0 5px">2</span></button>
+      </div>
+
+      <sc-if value="{{showExplain}}" hint-placeholder-val="{{ true }}">
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px">
+          <div class="col" style="gap: 2px">
+            <div class="row"><span class="eyebrow grow">Explanation</span><span class="xs muted">Fast tier · cached</span></div>
+            <div class="mono" style="font-size: 13px">RefundService.<b>refundOrder</b></div>
+          </div>
+          <div class="col" style="gap: 4px">
+            <div class="xs b muted">Before</div>
+            <p class="sm">Refunded the whole order total in one gateway call, then wrote an audit entry with the operator's id.</p>
+          </div>
+          <div class="col" style="gap: 4px">
+            <div class="xs b muted">After</div>
+            <p class="sm">Refunds <span class="code-inline">amount</span>, defaulting to the remaining balance, and rejects anything larger. Shipping is included only on the final refund. Emits <span class="code-inline">refund.issued</span> instead of writing the audit log.</p>
+          </div>
+          <div class="col" style="gap: 6px">
+            <div class="xs b muted">What changed</div>
+            <ul class="col sm" style="gap: 6px">
+              <li class="row" style="align-items: flex-start; gap: 8px"><span class="g g-req" style="margin-top: 6px"></span><span>Partial refunds, as the Intent asks.</span></li>
+              <li class="row" style="align-items: flex-start; gap: 8px"><span class="g g-req" style="margin-top: 6px"></span><span>New shipping rule, missing from the PR description.</span></li>
+              <li class="row" style="align-items: flex-start; gap: 8px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq" style="margin-top: 6px"></span><span>No longer calls <span class="code-inline">auditLog()</span>. The event drops <span class="code-inline">operator</span>.</span></li>
+            </ul>
+          </div>
+          <div class="elev-box" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+            <div class="xs b row" style="gap: 6px; color: oklch(0.828 0.189 84.429)"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Watch out</div>
+            <p class="sm">Two concurrent partial refunds can read the same <span class="code-inline">balance.count</span> and send the same idempotency key. The gateway drops the second one.</p>
+          </div>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" type="button">Go deeper</button>
+            <button class="btn btn-ghost btn-sm muted" type="button">Add Watch out to To-checks</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showConn}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 14px 12px; display: flex; flex-direction: column; gap: 12px">
+          <div class="mono" style="font-size: 13px; padding: 0 4px">RefundService.<b>refundOrder</b></div>
+          <div class="col" style="gap: 2px">
+            <div class="eyebrow" style="padding: 0 4px 4px">Uses →</div>
+            <div class="li"><span class="mono sm grow">calculateRefundable</span><span class="badge badge-ok">new</span></div>
+            <div class="li"><span class="mono sm grow">gateway.refund</span><span class="badge badge-muted">args changed</span></div>
+            <div class="li"><span class="mono sm grow">events.emit</span><span class="badge badge-unreq">new</span></div>
+            <div class="li"><span class="mono sm grow strike muted">auditLog</span><span class="badge badge-unreq">no longer calls</span></div>
+            <div class="li"><span class="mono sm grow">policy.assertWithinWindow</span><span class="xs muted">unchanged</span></div>
+          </div>
+          <div class="col" style="gap: 2px">
+            <div class="eyebrow" style="padding: 0 4px 4px">← Used by</div>
+            <div class="li"><span class="mono sm grow">postRefund</span><span class="badge badge-muted">changed · Step 6</span></div>
+            <div class="li"><span class="mono sm grow">AdminRefundJob.run</span><span class="xs muted">unchanged</span></div>
+            <div class="li"><span class="mono sm grow">useRefund().submit</span><span class="badge badge-outline">? 2 candidates</span></div>
+          </div>
+          <a href="Connections.dc.html" class="xs muted" style="padding: 0 4px">Open full Connections panel</a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showPad}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 14px 12px; display: flex; flex-direction: column; gap: 14px">
+          <div class="col" style="gap: 6px">
+            <div class="eyebrow" style="padding: 0 4px">Invariants</div>
+            <div class="inset" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+              <p class="sm">Total refunded never exceeds the amount paid.</p>
+              <div class="row"><span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Holds · 3 paths</span><span class="grow"></span><button class="btn btn-ghost btn-xs muted" type="button">Re-check</button></div>
+            </div>
+            <div class="inset" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+              <p class="sm">Every refund has an audit entry naming the operator.</p>
+              <div class="row"><span class="badge badge-crit">Violated · Subscriber.ts:22</span><span class="grow"></span><button class="btn btn-ghost btn-xs muted" type="button">Re-check</button></div>
+            </div>
+          </div>
+          <div class="col" style="gap: 6px">
+            <div class="eyebrow" style="padding: 0 4px">To-checks</div>
+            <label class="li sm" style="align-items: flex-start"><input type="checkbox" class="cb" style="margin-top: 1px"><span class="grow">Concurrent partial refunds and the idempotency key <span class="mono xs muted">:53</span></span></label>
+            <label class="li sm" style="align-items: flex-start"><input type="checkbox" class="cb" style="margin-top: 1px"><span class="grow">Does AdminRefundJob still pass an operator?</span></label>
+          </div>
+          <a href="Scratchpad.dc.html" class="xs muted" style="padding: 0 4px">Open Scratchpad</a>
+        </div>
+      </sc-if>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'explain' };
+  }
+  renderVals() {
+    const tab = this.state.tab;
+    return {
+      showExplain: tab === 'explain',
+      showConn: tab === 'conn',
+      showPad: tab === 'pad',
+      selExplain: tab === 'explain' ? 'true' : 'false',
+      selConn: tab === 'conn' ? 'true' : 'false',
+      selPad: tab === 'pad' ? 'true' : 'false',
+      toExplain: () => this.setState({ tab: 'explain' }),
+      toConn: () => this.setState({ tab: 'conn' }),
+      toPad: () => this.setState({ tab: 'pad' })
+    };
+  }
+}
+</script>
+</body>
+</html>

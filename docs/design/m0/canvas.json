@@ -1,0 +1,47 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-25T17:00:00Z" },
+  "title": "Legible M0 Design",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1320, "title": "01 · Change Brief", "expand": "fill" },
+    "Workspace.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "02 · Review workspace", "expand": "fill", "is_interactive": true },
+    "Chapters.dc.html": { "x": 3040, "y": 0, "w": 400, "h": 900, "title": "02b · Walkthrough with Chapters (3,000-line fixture)" },
+    "VisualLanguage.dc.html": { "x": 0, "y": 1720, "w": 1440, "h": 1180, "title": "03 · Scope & Risk visual language", "expand": "fill" },
+    "Explanation.dc.html": { "x": 1520, "y": 1720, "w": 600, "h": 760, "title": "04 · Explanation card" },
+    "Connections.dc.html": { "x": 2200, "y": 1720, "w": 600, "h": 880, "title": "05 · Connections panel & Trail" },
+    "Asks.dc.html": { "x": 0, "y": 3300, "w": 1440, "h": 900, "title": "06 · Asks & Batch tray", "expand": "fill" },
+    "Revision.dc.html": { "x": 1520, "y": 3300, "w": 1440, "h": 900, "title": "07 · Revision review", "expand": "fill" },
+    "AgentReview.dc.html": { "x": 0, "y": 4600, "w": 1440, "h": 1000, "title": "08 · Agent Review", "expand": "fill" },
+    "Scratchpad.dc.html": { "x": 1520, "y": 4600, "w": 440, "h": 900, "title": "09 · Scratchpad" },
+    "PendingReview.dc.html": { "x": 2040, "y": 4600, "w": 1000, "h": 900, "title": "10 · Pending Review publish" },
+    "Iteration.dc.html": { "x": 0, "y": 6000, "w": 1440, "h": 820, "title": "11 · Iteration banner & Interdiff", "expand": "fill" },
+    "Palette.dc.html": { "x": 1520, "y": 6000, "w": 1440, "h": 820, "title": "12 · Command palette & shortcuts" },
+    "Settings.dc.html": { "x": 3040, "y": 6000, "w": 1440, "h": 1560, "title": "13 · Settings", "expand": "fill" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Workspace.dc.html",
+    "Chapters.dc.html",
+    "VisualLanguage.dc.html",
+    "Explanation.dc.html",
+    "Connections.dc.html",
+    "Asks.dc.html",
+    "Revision.dc.html",
+    "AgentReview.dc.html",
+    "Scratchpad.dc.html",
+    "PendingReview.dc.html",
+    "Iteration.dc.html",
+    "Palette.dc.html",
+    "Settings.dc.html"
+  ],
+  "notes": {
+    "row1": { "x": 0, "y": -280, "text": "Orient, then read", "kind": "title1", "maxW": 3440 },
+    "row2": { "x": 0, "y": 1440, "text": "Visual language & understanding", "kind": "title1", "maxW": 2800 },
+    "row3": { "x": 0, "y": 3020, "text": "The feedback loop", "kind": "title1", "maxW": 2960 },
+    "row4": { "x": 0, "y": 4320, "text": "Agent Review, memory & publishing", "kind": "title1", "maxW": 3040 },
+    "row5": { "x": 0, "y": 5720, "text": "Iterations, navigation & settings", "kind": "title1", "maxW": 4480 }
+  },
+  "designSystems": []
+}
