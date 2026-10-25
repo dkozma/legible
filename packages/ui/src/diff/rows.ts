@@ -8,7 +8,7 @@ export type LineKind = ' ' | '-' | '+';
 export type Row =
   | { k: 'file'; fileId: string; first: boolean }
   | { k: 'collapsed'; fileId: string; reason: CollapsedReason }
-  | { k: 'hunk'; fileId: string; base: number; baseLen: number; head: number; headLen: number; chunk: number }
+  | { k: 'hunk'; fileId: string; base: number; baseLen: number; head: number; headLen: number; chunk: number; lastChunk: number }
   | { k: 'gap'; fileId: string; gapKey: string; count: number }
   | {
       k: 'frag';
@@ -98,15 +98,10 @@ function moveIndex(moves: MoveBlock[], fileId: string) {
   return { fromBlock: (l: number) => find(from, l), toBlock: (l: number) => find(to, l) };
 }
 
-function proofLabel(proof: StructuralProof, chunk: DiffChunk, mv: ReturnType<typeof moveIndex>): string {
-  if (proof === 'whitespace') return 'Structural · whitespace only';
-  if (proof === 'formatting') return 'Structural · formatting only';
-  const out = chunk.baseEnd > chunk.baseStart ? mv.fromBlock(chunk.baseStart) : null;
-  if (out) return `Moved to ${out.toPath}:${out.toStart}–${out.toEnd}`;
-  const inn = chunk.headEnd > chunk.headStart ? mv.toBlock(chunk.headStart) : null;
-  if (inn) return `Moved from ${inn.fromPath}:${inn.fromStart}–${inn.fromEnd}`;
-  return 'Structural · moved code';
-}
+const PROOF_LABEL: Record<StructuralProof, string> = {
+  whitespace: 'Structural · whitespace only',
+  formatting: 'Structural · formatting only',
+};
 
 export function buildRows(summary: Pick<ChangeSetSummary, 'files' | 'moves'>, opts: RowOptions): RowModel {
   const rows: Row[] = [];
@@ -133,6 +128,7 @@ export function buildRows(summary: Pick<ChangeSetSummary, 'files' | 'moves'>, op
     let blockBaseEnd = -1;
     let blockHeadEnd = -1;
     let blockChunk = -1;
+    let blockLastChunk = -1;
     const flush = () => {
       if (block.length === 0) return;
       rows.push({
@@ -143,6 +139,7 @@ export function buildRows(summary: Pick<ChangeSetSummary, 'files' | 'moves'>, op
         head: blockHead,
         headLen: blockHeadEnd - blockHead,
         chunk: blockChunk,
+        lastChunk: blockLastChunk,
       });
       for (const r of block) {
         if ((r.k === 'line' && r.t !== ' ') || r.k === 'frag' || (r.k === 'pair' && (r.lt === '-' || r.rt === '+'))) {
@@ -154,7 +151,7 @@ export function buildRows(summary: Pick<ChangeSetSummary, 'files' | 'moves'>, op
         rows.push(r);
       }
       block = [];
-      blockBase = blockHead = blockBaseEnd = blockHeadEnd = blockChunk = -1;
+      blockBase = blockHead = blockBaseEnd = blockHeadEnd = blockChunk = blockLastChunk = -1;
     };
     const extend = (b0: number, b1: number, h0: number, h1: number) => {
       if (blockBase < 0) {
@@ -204,6 +201,7 @@ export function buildRows(summary: Pick<ChangeSetSummary, 'files' | 'moves'>, op
 
       const frag = fragByChunk.get(ci);
       if (blockChunk < 0) blockChunk = ci;
+      blockLastChunk = ci;
       extend(c.baseStart, c.baseEnd, c.headStart, c.headEnd);
       if (frag && frag.kind === 'structural' && frag.proof) {
         const expanded = opts.expandedFrags.has(frag.id);
@@ -215,7 +213,7 @@ export function buildRows(summary: Pick<ChangeSetSummary, 'files' | 'moves'>, op
           proof: frag.proof,
           lines: c.baseEnd - c.baseStart + (c.headEnd - c.headStart),
           expanded,
-          label: proofLabel(frag.proof, c, mv),
+          label: PROOF_LABEL[frag.proof],
         });
         if (!expanded) return;
       }
@@ -306,10 +304,18 @@ export function rangesForRows(
   return { baseRange: b1 >= 0 ? [b0, b1] : null, headRange: h1 >= 0 ? [h0, h1] : null };
 }
 
-/** Line ranges of one change chunk. */
-export function chunkRanges(c: DiffChunk): { baseRange: [number, number] | null; headRange: [number, number] | null } {
-  return {
-    baseRange: c.baseEnd > c.baseStart ? [c.baseStart + 1, c.baseEnd] : null,
-    headRange: c.headEnd > c.headStart ? [c.headStart + 1, c.headEnd] : null,
-  };
+/** 1-based line ranges spanning the change chunks `first..last` (a whole hunk), including the context between them. */
+export function chunkRanges(
+  chunks: DiffChunk[],
+  first: number,
+  last = first,
+): { baseRange: [number, number] | null; headRange: [number, number] | null } {
+  let base: [number, number] | null = null;
+  let head: [number, number] | null = null;
+  for (const c of chunks.slice(first, last + 1)) {
+    if (c.kind !== 'change') continue;
+    if (c.baseEnd > c.baseStart) base = [base?.[0] ?? c.baseStart + 1, c.baseEnd];
+    if (c.headEnd > c.headStart) head = [head?.[0] ?? c.headStart + 1, c.headEnd];
+  }
+  return { baseRange: base, headRange: head };
 }

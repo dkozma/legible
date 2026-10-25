@@ -196,11 +196,21 @@ export class ClaudeSdkRuntime implements AgentRuntime {
     let text = '';
     let result: Extract<SDKMessage, { type: 'result' }> | null = null;
     let stderr = '';
+    // Claude reports the exact cost only in the final result. A run that ends without one
+    // (cancelled, crashed) is charged from per-message usage at catalog prices.
+    const price = MODEL_CATALOG.find((m) => m.id === model);
+    let estimatedUsd = 0;
+    const charged = (e: AgentError, costUsd: number) => Object.assign(e, { costUsd });
     try {
       opts.onEvent?.({ type: 'status', message: 'Starting Claude' });
       const q = query({ prompt: task.prompt, options: { ...options, stderr: (d) => (stderr = (stderr + d).slice(-4000)) } });
       for await (const msg of q) {
         if (msg.type === 'assistant') {
+          const u = msg.message.usage;
+          if (price && u) {
+            const input = u.input_tokens + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+            estimatedUsd += (input * (price.inputPrice ?? 0) + u.output_tokens * (price.outputPrice ?? 0)) / 1e6;
+          }
           for (const block of msg.message.content) {
             if (block.type === 'text' && block.text) {
               text += block.text;
@@ -214,13 +224,14 @@ export class ClaudeSdkRuntime implements AgentRuntime {
         }
       }
     } catch (e) {
-      if (opts.signal.aborted) throw new AgentError('Cancelled', 'aborted');
-      throw classifyError(e as Error, stderr, this.config.auth);
+      if (opts.signal.aborted) throw charged(new AgentError('Cancelled', 'aborted'), estimatedUsd);
+      throw charged(classifyError(e as Error, stderr, this.config.auth), estimatedUsd);
     } finally {
       opts.signal.removeEventListener('abort', onAbort);
     }
 
-    if (!result) throw new AgentError(`Claude ended without a result.${stderr ? ` ${lastLine(stderr)}` : ''}`, 'execution');
+    if (!result)
+      throw charged(new AgentError(`Claude ended without a result.${stderr ? ` ${lastLine(stderr)}` : ''}`, 'execution'), estimatedUsd);
     const usage = Object.values(result.modelUsage ?? {});
     const base = {
       text,
@@ -240,15 +251,19 @@ export class ClaudeSdkRuntime implements AgentRuntime {
         error_during_execution: [`Claude failed: ${result.errors?.join('; ') || lastLine(stderr) || 'unknown error'}`, 'execution'],
       };
       const [message, code] = messages[result.subtype] ?? [`Claude failed (${result.subtype})`, 'execution'];
-      throw Object.assign(new AgentError(message, code), { costUsd: base.costUsd });
+      throw charged(new AgentError(message, code), base.costUsd);
     }
-    if (result.is_error) throw classifyError(new Error(result.result || 'Claude returned an error'), stderr, this.config.auth);
+    if (result.is_error)
+      throw charged(classifyError(new Error(result.result || 'Claude returned an error'), stderr, this.config.auth), base.costUsd);
 
     let output: T | null = null;
     if (task.output) {
       const parsed = task.output.safeParse(result.structured_output);
       if (!parsed.success)
-        throw new AgentError(`Claude's answer didn't match the expected shape: ${parsed.error.message.slice(0, 300)}`, 'structured_output');
+        throw charged(
+          new AgentError(`Claude's answer didn't match the expected shape: ${parsed.error.message.slice(0, 300)}`, 'structured_output'),
+          base.costUsd,
+        );
       output = parsed.data;
     }
     return { ...base, output };

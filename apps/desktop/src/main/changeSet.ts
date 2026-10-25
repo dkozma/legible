@@ -51,7 +51,8 @@ async function readText(repo: GitRepo, oid: string | null, mode: string): Promis
   const empty = { lines: [], binary: false, size: 0, finalNewline: null, crlf: false };
   if (!oid || mode === SUBMODULE) return { ...empty, binary: mode === SUBMODULE };
   const buf = await repo.blobs().read(oid);
-  if (!buf) return empty;
+  // A missing object would otherwise show the file as fully added or deleted.
+  if (!buf) throw new Error(`Object ${oid.slice(0, 10)} is missing from the repository.`);
   if (looksBinary(buf)) return { ...empty, binary: true, size: buf.length };
   const text = buf.toString('utf8');
   return {
@@ -71,6 +72,19 @@ function textNotes(b: Text, h: Text): string[] {
   if (b.finalNewline !== null && h.finalNewline !== null && b.crlf !== h.crlf)
     notes.push(h.crlf ? 'Line endings LF → CRLF' : 'Line endings CRLF → LF');
   return notes;
+}
+
+/**
+ * Returns a function that yields to the event loop once a slice of synchronous
+ * work has run for `budgetMs`, so IPC and window events get through a long build.
+ */
+function yielder(budgetMs = 12): () => Promise<void> {
+  let since = performance.now();
+  return async () => {
+    if (performance.now() - since < budgetMs) return;
+    await new Promise((r) => setImmediate(r));
+    since = performance.now();
+  };
 }
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
@@ -131,8 +145,12 @@ export async function buildChangeSet(
     };
   });
 
+  const breathe = yielder();
   const chunksById = new Map<string, DiffChunk[]>();
-  for (const f of loaded) chunksById.set(f.id, f.binary ? [] : diffLines(f.base, f.head, { ignoreWhitespace: opts.ignoreWhitespace }));
+  for (const f of loaded) {
+    chunksById.set(f.id, f.binary ? [] : diffLines(f.base, f.head, { ignoreWhitespace: opts.ignoreWhitespace }));
+    await breathe();
+  }
 
   const collapse = new Map(
     loaded.map((f) => [
@@ -162,7 +180,8 @@ export async function buildChangeSet(
   );
 
   const diffs = new Map<string, FileDiff>();
-  const files: FileChange[] = loaded.map((f) => {
+  const files: FileChange[] = [];
+  for (const f of loaded) {
     const reason = collapse.get(f.id) ?? null;
     const highlight = !reason || reason === 'generated' || reason === 'vendored';
     const baseTokens = highlight ? tokensFor(f.raw.oldOid, f.language, f.base) : null;
@@ -176,7 +195,7 @@ export async function buildChangeSet(
       baseTokens,
       headTokens,
       ignoreWhitespace: opts.ignoreWhitespace,
-      moves: moves.filter((m) => m.fromFileId === f.id || m.toFileId === f.id),
+      chunks: chunksById.get(f.id),
     });
     diffs.set(f.id, diff);
     let additions = 0;
@@ -188,7 +207,7 @@ export async function buildChangeSet(
     }
     const proofs = new Set(diff.fragments.map((fr) => fr.proof));
     const allStructural = diff.fragments.length > 0 && diff.fragments.every((fr) => fr.kind === 'structural');
-    return {
+    files.push({
       id: f.id,
       path: f.path,
       oldPath: f.raw.oldPath,
@@ -206,8 +225,9 @@ export async function buildChangeSet(
       baseLineCount: f.base.length,
       headLineCount: f.head.length,
       notes: f.notes,
-    };
-  });
+    });
+    await breathe();
+  }
 
   files.sort(compareFiles);
   const summary: ChangeSetSummary = {

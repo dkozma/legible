@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import type { Explanation, ExplanationJob, ExplanationTarget, Settings } from '@legible/domain';
 import { targetLabel } from '@legible/domain';
 import { EXPLANATION_PROMPT_VERSION, explanationCacheKey, toExplanationBody } from '@legible/pipelines';
-import type { Store } from '@legible/store';
+import type { AgentRunRecord, Store } from '@legible/store';
 
 import { type AgentHostClient, AgentRunError } from './agentHostClient';
 import type { ExplanationRunInput } from './agentHostCore';
@@ -108,8 +108,22 @@ export class ExplanationService {
     });
     job.runId = runId;
 
-    done.then(
-      async (r) => {
+    // Saving the Explanation and the run record is bookkeeping: if it fails (say the Review was
+    // deleted mid-run), the job must still finish, or later requests would dedupe onto it forever.
+    const record = (run: Omit<AgentRunRecord, 'id' | 'reviewId' | 'taskKind' | 'tier' | 'startedAt' | 'endedAt'>) =>
+      this.store
+        .recordRun({
+          ...run,
+          id: runId,
+          reviewId,
+          taskKind: 'explanation',
+          tier: 'fast',
+          startedAt: started,
+          endedAt: new Date().toISOString(),
+        })
+        .catch(() => undefined);
+    done
+      .then(async (r) => {
         const explanation: Explanation = {
           id: randomUUID(),
           cacheKey,
@@ -125,16 +139,10 @@ export class ExplanationService {
           createdAt: new Date().toISOString(),
           cached: false,
         };
-        await this.store.saveExplanation(explanation, reviewId);
-        await this.store.recordRun({
-          id: runId,
-          reviewId,
-          taskKind: 'explanation',
+        await this.store.saveExplanation(explanation, reviewId).catch(() => undefined);
+        await record({
           provider: explanation.provider,
           model: r.model,
-          tier: 'fast',
-          startedAt: started,
-          endedAt: new Date().toISOString(),
           costUsd: r.costUsd,
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
@@ -143,28 +151,22 @@ export class ExplanationService {
         });
         Object.assign(job, { status: 'done', progress: r.fallbackReason, explanation });
         this.emit(strip(job));
-      },
-      async (e: Error) => {
-        const cancelled = e instanceof AgentRunError && e.code === 'aborted';
-        await this.store.recordRun({
-          id: runId,
-          reviewId,
-          taskKind: 'explanation',
+      })
+      .catch(async (e: unknown) => {
+        const err = e instanceof Error ? e : new Error(String(e));
+        const cancelled = err instanceof AgentRunError && err.code === 'aborted';
+        await record({
           provider: tier.provider,
           model: tier.model,
-          tier: 'fast',
-          startedAt: started,
-          endedAt: new Date().toISOString(),
-          costUsd: e instanceof AgentRunError ? e.costUsd : 0,
+          costUsd: err instanceof AgentRunError ? err.costUsd : 0,
           inputTokens: null,
           outputTokens: null,
           status: cancelled ? 'cancelled' : 'error',
-          error: e.message,
+          error: err.message,
         });
-        Object.assign(job, { status: cancelled ? 'cancelled' : 'error', error: cancelled ? null : e.message, progress: null });
+        Object.assign(job, { status: cancelled ? 'cancelled' : 'error', error: cancelled ? null : err.message, progress: null });
         this.emit(strip(job));
-      },
-    );
+      });
     return strip(job);
   }
 

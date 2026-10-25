@@ -42,23 +42,6 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   const runtime = useQuery({ queryKey: ['runtimeStatus'], queryFn: () => client.call('runtime.status', {}), staleTime: 60_000 });
 
   const files = cs.data?.files ?? NO_FILES;
-  const diffList = useQueries({
-    queries: files.map((f) => ({
-      queryKey: ['fileDiff', reviewId, iterationId, f.id, ui.ignoreWhitespace],
-      queryFn: () =>
-        client.call('fileDiff.get', { reviewId, iterationId: iterationId as string, fileId: f.id, ignoreWhitespace: ui.ignoreWhitespace }),
-      enabled: Boolean(iterationId) && !f.binary,
-      staleTime: Number.POSITIVE_INFINITY,
-    })),
-    combine: dataOf,
-  });
-  const diffs = useMemo(() => {
-    const out: Record<string, FileDiff | undefined> = {};
-    files.forEach((f, i) => {
-      out[f.id] = diffList[i];
-    });
-    return out;
-  }, [files, diffList]);
 
   const viewed = useMemo(() => new Set(viewedQ.data ?? []), [viewedQ.data]);
   const model = useMemo(
@@ -74,6 +57,38 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       }),
     [cs.data, ui.layout, settings.data?.diff.contextLines, viewed, ui.expandedFiles, ui.collapsedFiles, ui.expandedFrags, ui.gapReveal],
   );
+
+  // Load file contents only for files drawn near the viewport. Rows are laid out from the
+  // Change Set alone, so nothing moves when contents arrive; loaded files stay cached.
+  const [nearKey, setNearKey] = useState('');
+  const updateNear = (px: number) => {
+    const h = scrollRef.current?.clientHeight || 1000;
+    const ids = new Set<string>();
+    for (let i = rowAt(model, Math.max(0, px - h)), end = rowAt(model, px + 3 * h); i <= end; i++) {
+      const r = model.rows[i];
+      if (r && r.k !== 'end' && r.k !== 'file' && r.k !== 'collapsed') ids.add(r.fileId);
+    }
+    const key = [...ids].join('\n');
+    setNearKey((prev) => (prev === key ? prev : key));
+  };
+  const near = useMemo(() => new Set(nearKey.split('\n')), [nearKey]);
+  const diffList = useQueries({
+    queries: files.map((f) => ({
+      queryKey: ['fileDiff', reviewId, iterationId, f.id, ui.ignoreWhitespace],
+      queryFn: () =>
+        client.call('fileDiff.get', { reviewId, iterationId: iterationId as string, fileId: f.id, ignoreWhitespace: ui.ignoreWhitespace }),
+      enabled: Boolean(iterationId) && !f.binary && near.has(f.id),
+      staleTime: Number.POSITIVE_INFINITY,
+    })),
+    combine: dataOf,
+  });
+  const diffs = useMemo(() => {
+    const out: Record<string, FileDiff | undefined> = {};
+    files.forEach((f, i) => {
+      out[f.id] = diffList[i];
+    });
+    return out;
+  }, [files, diffList]);
 
   // A selection is row indices into this model; any re-layout (split, gaps,
   // expanding, viewed) invalidates it, so drop it rather than explain the wrong lines.
@@ -146,11 +161,10 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     const f = files.find((x) => x.id === fileId);
     return f ? { kind: 'file', fileId: f.id, path: f.path, oldPath: f.oldPath } : null;
   };
-  const chunkTarget = (fileId: string, chunk: number): ExplanationTarget | null => {
+  const chunkTarget = (fileId: string, chunk: number, lastChunk = chunk): ExplanationTarget | null => {
     const f = files.find((x) => x.id === fileId);
-    const c = f?.chunks[chunk];
-    if (!f || !c) return null;
-    return { kind: 'range', fileId: f.id, path: f.path, oldPath: f.oldPath, ...chunkRanges(c) };
+    if (!f?.chunks[chunk]) return null;
+    return { kind: 'range', fileId: f.id, path: f.path, oldPath: f.oldPath, ...chunkRanges(f.chunks, chunk, lastChunk) };
   };
 
   /** Gutter selection, else a text selection inside the diff, else the current hunk. */
@@ -241,7 +255,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   });
 
   const actions: DiffActions = {
-    explainChunk: (fileId, chunk) => runExplain(chunkTarget(fileId, chunk)),
+    explainChunk: (fileId, chunk, lastChunk) => runExplain(chunkTarget(fileId, chunk, lastChunk)),
     explainFile: (fileId) => runExplain(fileTarget(fileId)),
     openInEditor,
     toggleViewed,
@@ -578,6 +592,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
               onScrollTop={(px, fileId) => {
                 scrollTop.current = px;
                 setTopFile((prev) => (prev === fileId ? prev : fileId));
+                updateNear(px);
               }}
             />
           )}
@@ -602,7 +617,9 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
               const t = job?.target ?? ui.shownExplanation?.target ?? null;
               runExplain(t, force);
             }}
-            onCancel={() => job && void client.call('explain.cancel', { jobId: job.jobId })}
+            onCancel={() => {
+              if (job) client.call('explain.cancel', { jobId: job.jobId }).catch((e: Error) => useUI.getState().toast(e.message));
+            }}
           />
         </aside>
       </div>

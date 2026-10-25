@@ -71,6 +71,9 @@ export function runGit(args: string[], opts: RunOptions = {}): Promise<RunResult
         resolve(result);
       }
     });
+    // Git may exit before reading all of stdin (e.g. it rejects an option); the
+    // resulting EPIPE is not the error, the exit code is, and 'close' reports it.
+    child.stdin.on('error', () => undefined);
     if (opts.input !== undefined) child.stdin.end(opts.input);
     else child.stdin.end();
   });

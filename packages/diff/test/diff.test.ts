@@ -205,9 +205,9 @@ describe('detectMoves', () => {
       headLines: bHead,
       baseTokens: null,
       headTokens: null,
-      moves,
     });
-    expect(d.fragments[0]?.proof).toBe('move');
+    // Shown as moved, but reviewed: moving code can change what it refers to.
+    expect(d.fragments[0]).toMatchObject({ kind: 'behavioral', proof: null });
   });
 
   it('ignores short coincidental matches', () => {

@@ -4,18 +4,20 @@
 import { mkdir, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+import type { HostKind } from '@legible/domain';
+
 import { GitRepo } from './repo';
 import { runGit } from './run';
 
 /**
  * Env that authenticates git's HTTPS requests to one host with a token, via
- * config env vars so the token never appears in process arguments.
+ * config env vars so the token never appears in process arguments. GitLab
+ * needs the `oauth2` user for OAuth tokens (glab's), and accepts it for
+ * personal access tokens too; GitHub accepts `x-access-token` for both.
  */
-export function tokenAuthEnv(hostname: string, token: string, scheme: 'basic' | 'bearer' = 'basic'): NodeJS.ProcessEnv {
-  const value =
-    scheme === 'basic'
-      ? `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`
-      : `Authorization: Bearer ${token}`;
+export function tokenAuthEnv(hostname: string, token: string, host: HostKind): NodeJS.ProcessEnv {
+  const user = host === 'gitlab' ? 'oauth2' : 'x-access-token';
+  const value = `Authorization: Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`;
   return {
     GIT_CONFIG_COUNT: '1',
     GIT_CONFIG_KEY_0: `http.https://${hostname}/.extraheader`,

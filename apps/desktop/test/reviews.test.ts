@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { Store } from '@legible/store';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { compareFiles } from '../src/main/changeSet';
 import { ReviewService } from '../src/main/reviews';
@@ -65,6 +65,24 @@ describe('ReviewService', () => {
     const it2 = await reviews.refresh(r.id);
     expect(it2.seq).toBe(2);
     expect((await reviews.checkForChanges(r.id)).available).toBe(false);
+
+    // Refreshing an unchanged tree, even twice at once, adds nothing.
+    await Promise.all([reviews.refresh(r.id), reviews.refresh(r.id)]);
+    expect((await store.listIterations(r.id)).length).toBe(2);
+
+    // Concurrent refreshes after a change add exactly one Iteration.
+    appendFileSync(join(repo, 'README.md'), 'Even more.\n');
+    const [a, b] = await Promise.all([reviews.refresh(r.id), reviews.refresh(r.id)]);
+    expect([a.seq, b.seq]).toEqual([3, 3]);
+    expect((await store.listIterations(r.id)).length).toBe(3);
+  });
+
+  it('notices a further edit to an already-changed file', async () => {
+    const r = await reviews.open({ kind: 'working_tree', repoPath: repo, baseRef: null });
+    expect((await reviews.checkForChanges(r.id)).available).toBe(false);
+    // Same status line (" M README.md") as before; only the file's size and mtime move.
+    appendFileSync(join(repo, 'README.md'), 'And more.\n');
+    expect((await reviews.checkForChanges(r.id)).available).toBe(true);
   });
 
   it('compares refs with three-dot semantics', async () => {
@@ -73,6 +91,27 @@ describe('ReviewService', () => {
     // Committed work only: no untracked test file.
     expect(cs.files.some((f) => f.path.endsWith('RefundService.test.ts'))).toBe(false);
     expect(cs.files.some((f) => f.path === 'src/refunds/RefundService.ts')).toBe(true);
+  });
+
+  it('keeps one watcher when watch() is called again before the first has started', async () => {
+    const a = await reviews.open({ kind: 'working_tree', repoPath: repo, baseRef: null });
+    const b = await reviews.open({ kind: 'refs', repoPath: repo, baseRef: 'main', headRef: 'feature/partial-refunds' });
+    const set = vi.spyOn(globalThis, 'setInterval');
+    const clear = vi.spyOn(globalThis, 'clearInterval');
+    try {
+      reviews.watch(a.id);
+      reviews.watch(b.id);
+      reviews.watch(b.id);
+      await vi.waitFor(() => expect(set.mock.calls.length).toBeGreaterThanOrEqual(1));
+      await new Promise((r) => setTimeout(r, 100));
+      const cleared = new Set(clear.mock.calls.map((c) => c[0]));
+      const live = set.mock.results.map((r) => r.value as unknown).filter((id) => !cleared.has(id as never));
+      expect(live).toHaveLength(1);
+    } finally {
+      reviews.dispose();
+      set.mockRestore();
+      clear.mockRestore();
+    }
   });
 
   it('explains user errors plainly', async () => {

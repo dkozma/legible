@@ -6,7 +6,6 @@ import { buildFileDiff, detectMoves, diffLines, highlightLines, languageForPath 
 function proofs(path: string, base: string[], head: string[]) {
   const language = languageForPath(path);
   const chunks = diffLines(base, head);
-  const moves = detectMoves([{ fileId: 'f', path, language, baseLines: base, headLines: head, chunks }]);
   const d = buildFileDiff({
     fileId: 'f',
     path,
@@ -15,7 +14,7 @@ function proofs(path: string, base: string[], head: string[]) {
     headLines: head,
     baseTokens: highlightLines(language, base),
     headTokens: highlightLines(language, head),
-    moves,
+    chunks,
   });
   return d.fragments.map((f) => f.proof);
 }
@@ -32,10 +31,30 @@ describe('no false Structural proofs', () => {
   it('a lone brace that changes nesting while other code moves', () => {
     const base = ['function f() {', '  one();', '  two();', '  three();', '}', 'if (x) {', '  a();', '}', 'b();'];
     const head = ['function g() {}', 'if (x) {', '  a();', '  b();', '}', 'function f() {', '  one();', '  two();', '  three();', '}'];
-    expect(proofs('a.ts', base, head).filter((p) => p !== null && p !== 'move')).toEqual([]);
-    const d = proofs('a.ts', base, head);
-    // The chunks that change nesting stay Behavioral.
-    expect(d.some((p) => p === null)).toBe(true);
+    none(proofs('a.ts', base, head));
+  });
+
+  it('whitespace in languages whose grammar can’t see multi-line strings', () => {
+    // Kotlin raw string: the blank line is part of the value.
+    none(proofs('a.kt', ['val s = """', 'a', 'b"""'], ['val s = """', 'a', '', 'b"""']));
+    none(proofs('a.cs', ['var s = @"', 'a', 'b";'], ['var s = @"', 'a', '', 'b";']));
+  });
+
+  it('top-level code moved within a file, which reorders what runs', () => {
+    const steps = ['rm -rf /tmp/build', 'mkdir /tmp/build', 'cp a /tmp/build'];
+    const base = ['set -e', ...steps, 'echo one', 'echo two', 'echo three', 'echo four', 'exit 0'];
+    const head = ['set -e', 'echo one', 'echo two', 'echo three', 'echo four', 'exit 0', ...steps];
+    none(proofs('build.sh', base, head));
+    const rules = ['.a {', '  color: red;', '}'];
+    none(proofs('x.css', [...rules, '.b {', '  color: blue;', '}'], ['.b {', '  color: blue;', '}', ...rules]));
+    const init = ['const config = load();', 'register(config);', 'start();'];
+    none(
+      proofs(
+        'a.ts',
+        [...init, 'export const ready = true;', 'log("a");', 'log("b");'],
+        ['export const ready = true;', 'log("a");', 'log("b");', ...init],
+      ),
+    );
   });
 
   it('code moved out of a conditional', () => {
@@ -71,7 +90,7 @@ describe('real Structural proofs still hold', () => {
     expect(proofs('a.ts', ['function f() {', 'return 1;', '}'], ['function f() {', '  return 1;', '}'])).toEqual(['whitespace']);
   });
 
-  it('a top-level function moved verbatim between files', () => {
+  it('a top-level function moved verbatim between files is detected, not proven', () => {
     const fn = ['export function total(items) {', '  let sum = 0;', '  for (const i of items) sum += i.price;', '  return sum;', '}'];
     const aBase = ['import x from "y";', '', ...fn];
     const aHead = ['import x from "y";'];

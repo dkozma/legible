@@ -64,6 +64,30 @@ const highlighter = tagHighlighter([
 
 const stream = (p: StreamParser<unknown>): Parser => StreamLanguage.define(p).parser;
 
+/**
+ * Legacy CodeMirror modes. They tokenize one line at a time, so their trees
+ * never hold a multi-line string; see linesInsideStrings.
+ */
+const STREAM_MODES = new Map<string, StreamParser<unknown>>([
+  ['shell', shell],
+  ['ruby', ruby],
+  ['toml', toml],
+  ['swift', swift],
+  ['kotlin', kotlin],
+  ['csharp', csharp],
+  ['scala', scala],
+  ['objectivec', objectiveC],
+  ['dart', dart],
+  ['dockerfile', dockerFile],
+  ['sql', standardSQL],
+  ['lua', lua],
+  ['r', r],
+  ['protobuf', protobuf],
+  ['haskell', haskell],
+  ['clojure', clojure],
+  ['erlang', erlang],
+]);
+
 const parsers = new Map<string, () => Parser>([
   ['typescript', () => jsParser.configure({ dialect: 'ts' })],
   ['tsx', () => jsParser.configure({ dialect: 'ts jsx' })],
@@ -84,23 +108,7 @@ const parsers = new Map<string, () => Parser>([
   ['yaml', () => yamlParser],
   ['markdown', () => mdParser],
   ['php', () => phpParser],
-  ['shell', () => stream(shell)],
-  ['ruby', () => stream(ruby)],
-  ['toml', () => stream(toml)],
-  ['swift', () => stream(swift)],
-  ['kotlin', () => stream(kotlin)],
-  ['csharp', () => stream(csharp)],
-  ['scala', () => stream(scala)],
-  ['objectivec', () => stream(objectiveC)],
-  ['dart', () => stream(dart)],
-  ['dockerfile', () => stream(dockerFile)],
-  ['sql', () => stream(standardSQL)],
-  ['lua', () => stream(lua)],
-  ['r', () => stream(r)],
-  ['protobuf', () => stream(protobuf)],
-  ['haskell', () => stream(haskell)],
-  ['clojure', () => stream(clojure)],
-  ['erlang', () => stream(erlang)],
+  ...[...STREAM_MODES].map(([name, mode]) => [name, () => stream(mode)] as const),
 ]);
 
 const cache = new Map<string, Parser>();
@@ -174,7 +182,8 @@ const STRINGY = /String|Template|Heredoc|Nowdoc|TextBlock/;
  * tokens). Whitespace on such lines is content. Null when not parseable.
  */
 export function linesInsideStrings(language: string | null, lines: string[]): Uint8Array | null {
-  if (!language) return null;
+  // Unknown for stream modes: a string spanning lines is one token per line there.
+  if (!language || STREAM_MODES.has(language)) return null;
   const parser = parserFor(language);
   if (!parser) return null;
   const text = lines.join('\n');

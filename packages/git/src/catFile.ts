@@ -78,6 +78,8 @@ export class BlobReader {
       this.reset(e);
     };
     child.on('error', (e) => fail(new GitError(`cat-file: ${e.message}`, ['cat-file'], null, this.stderr)));
+    // Writing to a process that just died raises EPIPE here; fail pending reads instead of crashing.
+    child.stdin.on('error', (e) => fail(new GitError(`cat-file: ${e.message}`, ['cat-file'], null, this.stderr)));
     child.on('close', (code) => fail(new GitError(`cat-file exited (${code}): ${this.stderr.trim()}`, ['cat-file'], code, this.stderr)));
     this.child = child;
     return child;

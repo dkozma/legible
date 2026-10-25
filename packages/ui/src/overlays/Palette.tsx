@@ -1,5 +1,5 @@
 import { FileCode2, Search, Terminal } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { formatKey, fuzzy } from '../commands';
 import { cn, Kbd } from '../components/ui';
@@ -18,22 +18,30 @@ interface Item {
 function Highlight({ text, indices }: { text: string; indices: number[] }) {
   if (!indices.length) return <>{text}</>;
   const set = new Set(indices);
-  // `indices` are UTF-16 offsets (from indexOf). Walk code points so emoji stay whole, keyed by offset.
-  const parts: ReactNode[] = [];
+  // `indices` are UTF-16 offsets into `text`. Walk code points so emoji stay whole,
+  // and emit one element per run of matched or unmatched text.
+  const runs: { at: number; marked: boolean; text: string }[] = [];
   let at = 0;
   for (const ch of text) {
-    parts.push(
-      set.has(at) ? (
-        <mark key={at} className="bg-transparent font-semibold text-foreground">
-          {ch}
-        </mark>
-      ) : (
-        <span key={at}>{ch}</span>
-      ),
-    );
+    const marked = set.has(at);
+    const last = runs[runs.length - 1];
+    if (last?.marked === marked) last.text += ch;
+    else runs.push({ at, marked, text: ch });
     at += ch.length;
   }
-  return <>{parts}</>;
+  return (
+    <>
+      {runs.map((r) =>
+        r.marked ? (
+          <mark key={r.at} className="bg-transparent font-semibold text-foreground">
+            {r.text}
+          </mark>
+        ) : (
+          <span key={r.at}>{r.text}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 export function Palette() {

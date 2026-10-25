@@ -1,7 +1,8 @@
 // Repository operations Legible needs: resolving refs, merge-bases, pairing
 // changed files, Snapshots, and read-only queries agents use as tools.
 
-import { copyFile, mkdtemp, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { copyFile, mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 
@@ -32,8 +33,12 @@ const SNAPSHOT_IDENT = {
   GIT_COMMITTER_EMAIL: 'snapshot@legible.invalid',
 };
 
+/** Most blobs one agent query may download into a blobless clone. */
+export const PREFETCH_LIMIT = 2000;
+
 export class GitRepo {
   private reader: BlobReader | null = null;
+  private partial: Promise<boolean> | null = null;
 
   private constructor(
     /** Absolute git dir. */
@@ -185,8 +190,38 @@ export class GitRepo {
     }
   }
 
-  async snapshot(id: string): Promise<{ sha: string; tree: string; clean: boolean }> {
-    const tree = await this.workingTreeTree();
+  /** `tree` skips recomputing a workingTreeTree() the caller just took. */
+  /**
+   * A cheap fingerprint of the working tree: HEAD, `git status`, and the size
+   * and mtime of every changed or untracked file. It changes whenever
+   * workingTreeTree() can, without copying the index or writing objects.
+   */
+  async workingTreeSignature(): Promise<string> {
+    const workTree = this.workTree;
+    if (!workTree) throw new Error('Repository has no working tree');
+    const [head, status] = await Promise.all([
+      this.resolveCommit('HEAD'),
+      this.text(['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']),
+    ]);
+    const paths = status
+      .split('\0')
+      .map((e) => e.slice(3))
+      .filter(Boolean);
+    const stats = await Promise.all(
+      paths.map((p) =>
+        stat(join(workTree, p)).then(
+          (s) => `${s.size}:${s.mtimeMs}`,
+          () => '-',
+        ),
+      ),
+    );
+    return createHash('sha1')
+      .update([head ?? '', status, ...stats].join('\0'))
+      .digest('hex');
+  }
+
+  async snapshot(id: string, tree?: string): Promise<{ sha: string; tree: string; clean: boolean }> {
+    tree ??= await this.workingTreeTree();
     const head = await this.resolveCommit('HEAD');
     if (head && (await this.treeOf(head)) === tree) return { sha: head, tree, clean: true };
     const args = ['commit-tree', tree, '-m', `Legible Snapshot ${id}`];
@@ -219,6 +254,70 @@ export class GitRepo {
     return result;
   }
 
+  // ---- Blobless clones ------------------------------------------------------
+
+  /** True for blobless cache clones, which fetch blobs on first read. */
+  isPartialClone(): Promise<boolean> {
+    this.partial ??= this.text(['config', '--get', 'remote.origin.promisor']).then(
+      (v) => v.trim() === 'true',
+      () => false,
+    );
+    return this.partial;
+  }
+
+  /** Blobs that `rev-list --objects <args>` reaches but this clone doesn't have. Never fetches. */
+  private async missingBlobs(revListArgs: string[]): Promise<Set<string>> {
+    const out = await this.text(['rev-list', '--objects', '--missing=print', ...revListArgs]);
+    return new Set(
+      out
+        .split('\n')
+        .filter((l) => l.startsWith('?'))
+        .map((l) => l.slice(1)),
+    );
+  }
+
+  /**
+   * Fetches blobs in one request. Git's own lazy fetch makes one round trip
+   * per blob, which turns a repository-wide grep into thousands of requests.
+   */
+  private async fetchBlobs(oids: string[]) {
+    if (oids.length === 0) return;
+    await this.git(
+      [
+        '-c',
+        'fetch.negotiationAlgorithm=noop',
+        'fetch',
+        'origin',
+        '--no-tags',
+        '--no-write-fetch-head',
+        '--recurse-submodules=no',
+        '--filter=blob:none',
+        '--stdin',
+      ],
+      { input: `${oids.join('\n')}\n` },
+    );
+  }
+
+  /** Downloads the blobs a grep at `rev` would read, refusing a scope that would download more than `limit`. */
+  private async prefetchForGrep(rev: string, pathspec: string | undefined, limit: number) {
+    if (!(await this.isPartialClone())) return;
+    const missing = await this.missingBlobs([`${rev}^{tree}`]);
+    if (missing.size === 0) return;
+    const match = pathspec ? pathspecMatcher(pathspec) : () => true;
+    const out = await this.text(['ls-tree', '-r', '-z', '--format=%(objecttype) %(objectname) %(path)', rev]);
+    const need: string[] = [];
+    for (const entry of out.split('\0')) {
+      const m = entry.match(/^blob (\S+) (.*)$/s);
+      if (m && missing.has(m[1] as string) && match(m[2] as string)) need.push(m[1] as string);
+    }
+    if (need.length > limit) {
+      throw new Error(
+        `Searching ${pathspec ? `"${pathspec}"` : 'the whole repository'} would download ${need.length} files. Narrow it with path.`,
+      );
+    }
+    await this.fetchBlobs(need);
+  }
+
   // ---- Read-only queries used by agent tools --------------------------------
 
   async listFiles(rev: string, pathPrefix?: string): Promise<string[]> {
@@ -236,6 +335,7 @@ export class GitRepo {
     if (opts.maxCount) args.push(`--max-count=${opts.maxCount}`);
     args.push('-e', pattern, rev, '--');
     if (opts.pathspec) args.push(opts.pathspec);
+    await this.prefetchForGrep(rev, opts.pathspec, PREFETCH_LIMIT);
     const r = await this.git(args, { allowFailure: true });
     // Exit 1 = no matches.
     if (r.code !== 0 && r.code !== 1) throw new Error(r.stderr.trim() || 'git grep failed');
@@ -261,6 +361,11 @@ export class GitRepo {
   }
 
   async blame(rev: string, path: string, start: number, end: number) {
+    if (await this.isPartialClone()) {
+      // Blame reads the file at every commit that touched it. A long history falls back to lazy fetches.
+      const missing = await this.missingBlobs([rev, '--', path]);
+      if (missing.size <= PREFETCH_LIMIT) await this.fetchBlobs([...missing]);
+    }
     const out = await this.text(['blame', '--porcelain', '-L', `${start},${end}`, rev, '--', path]);
     const lines: { line: number; sha: string; author: string; summary: string; text: string }[] = [];
     const commits = new Map<string, { author: string; summary: string }>();
@@ -327,4 +432,32 @@ export function parseRaw(out: string): RawChange[] {
     });
   }
   return changes;
+}
+
+/**
+ * Approximates git's default pathspec matching: a literal path matches itself
+ * and everything under it; `*`, `?` and `[...]` are wildcards, and `*` crosses `/`.
+ */
+export function pathspecMatcher(spec: string): (path: string) => boolean {
+  const s = spec.replace(/^\.\//, '').replace(/\/+$/, '');
+  if (!/[*?[]/.test(s)) return (p) => p === s || p.startsWith(`${s}/`);
+  let re = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i] as string;
+    if (c === '*') re += '.*';
+    else if (c === '?') re += '.';
+    else if (c === '[') {
+      const close = s.indexOf(']', i + 1);
+      if (close < 0) re += '\\[';
+      else {
+        re += `[${s
+          .slice(i + 1, close)
+          .replace(/^!/, '^')
+          .replace(/\\/g, '\\\\')}]`;
+        i = close;
+      }
+    } else re += c.replace(/[.+^${}()|\\]/g, '\\$&');
+  }
+  const rx = new RegExp(`^${re}(/.*)?$`, 's');
+  return (p) => rx.test(p);
 }

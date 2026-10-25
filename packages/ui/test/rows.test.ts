@@ -1,7 +1,7 @@
 import type { FileChange } from '@legible/domain';
 import { describe, expect, it } from 'vitest';
 
-import { buildRows, type RowOptions, rangesForRows, rowAt } from '../src/diff/rows';
+import { buildRows, chunkRanges, type RowOptions, rangesForRows, rowAt } from '../src/diff/rows';
 
 const opts = (o: Partial<RowOptions> = {}): RowOptions => ({
   layout: 'unified',
@@ -104,5 +104,29 @@ describe('buildRows', () => {
     expect(rangesForRows(m.rows, del, del + 1)).toEqual({ baseRange: [21, 21], headRange: [21, 21] });
     expect(rowAt(m, m.offsets[del]! + 5)).toBe(del);
     expect(rowAt(m, 0)).toBe(0);
+  });
+});
+
+describe('hunks with several edits', () => {
+  it('span every change chunk shown under one header', () => {
+    const chunks: FileChange['chunks'] = [
+      { kind: 'equal', baseStart: 0, baseEnd: 10, headStart: 0, headEnd: 10 },
+      { kind: 'change', baseStart: 10, baseEnd: 11, headStart: 10, headEnd: 11 },
+      { kind: 'equal', baseStart: 11, baseEnd: 15, headStart: 11, headEnd: 15 },
+      { kind: 'change', baseStart: 15, baseEnd: 15, headStart: 15, headEnd: 17 },
+      { kind: 'equal', baseStart: 15, baseEnd: 30, headStart: 17, headEnd: 32 },
+    ];
+    const f = file({
+      chunks,
+      fragments: [
+        { id: 'a', chunkIndex: 1, kind: 'behavioral', proof: null },
+        { id: 'b', chunkIndex: 3, kind: 'behavioral', proof: null },
+      ],
+    });
+    const m = buildRows({ files: [f], moves: [] }, opts());
+    const hunks = m.rows.filter((r) => r.k === 'hunk');
+    expect(hunks).toHaveLength(1);
+    expect(hunks[0]).toMatchObject({ chunk: 1, lastChunk: 3 });
+    expect(chunkRanges(chunks, 1, 3)).toEqual({ baseRange: [11, 11], headRange: [11, 17] });
   });
 });

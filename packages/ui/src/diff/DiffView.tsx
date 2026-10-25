@@ -12,7 +12,8 @@ import { Code } from './code';
 import { ROW_HEIGHT, type Row, type RowModel, rowAt } from './rows';
 
 export interface DiffActions {
-  explainChunk(fileId: string, chunk: number): void;
+  /** Explains change chunks `chunk..lastChunk` of a file. */
+  explainChunk(fileId: string, chunk: number, lastChunk?: number): void;
   explainFile(fileId: string): void;
   openInEditor(path: string, line: number): void;
   toggleViewed(fileId: string): void;
@@ -50,6 +51,19 @@ const STATUS_TEXT: Record<FileChange['status'], string> = {
   copied: 'Copied',
   typechange: 'Type changed',
 };
+
+const widest = new WeakMap<FileDiff, number>();
+/** Longest line in a file, measured once per loaded diff. */
+function widestLine(d: FileDiff): number {
+  let max = widest.get(d);
+  if (max === undefined) {
+    max = 0;
+    for (const l of d.baseLines) if (l.length > max) max = l.length;
+    for (const l of d.headLines) if (l.length > max) max = l.length;
+    widest.set(d, max);
+  }
+  return max;
+}
 
 export function DiffView({ summary, model, diffs, viewed, actions, onScrollTop, scrollRef }: Props) {
   const [width, setWidth] = useState(800);
@@ -94,11 +108,7 @@ export function DiffView({ summary, model, diffs, viewed, actions, onScrollTop, 
   const contentWidth = useMemo(() => {
     if (layout === 'split') return width;
     let max = 0;
-    for (const d of Object.values(diffs)) {
-      if (!d) continue;
-      for (const l of d.baseLines) if (l.length > max) max = l.length;
-      for (const l of d.headLines) if (l.length > max) max = l.length;
-    }
+    for (const d of Object.values(diffs)) if (d) max = Math.max(max, widestLine(d));
     return Math.max(width, Math.min(max, 2000) * 7.25 + 140);
   }, [diffs, layout, width]);
 
@@ -343,7 +353,12 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
             @@ −{row.base + 1},{row.baseLen} +{row.head + 1},{row.headLen} @@
           </span>
           <span className={cn('sticky right-3 ml-auto flex gap-1 opacity-0 group-hover/row:opacity-100', isCur && 'opacity-100')}>
-            <Button variant="ghost" size="xs" className="font-sans" onClick={() => actions.explainChunk(row.fileId, row.chunk)}>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="font-sans"
+              onClick={() => actions.explainChunk(row.fileId, row.chunk, row.lastChunk)}
+            >
               <BookOpen />
               Explain
             </Button>
@@ -371,10 +386,7 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
     case 'frag':
       return (
         <div
-          className={cn(
-            'flex h-7 items-center gap-2 border-y bg-frag pr-3 pl-[25px] font-sans text-sm text-muted-foreground',
-            row.proof === 'move' && 'bg-move/8 text-move',
-          )}
+          className="flex h-7 items-center gap-2 border-y bg-frag pr-3 pl-[25px] font-sans text-sm text-muted-foreground"
           onClick={() => ui().toggleIn('expandedFrags', row.fragmentId)}
           role="button"
           tabIndex={-1}
@@ -542,7 +554,7 @@ function Ruler({
         } else if (r.k === 'pair' && (r.lt === '-' || r.rt === '+')) {
           color = r.lmoved || r.rmoved ? colors.move : r.rt === '+' ? colors.add : colors.del;
         } else if (r.k === 'frag') {
-          color = r.proof === 'move' ? colors.move : colors.frag;
+          color = colors.frag;
           x = 2;
           bw = 9;
         }

@@ -32,6 +32,9 @@ export class ReviewService {
   private changeSets = new Map<string, Promise<BuiltChangeSet>>();
   private watcher: { reviewId: string; stop: () => void } | null = null;
   private lastNotified = new Map<string, string>();
+  /** The last working-tree check per Review, reused while the tree's signature holds. */
+  private treeChecks = new Map<string, { signature: string; iterationId: string; tree: string }>();
+  private locks = new Map<string, Promise<unknown>>();
 
   constructor(
     private readonly store: Store,
@@ -42,30 +45,59 @@ export class ReviewService {
 
   dispose() {
     this.watcher?.stop();
+    this.watcher = null;
     for (const h of this.repos.values()) h.repo.close();
     this.repos.clear();
+  }
+
+  /**
+   * Runs work that adds Iterations for one Review at a time. Concurrent opens
+   * and refreshes would otherwise snapshot twice or race for the same seq.
+   */
+  private serial<T>(reviewId: string, fn: () => Promise<T>): Promise<T> {
+    const next = (this.locks.get(reviewId) ?? Promise.resolve()).then(fn);
+    const tail = next.catch(() => undefined);
+    this.locks.set(reviewId, tail);
+    void tail.then(() => {
+      if (this.locks.get(reviewId) === tail) this.locks.delete(reviewId);
+    });
+    return next;
+  }
+
+  /**
+   * Keeps one GitRepo per repository. Replacing it would orphan the old one's
+   * cat-file process, or fail reads a Change Set build still has in flight.
+   */
+  private adopt(repoId: string, repo: GitRepo, cached: boolean): GitRepo {
+    const existing = this.repos.get(repoId);
+    if (existing) {
+      if (existing.repo !== repo) repo.close();
+      return existing.repo;
+    }
+    this.repos.set(repoId, { repo, cached });
+    return repo;
   }
 
   // ---- Opening ------------------------------------------------------------------
 
   async open(source: Source): Promise<ReviewSummary> {
     if (source.kind === 'pull_request') return this.openPullRequest(source.url);
-    let repo: GitRepo;
+    let opened: GitRepo;
     try {
-      repo = await GitRepo.open(source.repoPath);
+      opened = await GitRepo.open(source.repoPath);
     } catch {
       throw new UserError(`${source.repoPath} isn't inside a git repository.`);
     }
-    const workTree = repo.workTree;
-    const remoteUrl = await repo.remoteUrl();
+    const workTree = opened.workTree;
+    const remoteUrl = await opened.remoteUrl();
     const record = await this.store.upsertRepo({
-      displayName: basename(workTree ?? repo.gitDir),
-      gitDir: repo.gitDir,
+      displayName: basename(workTree ?? opened.gitDir),
+      gitDir: opened.gitDir,
       workTree,
       remoteUrl,
       host: remoteUrl ? hostOf(remoteUrl) : null,
     });
-    this.repos.set(record.id, { repo, cached: false });
+    const repo = this.adopt(record.id, opened, false);
 
     if (source.kind === 'working_tree') {
       if (!workTree) throw new UserError('This repository has no working tree to snapshot.');
@@ -91,10 +123,7 @@ export class ReviewService {
           mode: 'author',
           intentText: null,
         }));
-      // Reopening takes a fresh Snapshot only if the working tree moved.
-      const latest = await this.store.latestIteration(review.id);
-      const tree = await repo.workingTreeTree();
-      if (!latest || latest.headTree !== tree) await this.snapshotIteration(review.id, repo, baseRef);
+      await this.serial(review.id, () => this.snapshotIfMoved(review.id, repo, baseRef));
       return this.summary(review.id);
     }
 
@@ -122,22 +151,27 @@ export class ReviewService {
         mode: 'author',
         intentText: null,
       }));
-    const latest = await this.store.latestIteration(review.id);
-    if (!latest || latest.headSha !== head) {
-      await this.store.addIteration({
-        reviewId: review.id,
-        kind: 'refs',
-        baseSha: await repo.mergeBase(base, head),
-        headSha: head,
-        headTree: null,
-      });
-    }
+    await this.serial(review.id, () => this.addRefsIteration(review.id, repo, base, head));
     return this.summary(review.id);
   }
 
-  private async snapshotIteration(reviewId: string, repo: GitRepo, baseRef: string | null): Promise<Iteration> {
+  /** Adds an Iteration for a new head commit; a no-op if it's already the latest. */
+  private async addRefsIteration(reviewId: string, repo: GitRepo, base: string, head: string) {
+    const latest = await this.store.latestIteration(reviewId);
+    if (latest?.headSha === head) return;
+    await this.store.addIteration({ reviewId, kind: 'refs', baseSha: await repo.mergeBase(base, head), headSha: head, headTree: null });
+  }
+
+  /** Takes a Snapshot only if the working tree moved since the latest Iteration. */
+  private async snapshotIfMoved(reviewId: string, repo: GitRepo, baseRef: string | null) {
+    const latest = await this.store.latestIteration(reviewId);
+    const tree = await repo.workingTreeTree();
+    if (!latest || latest.headTree !== tree) await this.snapshotIteration(reviewId, repo, baseRef, tree);
+  }
+
+  private async snapshotIteration(reviewId: string, repo: GitRepo, baseRef: string | null, tree: string): Promise<Iteration> {
     const snapId = `${reviewId.slice(0, 8)}-${Date.now()}`;
-    const snap = await repo.snapshot(snapId);
+    const snap = await repo.snapshot(snapId, tree);
     const head = await repo.resolveCommit('HEAD');
     // Base is the merge-base with the base branch (three-dot). Without one, review uncommitted changes against HEAD.
     const baseTip = baseRef ? await repo.resolveCommit(baseRef) : null;
@@ -162,29 +196,29 @@ export class ReviewService {
   private async openPullRequest(url: string): Promise<ReviewSummary> {
     const { info, token } = await this.pullRequestInfo(url);
     const { ref } = info;
-    const env = token ? tokenAuthEnv(ref.hostname, token) : undefined;
-    let repo: GitRepo;
+    const env = token ? tokenAuthEnv(ref.hostname, token, ref.host) : undefined;
+    let fetched: GitRepo;
     try {
-      repo = await ensureCacheClone({
+      fetched = await ensureCacheClone({
         cacheRoot: this.cacheRoot,
         hostname: ref.hostname,
         project: ref.project,
         cloneUrl: info.cloneUrl,
         env,
       });
-      await fetchRefs(repo, [`+refs/heads/${info.baseRef}:refs/legible/pr/${ref.number}/base`, info.headRefspec]);
+      await fetchRefs(fetched, [`+refs/heads/${info.baseRef}:refs/legible/pr/${ref.number}/base`, info.headRefspec]);
     } catch (e) {
       throw new UserError(`Couldn't fetch ${ref.project}: ${(e as Error).message.split('\n')[0]}`, 'git');
     }
     const record = await this.store.upsertRepo({
       displayName: ref.project,
-      gitDir: repo.gitDir,
+      gitDir: fetched.gitDir,
       workTree: null,
       remoteUrl: info.cloneUrl,
       host: ref.hostname,
     });
-    this.repos.get(record.id)?.repo.close();
-    this.repos.set(record.id, { repo, cached: true });
+    // A running cat-file sees the newly fetched objects, so the existing GitRepo stays.
+    const repo = this.adopt(record.id, fetched, true);
 
     const mode: Mode = info.canPush ? 'author' : 'reviewer';
     const intentText = `${info.title}\n\n${info.body}`.trim();
@@ -211,8 +245,9 @@ export class ReviewService {
     if (existing) await this.store.updateReview(review.id, { title: info.title, intentText });
     const head = (await repo.resolveCommit(`refs/legible/pr/${ref.number}/head`)) ?? info.headSha;
     const baseTip = (await repo.resolveCommit(`refs/legible/pr/${ref.number}/base`)) ?? info.baseSha;
-    const latest = await this.store.latestIteration(review.id);
-    if (!latest || latest.headSha !== head) {
+    await this.serial(review.id, async () => {
+      const latest = await this.store.latestIteration(review.id);
+      if (latest?.headSha === head) return;
       await this.store.addIteration({
         reviewId: review.id,
         kind: 'push',
@@ -220,7 +255,7 @@ export class ReviewService {
         headSha: head,
         headTree: null,
       });
-    }
+    });
     return this.summary(review.id);
   }
 
@@ -233,21 +268,12 @@ export class ReviewService {
     } else {
       const { repo } = await this.repoFor(review);
       if (review.sourceKind === 'working_tree') {
-        await this.snapshotIteration(review.id, repo, review.baseRef);
+        await this.serial(review.id, () => this.snapshotIfMoved(review.id, repo, review.baseRef));
       } else if (review.baseRef && review.headRef) {
         const head = await repo.resolveCommit(review.headRef);
         const base = await repo.resolveCommit(review.baseRef);
         if (!head || !base) throw new UserError(`Can't resolve ${review.baseRef}...${review.headRef} any more.`);
-        const latest = await this.store.latestIteration(review.id);
-        if (latest?.headSha !== head) {
-          await this.store.addIteration({
-            reviewId: review.id,
-            kind: 'refs',
-            baseSha: await repo.mergeBase(base, head),
-            headSha: head,
-            headTree: null,
-          });
-        }
+        await this.serial(review.id, () => this.addRefsIteration(review.id, repo, base, head));
       }
     }
     this.lastNotified.delete(reviewId);
@@ -263,7 +289,11 @@ export class ReviewService {
     if (!latest) return { available: false, detail: null };
     if (review.sourceKind === 'working_tree') {
       const { repo } = await this.repoFor(review);
-      const tree = await repo.workingTreeTree();
+      // Hashing the tree runs `git add -A` on a temp index; skip it while nothing a tree depends on changed.
+      const signature = await repo.workingTreeSignature();
+      const prev = this.treeChecks.get(reviewId);
+      const tree = prev?.signature === signature && prev.iterationId === latest.id ? prev.tree : await repo.workingTreeTree();
+      this.treeChecks.set(reviewId, { signature, iterationId: latest.id, tree });
       return tree !== latest.headTree ? { available: true, detail: 'New changes since this Snapshot' } : { available: false, detail: null };
     }
     if (review.sourceKind === 'refs' && review.headRef) {
@@ -290,13 +320,29 @@ export class ReviewService {
   watch(reviewId: string) {
     if (this.watcher?.reviewId === reviewId) return;
     this.watcher?.stop();
-    this.watcher = null;
-    void this.startWatching(reviewId);
+    // Claim the slot now: starting is async, and a second watch() before it finishes
+    // must stop this one rather than run beside it.
+    let stopped = false;
+    let stopStarted: (() => void) | null = null;
+    this.watcher = {
+      reviewId,
+      stop: () => {
+        stopped = true;
+        stopStarted?.();
+      },
+    };
+    this.startWatching(reviewId).then(
+      (stop) => {
+        if (stopped) stop?.();
+        else stopStarted = stop;
+      },
+      () => undefined,
+    );
   }
 
-  private async startWatching(reviewId: string) {
+  private async startWatching(reviewId: string): Promise<(() => void) | null> {
     const review = await this.store.getReview(reviewId);
-    if (!review) return;
+    if (!review) return null;
     let timer: NodeJS.Timeout | null = null;
     let checking = false;
     const check = async () => {
@@ -328,9 +374,15 @@ export class ReviewService {
       // FSEvents / ReadDirectoryChangesW handle recursive watches cheaply.
       try {
         fsWatcher = watch(review.repo.workTree, { recursive: true }, (_e, file) => {
-          const f = file ?? '';
-          if (f.startsWith('.git/') && !/^\.git\/(HEAD|index|refs\/)/.test(f)) return;
+          const f = process.platform === 'win32' ? (file ?? '').replaceAll('\\', '/') : (file ?? '');
+          if (f.startsWith('.git/') && !/^\.git\/(HEAD|index|packed-refs|refs\/)/.test(f)) return;
           debounced();
+        });
+        // E.g. the work tree was deleted or became unreadable. Without a listener this
+        // throws in the main process; the interval below keeps checking.
+        fsWatcher.on('error', () => {
+          fsWatcher?.close();
+          fsWatcher = null;
         });
       } catch {
         fsWatcher = null;
@@ -342,13 +394,10 @@ export class ReviewService {
       // Linux: recursive inotify watches on big repos exhaust the watch limit, so poll.
       interval = setInterval(poll, 6_000);
     }
-    this.watcher = {
-      reviewId,
-      stop: () => {
-        fsWatcher?.close();
-        clearInterval(interval);
-        if (timer) clearTimeout(timer);
-      },
+    return () => {
+      fsWatcher?.close();
+      clearInterval(interval);
+      if (timer) clearTimeout(timer);
     };
   }
 
@@ -387,15 +436,10 @@ export class ReviewService {
     const hit = this.repos.get(review.repoId);
     if (hit) return hit;
     const cached = review.repo.workTree === null;
-    let env: NodeJS.ProcessEnv | undefined;
-    if (cached && review.repo.host) {
-      const token = await this.hosts.token(review.repo.host);
-      if (token) env = tokenAuthEnv(review.repo.host, token);
-    }
-    const repo = GitRepo.at(review.repo.gitDir, review.repo.workTree, env);
-    const handle = { repo, cached };
-    this.repos.set(review.repoId, handle);
-    return handle;
+    const env = cached && review.repo.host ? await this.hosts.gitAuthEnv(review.repo.host) : undefined;
+    // Another call may have created the handle while this one awaited the token.
+    this.adopt(review.repoId, GitRepo.at(review.repo.gitDir, review.repo.workTree, env), cached);
+    return this.repos.get(review.repoId) as RepoHandle;
   }
 
   async summary(reviewId: string): Promise<ReviewSummary> {

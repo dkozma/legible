@@ -3,6 +3,7 @@
 // stored in the keychain.
 
 import { type HostAccount, type HostKind, hostTokenSecret, type Settings } from '@legible/domain';
+import { tokenAuthEnv } from '@legible/git';
 import { ghToken, glabToken, whoAmI } from '@legible/hosts';
 
 import type { SecretStore } from './secrets';
@@ -20,6 +21,14 @@ export class HostService {
     if (acct.source === 'gh') return ghToken(hostname);
     if (acct.source === 'glab') return glabToken(hostname);
     return this.secrets.get(hostTokenSecret(hostname));
+  }
+
+  /** Env that authenticates git to `hostname`, or undefined without an account. */
+  async gitAuthEnv(hostname: string): Promise<NodeJS.ProcessEnv | undefined> {
+    const settings = await this.getSettings();
+    const acct = settings.hosts.find((h) => h.hostname === hostname);
+    const token = acct ? await this.token(hostname) : null;
+    return acct && token ? tokenAuthEnv(hostname, token, acct.kind) : undefined;
   }
 
   async describe(hostname: string, kind: HostKind, source: 'gh' | 'glab' | 'token'): Promise<HostAccount> {

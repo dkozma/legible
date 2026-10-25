@@ -399,12 +399,23 @@ function createWindow() {
   });
 }
 
+/** Best-effort: a failed update check never affects the running app. */
+async function checkForUpdates() {
+  if (!app.isPackaged || process.env.LEGIBLE_NO_UPDATE) return;
+  try {
+    const { autoUpdater } = await import('electron-updater');
+    await autoUpdater.checkForUpdatesAndNotify();
+  } catch {
+    // Try again next launch.
+  }
+}
+
 function serveRenderer() {
   const root = join(here, '../renderer');
   protocol.handle('app', async (request) => {
     const url = new URL(request.url);
     const path = resolve(root, `.${decodeURIComponent(url.pathname)}`);
-    if (!path.startsWith(root)) return new Response('Not found', { status: 404 });
+    if (!path.startsWith(root + sep)) return new Response('Not found', { status: 404 });
     const res = await net.fetch(pathToFileURL(path).toString());
     const headers = new Headers(res.headers);
     headers.set('Content-Security-Policy', CSP);
@@ -416,11 +427,23 @@ function serveRenderer() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  // A source from the command line or the Dock opens once startup is done and a
+  // loaded window can show it; until then it waits in pendingOpen.
+  let started = false;
+  const openWhenReady = (source: string) => {
+    if (started && mainWindow && !mainWindow.webContents.isLoading()) {
+      void openFromCli(source);
+      return;
+    }
+    pendingOpen.push(source);
+    // macOS keeps running with no window; did-finish-load drains the queue.
+    if (started && !mainWindow) createWindow();
+  };
+
   // macOS: a folder dropped on the Dock icon, or `open -a Legible <dir>`.
   app.on('open-file', (e, path) => {
     e.preventDefault();
-    if (mainWindow) void openFromCli(path);
-    else pendingOpen.push(path);
+    openWhenReady(path);
   });
 
   app.on('second-instance', (_e, argv) => {
@@ -428,7 +451,7 @@ if (!app.requestSingleInstanceLock()) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
-    for (const s of sourcesFromArgv(argv)) void openFromCli(s);
+    for (const s of sourcesFromArgv(argv)) openWhenReady(s);
   });
 
   app
@@ -451,18 +474,13 @@ if (!app.requestSingleInstanceLock()) {
       serveRenderer();
       buildMenu();
       pendingOpen.push(...sourcesFromArgv(process.argv));
-      createWindow();
-
-      if (app.isPackaged && !process.env.LEGIBLE_NO_UPDATE) {
-        const { autoUpdater } = await import('electron-updater');
-        autoUpdater.checkForUpdatesAndNotify().catch(() => undefined);
-      }
-
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
       });
+      createWindow();
+      started = true;
     })
-    .catch((err: unknown) => {
+    .then(checkForUpdates, (err: unknown) => {
       // A failed start (e.g. the database can't open) would otherwise leave no window and no message.
       dialog.showErrorBox("Legible couldn't start", err instanceof Error ? err.message : String(err));
       app.exit(1);

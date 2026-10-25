@@ -149,21 +149,22 @@ export function grantedTools(names: string[]): AnyLegibleTool[] {
 /** One-line description of a tool call for progress display. */
 export function summarizeToolCall(name: string, input: Record<string, unknown>): string {
   const bare = name.replace(/^mcp__legible__/, '');
-  // Input comes from the model before validation; show only scalar values.
+  // Input comes from the model before validation: show only scalar values, and only the parts present.
   const str = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
   const path = str(input.path);
-  const line = str(input.startLine);
+  const at = str(input.startLine) ? `:${str(input.startLine)}` : '';
+  const onSide = str(input.side) ? ` (${str(input.side)})` : '';
   switch (bare) {
     case 'read_file':
-      return `Reading ${path}${line ? `:${line}` : ''} (${str(input.side)})`;
+      return `Reading ${path || 'a file'}${at}${onSide}`;
     case 'search':
-      return `Searching for ${JSON.stringify(input.pattern)}`;
+      return typeof input.pattern === 'string' ? `Searching for ${JSON.stringify(input.pattern)}` : 'Searching';
     case 'list_files':
       return `Listing ${str(input.directory) || 'files'}`;
     case 'git_log':
       return `Reading history${path ? ` of ${path}` : ''}`;
     case 'git_blame':
-      return `Blaming ${path}:${line}`;
+      return `Blaming ${path || 'a file'}${at}`;
     case 'get_change_set_summary':
       return 'Reading the Change Set summary';
     default:

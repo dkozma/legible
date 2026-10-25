@@ -94,29 +94,38 @@ export function useKeyboard(commands: Command[], active = true) {
   }, []);
 }
 
-/** Subsequence fuzzy match; returns matched indices or null. */
+/** Subsequence fuzzy match; returns matched UTF-16 offsets into `text`, or null. */
 export function fuzzy(query: string, text: string): { score: number; indices: number[] } | null {
   if (!query) return { score: 0, indices: [] };
-  const q = query.toLowerCase();
-  const t = text.toLowerCase();
+  // Fold case one code point at a time: lowercasing the whole string can change its
+  // length ('İ' becomes two units), which would shift every offset after it.
+  const chars: string[] = [];
+  const offsets: number[] = [];
+  let offset = 0;
+  for (const c of text) {
+    chars.push(c.toLowerCase());
+    offsets.push(offset);
+    offset += c.length;
+  }
   const indices: number[] = [];
   let ti = 0;
   let score = 0;
   let prev = -2;
-  for (const ch of q) {
-    if (ch === ' ') continue;
-    const at = t.indexOf(ch, ti);
-    if (at < 0) return null;
-    indices.push(at);
+  for (const qc of query) {
+    if (qc === ' ') continue;
+    const q = qc.toLowerCase();
+    let at = ti;
+    while (at < chars.length && chars[at] !== q) at++;
+    if (at >= chars.length) return null;
+    indices.push(offsets[at] as number);
     // Reward consecutive runs and matches at word starts.
     if (at === prev + 1) score += 3;
-    if (at === 0 || /[\s/._-]/.test(t[at - 1] ?? '')) score += 2;
+    if (at === 0 || /[\s/._-]/.test(chars[at - 1] ?? '')) score += 2;
     score -= (at - ti) * 0.01;
     prev = at;
     ti = at + 1;
   }
   // Prefer matches in the file name over the directory.
-  const slash = t.lastIndexOf('/');
-  if (indices.length && (indices[0] as number) > slash) score += 4;
+  if (indices.length && (indices[0] as number) > text.lastIndexOf('/')) score += 4;
   return { score, indices };
 }

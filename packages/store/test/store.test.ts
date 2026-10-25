@@ -53,11 +53,17 @@ describe('Store', () => {
     const i1 = await store.addIteration({ reviewId: review.id, kind: 'snapshot', baseSha: 'a', headSha: 'b', headTree: 't1' });
     const i2 = await store.addIteration({ reviewId: review.id, kind: 'snapshot', baseSha: 'a', headSha: 'c', headTree: 't2' });
     expect([i1.seq, i2.seq]).toEqual([1, 2]);
+    // Concurrent adds get distinct seqs instead of racing for the same one.
+    const both = await Promise.all([
+      store.addIteration({ reviewId: review.id, kind: 'snapshot', baseSha: 'a', headSha: 'd', headTree: 't3' }),
+      store.addIteration({ reviewId: review.id, kind: 'snapshot', baseSha: 'a', headSha: 'c', headTree: 't2' }),
+    ]);
+    expect(both.map((i) => i.seq).toSorted((a, b) => a - b)).toEqual([3, 4]);
 
     const found = await store.findReview({ repoId: repo.id, sourceKind: 'working_tree', baseRef: 'main', headRef: null, prUrl: null });
     expect(found?.id).toBe(review.id);
     const summary = await store.getReview(review.id);
-    expect(summary?.latestIteration?.headSha).toBe('c');
+    expect(summary?.latestIteration?.seq).toBe(4);
     expect(summary?.repo.displayName).toBe('storefront');
   });
 

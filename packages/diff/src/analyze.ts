@@ -3,7 +3,7 @@
 
 import { createHash } from 'node:crypto';
 
-import type { DiffChunk, FileDiff, Fragment, LineTokens, MoveBlock, StructuralProof } from '@legible/domain';
+import type { DiffChunk, FileDiff, Fragment, LineTokens, StructuralProof } from '@legible/domain';
 
 import { INDENTATION_SENSITIVE, WHITESPACE_PROOF_LANGUAGES } from './classify';
 import { linesInsideStrings, STRING_SCOPE } from './highlight';
@@ -19,8 +19,8 @@ export interface FileDiffInput {
   baseTokens: LineTokens[] | null;
   headTokens: LineTokens[] | null;
   ignoreWhitespace?: boolean;
-  /** Move blocks touching this file, from detectMoves over the whole Change Set. */
-  moves?: MoveBlock[];
+  /** diffLines() of these lines with the same options, if the caller already has it. */
+  chunks?: DiffChunk[];
 }
 
 /**
@@ -29,24 +29,10 @@ export interface FileDiffInput {
  * operator characters. Shell, YAML, CSS, Swift, Ruby and others are excluded on
  * purpose: `a = b` and `a=b` differ in shell, `0 -1px` and `0-1px` in CSS.
  */
-const INTRA_LINE_SAFE = new Set([
-  'typescript',
-  'javascript',
-  'java',
-  'c',
-  'cpp',
-  'csharp',
-  'rust',
-  'go',
-  'kotlin',
-  'dart',
-  'php',
-  'json',
-  'python',
-]);
+const INTRA_LINE_SAFE = new Set(['typescript', 'javascript', 'java', 'c', 'cpp', 'rust', 'go', 'php', 'json', 'python']);
 
 export function buildFileDiff(input: FileDiffInput): FileDiff {
-  const chunks = diffLines(input.baseLines, input.headLines, { ignoreWhitespace: input.ignoreWhitespace });
+  const chunks = input.chunks ?? diffLines(input.baseLines, input.headLines, { ignoreWhitespace: input.ignoreWhitespace });
   const baseWords: Record<number, number[]> = {};
   const headWords: Record<number, number[]> = {};
   const fragments: Fragment[] = [];
@@ -114,7 +100,6 @@ export function proveStructural(
     head: linesInsideStrings(input.language, input.headLines),
   }),
 ): StructuralProof | null {
-  if (isFullyMoved(input, chunk)) return 'move';
   const lang = input.language;
   // Without a parse we can't tell code from string contents, so prove nothing.
   if (!lang || !input.baseTokens || !input.headTokens || !WHITESPACE_PROOF_LANGUAGES.has(lang)) return null;
@@ -147,7 +132,7 @@ export function proveStructural(
 
   // In C-family preprocessor lines spacing is meaningful: `#define F (a)` isn't `#define F(a)`.
   const preprocessor = (lines: string[], s: number, e: number) => lines.slice(s, e).some((l) => l.trimStart().startsWith('#'));
-  const cFamily = lang === 'c' || lang === 'cpp' || lang === 'csharp';
+  const cFamily = lang === 'c' || lang === 'cpp';
   if (
     cFamily &&
     (preprocessor(input.baseLines, chunk.baseStart, chunk.baseEnd) || preprocessor(input.headLines, chunk.headStart, chunk.headEnd))
@@ -162,35 +147,6 @@ export function proveStructural(
     if (arraysEqual(b, h)) return insideString() ? null : 'formatting';
   }
   return null;
-}
-
-/**
- * A chunk is a proven move when every line on both sides belongs to an exact
- * move (a top-level declaration moved verbatim), allowing trivial lines like
- * `}` between blocks, and at least one line really is moved code.
- */
-function isFullyMoved(input: FileDiffInput, chunk: DiffChunk): boolean {
-  const moves = (input.moves ?? []).filter((m) => m.exact);
-  if (moves.length === 0) return false;
-  let anyCovered = false;
-  const covered = (start: number, end: number, side: 'from' | 'to') => {
-    for (let line = start + 1; line <= end; line++) {
-      const ok = moves.some((m) =>
-        side === 'from'
-          ? m.fromFileId === input.fileId && line >= m.fromStart && line <= m.fromEnd
-          : m.toFileId === input.fileId && line >= m.toStart && line <= m.toEnd,
-      );
-      if (ok) {
-        anyCovered = true;
-        continue;
-      }
-      const text = side === 'from' ? input.baseLines[line - 1] : input.headLines[line - 1];
-      if (text !== undefined && isTrivialLine(text)) continue;
-      return false;
-    }
-    return true;
-  };
-  return covered(chunk.baseStart, chunk.baseEnd, 'from') && covered(chunk.headStart, chunk.headEnd, 'to') && anyCovered;
 }
 
 type NormMode = 'trim' | 'trimEnd' | 'collapse' | 'collapseKeepLead';

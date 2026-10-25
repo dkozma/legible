@@ -131,8 +131,8 @@ export function renderTargetDiff(input: Pick<ExplanationInput, 'target' | 'baseL
 }
 
 function untrusted(label: string, text: string) {
-  // Neutralize any closing tag inside the data so it can't end the block early.
-  return `<untrusted source="${label}">\n${text.replaceAll('</untrusted', '</ untrusted')}\n</untrusted>`;
+  // Neutralize any untrusted tag inside the data, in any case or spacing, so it can't end the block early.
+  return `<untrusted source="${label}">\n${text.replace(/<(\s*\/?\s*untrusted)/gi, '&lt;$1')}\n</untrusted>`;
 }
 
 export function explanationPrompt(input: ExplanationInput): string {

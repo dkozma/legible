@@ -302,23 +302,18 @@ export class Store {
   // ---- Iterations ---------------------------------------------------------------
 
   async addIteration(i: Omit<Iteration, 'id' | 'seq' | 'createdAt'>): Promise<Iteration> {
-    const last = await this.latestIteration(i.reviewId);
-    const it: Iteration = { ...i, id: randomUUID(), seq: (last?.seq ?? 0) + 1, createdAt: now() };
-    await this.db
-      .insertInto('iterations')
-      .values({
-        id: it.id,
-        review_id: it.reviewId,
-        seq: it.seq,
-        kind: it.kind,
-        base_sha: it.baseSha,
-        head_sha: it.headSha,
-        head_tree: it.headTree,
-        created_at: it.createdAt,
-      })
-      .execute();
+    const id = randomUUID();
+    const createdAt = now();
+    // Seq is assigned inside the INSERT, so two concurrent adds can't both read the same latest seq.
+    const row = this.sqlite.raw
+      .prepare(
+        `INSERT INTO iterations (id, review_id, seq, kind, base_sha, head_sha, head_tree, created_at)
+         VALUES (?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM iterations WHERE review_id = ?), ?, ?, ?, ?, ?)
+         RETURNING seq`,
+      )
+      .get(id, i.reviewId, i.reviewId, i.kind, i.baseSha, i.headSha, i.headTree, createdAt) as { seq: number };
     await this.touchReview(i.reviewId);
-    return it;
+    return { ...i, id, seq: row.seq, createdAt };
   }
 
   async latestIteration(reviewId: string): Promise<Iteration | null> {

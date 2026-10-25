@@ -125,7 +125,7 @@ async function getJson<T>(url: string, headers: Record<string, string>, fetchImp
     throw new HostError(`Couldn't reach ${new URL(url).host}: ${(e as Error).message}`, null);
   }
   if (res.status === 401 || res.status === 403 || res.status === 404) {
-    const authed = Boolean(headers.Authorization || headers['PRIVATE-TOKEN']);
+    const authed = Boolean(headers.Authorization);
     const what = res.status === 404 ? 'not found' : 'not allowed';
     throw new HostError(
       authed
@@ -194,7 +194,8 @@ export async function getPullRequest(ref: PullRequestRef, token: string | null, 
   }
 
   const headers: Record<string, string> = { 'User-Agent': 'Legible' };
-  if (token) headers['PRIVATE-TOKEN'] = token;
+  // Bearer accepts personal access tokens and OAuth tokens (glab's); PRIVATE-TOKEN only the former.
+  if (token) headers.Authorization = `Bearer ${token}`;
   const id = encodeURIComponent(ref.project);
   const mr = await getJson<GlMr>(`${base}/projects/${id}/merge_requests/${ref.number}`, headers, fetchImpl);
   const project = await getJson<GlProject>(`${base}/projects/${id}`, headers, fetchImpl);
@@ -229,7 +230,7 @@ export async function whoAmI(host: HostKind, hostname: string, token: string, fe
     }
     const u = await getJson<{ username: string }>(
       `${apiBase({ host, hostname })}/user`,
-      { 'PRIVATE-TOKEN': token, 'User-Agent': 'Legible' },
+      { Authorization: `Bearer ${token}`, 'User-Agent': 'Legible' },
       fetchImpl,
     );
     return u.username;

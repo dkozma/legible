@@ -105,7 +105,9 @@ export type FileStatus = z.infer<typeof FileStatus>;
 export const CollapseReason = z.enum(['generated', 'lockfile', 'binary', 'large', 'vendored']);
 export type CollapseReason = z.infer<typeof CollapseReason>;
 
-export const StructuralProof = z.enum(['formatting', 'whitespace', 'move']);
+// Moves are detected and shown, but never prove a Fragment Structural: reordering
+// statements, rules or declarations can change behavior in every language.
+export const StructuralProof = z.enum(['formatting', 'whitespace']);
 export type StructuralProof = z.infer<typeof StructuralProof>;
 
 export interface FileChange {
@@ -144,10 +146,7 @@ export interface MoveBlock {
   /** 1-based inclusive Head line range. */
   toStart: number;
   toEnd: number;
-  /**
-   * Identical text starting at column 0: a top-level declaration moved as is.
-   * Only exact moves prove a Fragment Structural; others are just marked as moved.
-   */
+  /** Identical text starting at column 0: a top-level block moved as is. */
   exact: boolean;
 }
 
