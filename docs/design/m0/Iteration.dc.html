@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Iteration banner and Interdiff</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; display: flex; flex-direction: column">
+
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="crumbs grow" aria-label="Location"><span>acme/storefront</span><svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><b>Pull Request #477</b></nav>
+    <span class="badge badge-outline">Reviewer mode</span>
+    <button class="select" style="height: 28px; font-size: 12px" type="button">Iteration 3 of 3<svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+  </header>
+
+  <div role="status" class="row wrap" style="padding: 10px 20px; gap: 12px; border-bottom: 1px solid oklch(1 0 0 / 10%); background: oklch(0.205 0 0)">
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><path d="M6 9v12"></path></svg>
+    <div class="col grow" style="gap: 0">
+      <span class="sm"><b>Iteration 3</b> · @jordan-lee pushed 2 commits · 12 min ago</span>
+      <span class="xs muted">Showing only what changed since you last viewed Iteration 2 · +18 −7 across 3 Steps · 2 threads likely addressed</span>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Compare">
+      <button class="tab" role="tab" aria-selected="true">Interdiff · since Iteration 2</button>
+      <button class="tab" role="tab" aria-selected="false">Full Change Set</button>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; min-height: 600px">
+    <aside aria-label="Walkthrough" style="flex: 1 1 300px; max-width: 100%; border-right: 1px solid oklch(1 0 0 / 10%); background: oklch(0.205 0 0); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px">
+      <div class="sitting"><span class="b sm grow">Walkthrough</span><span class="xs muted">3 Steps changed</span></div>
+      <a class="step" href="#">
+        <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate muted">Add partial-refund columns</span><span class="xs dim">Unchanged · still viewed</span></span>
+        <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i></span>
+      </a>
+      <a class="step active" href="#" aria-current="step">
+        <span class="vw"></span>
+        <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate b">Round refunds to the nearest cent</span><span class="row xs" style="gap: 6px"><span style="width: 6px; height: 6px; border-radius: 50%; background: oklch(0.985 0 0)"></span>Changed since you viewed · +4 −2</span></span>
+        <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i></span>
+      </a>
+      <a class="step" href="#">
+        <span class="vw"></span>
+        <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate">Issue partial refunds</span><span class="row xs" style="gap: 6px"><span style="width: 6px; height: 6px; border-radius: 50%; background: oklch(0.985 0 0)"></span>Changed since you viewed · +9 −3</span></span>
+        <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i></span>
+      </a>
+      <a class="step unreq" href="#">
+        <span class="vw"></span>
+        <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate">Move audit logging</span><span class="row xs" style="gap: 6px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>Unrequested · changed · +5 −2</span></span>
+        <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i></span>
+      </a>
+      <a class="step" href="#">
+        <span class="vw on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        <span class="col" style="gap: 2px; min-width: 0"><span class="sm truncate muted">Amount field in refund dialog</span><span class="xs dim">Unchanged · still viewed</span></span>
+        <span class="risk low" style="margin-top: 4px"><i></i><i></i><i></i></span>
+      </a>
+      <span class="grow"></span>
+      <div class="inset xs muted" style="padding: 10px 12px; margin: 8px 4px 0">Viewed marks reset only on Steps whose code changed. Notes and Findings carry forward.</div>
+    </aside>
+
+    <section aria-label="Interdiff" style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+      <div class="row wrap" style="padding: 8px 18px; border-bottom: 1px solid oklch(1 0 0 / 10%); gap: 10px">
+        <span class="mono sm">src/refunds/refund-math.ts</span>
+        <span class="badge badge-muted">Iteration 2 → 3</span>
+        <span class="grow"></span>
+        <span class="xs muted">Commit <span class="mono">e41b7d2</span> “Round instead of floor”</span>
+      </div>
+      <div class="diff" style="flex: 1 1 auto; padding-bottom: 20px">
+        <div class="hunk"><span>@@ -10,5 +10,7 @@</span><span style="color: oklch(0.87 0 0)">export function toCents</span></div>
+        <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">10</span><span class="ln">10</span><span class="sg"></span><span class="cd"><span class="k">export function</span> <span class="f">toCents</span>(amount: <span class="t">number</span>): <span class="t">number</span> {</span></div>
+        <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">11</span><span class="ln">11</span><span class="sg"></span><span class="cd">  <span class="c">// amounts arrive as dollars from the dialog</span></span></div>
+        <div class="dl del"><span class="st"></span><span class="mk"><span class="gm gm-remote">M</span></span><span class="ln">12</span><span class="ln"></span><span class="sg">−</span><span class="cd">  <span class="k">return</span> Math.<span class="wd">floor</span>(amount * <span class="n">100</span>);</span></div>
+        <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">12</span><span class="sg">+</span><span class="cd">  <span class="k">return</span> Math.<span class="wa">round</span>(amount * <span class="n">100</span>);</span></div>
+
+        <div style="padding: 10px 18px 12px 107px; font-family: 'Geist', sans-serif">
+          <article class="panel" aria-label="Remote Comment thread" style="max-width: 720px; overflow: hidden">
+            <div class="row wrap" style="padding: 8px 12px; gap: 8px; border-bottom: 1px solid oklch(1 0 0 / 10%)">
+              <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              <span class="xs muted grow">GitHub thread · 2 comments</span>
+              <span class="badge badge-ok"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Likely addressed</span>
+            </div>
+            <div class="row" style="padding: 10px 12px; gap: 10px; align-items: flex-start">
+              <span class="avatar">M</span>
+              <div class="col grow" style="gap: 2px"><span class="xs"><b>@maria-s</b> <span class="muted">· Iteration 1</span></span><p class="sm">floor() drops a cent: three refunds of $19.99 come to $59.96, not $59.97.</p></div>
+            </div>
+            <div class="row" style="padding: 0 12px 10px; gap: 10px; align-items: flex-start">
+              <span class="avatar">J</span>
+              <div class="col grow" style="gap: 2px"><span class="xs"><b>@jordan-lee</b> <span class="muted">· Iteration 2</span></span><p class="sm">Good catch, switching to round().</p></div>
+            </div>
+            <div class="row" style="padding: 8px 12px; gap: 6px; border-top: 1px solid oklch(1 0 0 / 10%); background: oklch(0.185 0 0)">
+              <span class="xs muted grow">The code under this thread changed in Iteration 3. Legible never resolves threads for you.</span>
+              <button class="btn btn-ghost btn-xs muted" type="button">Reply</button>
+              <button class="btn btn-outline btn-xs" type="button">Resolve thread…</button>
+            </div>
+          </article>
+        </div>
+
+        <div class="dl add"><span class="st"></span><span class="mk"></span><span class="ln"></span><span class="ln">13</span><span class="sg">+</span><span class="cd">  <span class="c">// round half away from zero; see RefundService tests</span></span></div>
+        <div class="dl"><span class="st"></span><span class="mk"></span><span class="ln">13</span><span class="ln">14</span><span class="sg"></span><span class="cd">}</span></div>
+
+        <div class="row wrap" style="padding: 20px 18px 8px; gap: 10px; font-family: 'Geist', sans-serif">
+          <span class="mono sm">src/refunds/RefundService.ts</span>
+          <span class="badge badge-muted">Iteration 2 → 3</span>
+        </div>
+        <div style="padding: 0 18px 0 107px; font-family: 'Geist', sans-serif">
+          <div class="inset" style="max-width: 720px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; border-style: dashed">
+            <div class="row" style="gap: 8px"><span class="gm gm-note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span><span class="xs b grow">Your Note · outdated</span><span class="xs muted">was on line 46 · that code is gone</span></div>
+            <p class="sm muted">“balance.remaining reads well. Check it's in cents everywhere.”</p>
+            <div class="row" style="gap: 6px"><button class="btn btn-ghost btn-xs muted" type="button">Re-anchor</button><button class="btn btn-ghost btn-xs muted" type="button">Keep as general Note</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div role="status" class="row wrap" style="margin: 0 20px 20px; padding: 10px 14px; gap: 12px; border: 1px solid oklch(1 0 0 / 15%); border-radius: 10px; background: oklch(0.205 0 0)">
+    <span class="eyebrow">Working-tree variant</span>
+    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+    <span class="sm grow">New changes since snapshot · 3 files changed in your working tree. Refresh?</span>
+    <button class="btn btn-ghost btn-xs muted" type="button">Not now</button>
+    <button class="btn btn-secondary btn-xs" type="button">Refresh snapshot</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

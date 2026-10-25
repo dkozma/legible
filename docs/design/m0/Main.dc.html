@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Change Brief</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; display: flex; flex-direction: column">
+
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="crumbs grow" aria-label="Location">
+      <span>acme/storefront</span>
+      <svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+      <span>Pull Request #482</span>
+      <svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+      <b>Change Brief</b>
+    </nav>
+    <span class="badge badge-outline">Author mode</span>
+    <button class="select" style="height: 28px; font-size: 12px" type="button">Iteration 2 · pushed 18 min ago<svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+    <span class="xs muted mono" style="padding: 0 4px">$0.38</span>
+    <button class="btn btn-outline btn-sm" type="button" style="width: 200px; justify-content: space-between; color: oklch(0.708 0 0)"><span class="row" style="gap: 6px"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Search or run…</span><span class="kbd">⌘K</span></button>
+  </header>
+
+  <main style="flex: 1 1 auto; padding: 32px 24px 56px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <div class="eyebrow">Change Brief · read this before any code</div>
+        <h1 class="h1" style="font-size: 26px; line-height: 32px">Refund window + partial refunds</h1>
+        <div class="row wrap sm muted" style="gap: 14px">
+          <span class="row" style="gap: 6px"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span class="mono" style="color: oklch(0.985 0 0)">claude/refund-window-partial</span> into <span class="mono">main</span></span>
+          <span>600 changed lines</span>
+          <span>14 files</span>
+          <span>9 Steps</span>
+          <span>Written by a Claude Code agent session</span>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+        <div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+
+          <section class="card" aria-labelledby="intent-h">
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 12px">
+              <div class="row wrap">
+                <h2 class="h2" id="intent-h">Intent</h2>
+                <span class="badge badge-muted"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><path d="M6 9v12"></path></svg>PR #482 description</span>
+                <span class="badge badge-muted"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Agent Transcript · 3 prompts, 1 correction</span>
+                <span class="grow"></span>
+                <button class="btn btn-ghost btn-sm" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>Edit</button>
+              </div>
+              <p style="font-size: 15px; line-height: 24px">Let support agents refund part of an order, and extend the refund window from 30 to 60 days so late returns can still be refunded.</p>
+              <div class="inset row sm" style="padding: 8px 12px; gap: 10px; align-items: flex-start">
+                <svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 2px"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
+                <span><span class="muted">Correction in transcript:</span> “Don't change how store credit works.”</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="dc-h">
+            <div class="card-head row">
+              <h2 class="h2" id="dc-h">Domain Changes</h2>
+              <span class="badge badge-secondary">4</span>
+              <span class="grow"></span>
+              <span class="xs muted">Business rules that change, each linked to its code</span>
+            </div>
+            <ol class="card-body" style="display: flex; flex-direction: column; gap: 2px; padding-top: 10px">
+              <li class="li" style="align-items: flex-start; padding: 10px 8px; gap: 12px">
+                <span class="mono xs muted" style="width: 14px; margin-top: 2px">1</span>
+                <div class="grow col" style="gap: 6px">
+                  <p style="font-size: 14px; line-height: 21px">Refunds are allowed up to <b>60 days</b> after purchase <span class="muted">(was 30)</span>.</p>
+                  <div class="row wrap xs muted" style="gap: 10px">
+                    <a href="#" class="mono" style="color: oklch(0.708 0 0)">RefundPolicy.ts:14</a>
+                    <span class="row" style="gap: 5px"><span class="g g-req"></span>Step 2 · Requested</span>
+                  </div>
+                </div>
+                <span class="badge badge-muted"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>In PR description</span>
+              </li>
+              <li class="li" style="align-items: flex-start; padding: 10px 8px; gap: 12px">
+                <span class="mono xs muted" style="width: 14px; margin-top: 2px">2</span>
+                <div class="grow col" style="gap: 6px">
+                  <p style="font-size: 14px; line-height: 21px">An order can be refunded in <b>several partial amounts</b>, until the total refunded equals the amount paid.</p>
+                  <div class="row wrap xs muted" style="gap: 10px">
+                    <a href="#" class="mono" style="color: oklch(0.708 0 0)">RefundService.ts:46</a>
+                    <span class="row" style="gap: 5px"><span class="g g-req"></span>Steps 3–4 · Requested</span>
+                  </div>
+                </div>
+                <span class="badge badge-muted"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>In PR description</span>
+              </li>
+              <li class="li" style="align-items: flex-start; padding: 10px 8px; gap: 12px">
+                <span class="mono xs muted" style="width: 14px; margin-top: 2px">3</span>
+                <div class="grow col" style="gap: 6px">
+                  <p style="font-size: 14px; line-height: 21px"><b>Shipping is refunded only with the final refund.</b> Partial refunds never include shipping.</p>
+                  <div class="row wrap xs muted" style="gap: 10px">
+                    <a href="#" class="mono" style="color: oklch(0.708 0 0)">RefundService.ts:50</a>
+                    <span class="row" style="gap: 5px"><span class="g g-req"></span>Step 4 · Requested</span>
+                  </div>
+                </div>
+                <span class="badge badge-outline" style="border-style: dashed"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>Not in PR description</span>
+              </li>
+              <li class="li" style="align-items: flex-start; padding: 10px 8px; gap: 12px; background: oklch(0.702 0.183 293.541 / 8%)">
+                <span class="mono xs muted" style="width: 14px; margin-top: 2px">4</span>
+                <div class="grow col" style="gap: 6px">
+                  <p style="font-size: 14px; line-height: 21px">Refund audit entries <b>no longer record which operator</b> issued the refund.</p>
+                  <div class="row wrap xs muted" style="gap: 10px">
+                    <a href="#" class="mono" style="color: oklch(0.708 0 0)">RefundAuditSubscriber.ts:22</a>
+                    <span class="row" style="gap: 5px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span>Step 5 · Unrequested</span>
+                  </div>
+                </div>
+                <span class="badge badge-unreq"><span class="g g-unreq" style="width: 6px; height: 6px"></span>Unrequested</span>
+              </li>
+            </ol>
+          </section>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+            <section class="card" aria-labelledby="gap-h" style="flex: 1 1 340px; min-width: 0">
+              <div class="card-body" style="display: flex; flex-direction: column; gap: 12px; height: 100%">
+                <div class="row" style="align-items: flex-start; gap: 10px">
+                  <svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 2px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                  <div class="col" style="gap: 2px">
+                    <h2 class="h3" id="gap-h">Description Gap</h2>
+                    <p class="sm muted">1 Domain Change is in the code but not in the PR description.</p>
+                  </div>
+                </div>
+                <div class="inset" style="padding: 10px 12px">
+                  <div class="eyebrow" style="margin-bottom: 4px">Suggested wording</div>
+                  <p class="sm">Shipping is refunded only with the final refund that brings an order to fully refunded. Partial refunds exclude shipping.</p>
+                </div>
+                <span class="grow"></span>
+                <div class="row wrap">
+                  <button class="btn btn-outline btn-sm" type="button">Update PR description…</button>
+                  <button class="btn btn-ghost btn-sm" type="button">Copy</button>
+                  <span class="grow"></span>
+                  <span class="xs muted">You confirm before it's published</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="unreq-box" aria-labelledby="unreq-h" style="flex: 1 1 340px; min-width: 0; border-radius: 14px">
+              <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; height: 100%">
+                <div class="row" style="gap: 10px">
+                  <span class="g g-unreq g-lg"></span>
+                  <h2 class="h3" id="unreq-h" style="color: oklch(0.702 0.183 293.541)">Unrequested · 1 Step</h2>
+                  <span class="grow"></span>
+                  <span class="risk elev"><i></i><i></i><i></i><span class="sr">Elevated risk</span></span>
+                  <span class="xs" style="color: oklch(0.828 0.189 84.429)">Elevated</span>
+                </div>
+                <div class="col" style="gap: 6px">
+                  <p class="b">Step 5 · Move audit logging to an event subscriber</p>
+                  <p class="sm" style="color: oklch(0.87 0 0)"><span class="code-inline">refundOrder</span> no longer calls <span class="code-inline">auditLog()</span>. A new <span class="code-inline">RefundAuditSubscriber</span> writes entries from <span class="code-inline">refund.issued</span> events, and the payload drops <span class="code-inline">operator</span>. Neither the Intent nor the transcript asks for this.</p>
+                </div>
+                <span class="grow"></span>
+                <div class="row wrap">
+                  <button class="btn btn-secondary btn-sm" type="button">Open Step 5</button>
+                  <button class="btn btn-ghost btn-sm" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>Ask why</button>
+                  <span class="grow"></span>
+                  <span class="xs muted mono">+54 −12 · 2 files</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section class="card" aria-labelledby="map-h">
+            <div class="card-head row">
+              <h2 class="h2" id="map-h">Touched components</h2>
+              <span class="grow"></span>
+              <span class="xs muted">By Layer, in Walkthrough order</span>
+            </div>
+            <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+              <div class="col" style="gap: 6px">
+                <div class="eyebrow">1 · Data model</div>
+                <div class="inset col" style="padding: 8px 10px; gap: 4px">
+                  <div class="row" style="gap: 6px"><span class="g g-sup"></span><span class="mono xs truncate grow">…_partial_refunds.sql</span><span class="risk elev"><i></i><i></i><i></i><span class="sr">Elevated</span></span></div>
+                  <div class="row" style="gap: 6px"><span class="g g-sup"></span><span class="mono xs truncate grow">schema.ts</span><span class="risk low"><i></i><i></i><i></i><span class="sr">Low</span></span></div>
+                </div>
+              </div>
+              <div class="col" style="gap: 6px">
+                <div class="eyebrow">2 · Backend logic</div>
+                <div class="inset col" style="padding: 8px 10px; gap: 4px">
+                  <div class="row" style="gap: 6px"><span class="g g-req"></span><span class="mono xs truncate grow">RefundPolicy.ts</span><span class="risk crit"><i></i><i></i><i></i><span class="sr">Critical</span></span></div>
+                  <div class="row" style="gap: 6px"><span class="g g-req"></span><span class="mono xs truncate grow">RefundService.ts</span><span class="risk crit"><i></i><i></i><i></i><span class="sr">Critical</span></span></div>
+                  <div class="row" style="gap: 6px; color: oklch(0.702 0.183 293.541)"><span class="g g-unreq"></span><span class="mono xs truncate grow">RefundAuditSubscriber.ts</span><span class="risk elev"><i></i><i></i><i></i><span class="sr">Elevated</span></span></div>
+                </div>
+              </div>
+              <div class="col" style="gap: 6px">
+                <div class="eyebrow">3 · API surface</div>
+                <div class="inset col" style="padding: 8px 10px; gap: 4px">
+                  <div class="row" style="gap: 6px"><span class="g g-req"></span><span class="mono xs truncate grow">api/orders/refunds.ts</span><span class="risk elev"><i></i><i></i><i></i><span class="sr">Elevated</span></span></div>
+                </div>
+              </div>
+              <div class="col" style="gap: 6px">
+                <div class="eyebrow">4 · Client data</div>
+                <div class="inset col" style="padding: 8px 10px; gap: 4px">
+                  <div class="row" style="gap: 6px"><span class="g g-req"></span><span class="mono xs truncate grow">refundsSlice.ts</span><span class="risk low"><i></i><i></i><i></i><span class="sr">Low</span></span></div>
+                </div>
+              </div>
+              <div class="col" style="gap: 6px">
+                <div class="eyebrow">5 · Presentation</div>
+                <div class="inset col" style="padding: 8px 10px; gap: 4px">
+                  <div class="row" style="gap: 6px"><span class="g g-req"></span><span class="mono xs truncate grow">RefundDialog.tsx</span><span class="risk low"><i></i><i></i><i></i><span class="sr">Low</span></span></div>
+                </div>
+              </div>
+              <div class="col" style="gap: 6px">
+                <div class="eyebrow">6 · Chores</div>
+                <div class="inset col" style="padding: 8px 10px; gap: 4px">
+                  <div class="row" style="gap: 6px"><span class="g g-sup"></span><span class="mono xs truncate grow">refund-math.ts</span><span class="badge badge-muted" style="height: 16px; padding: 0 4px; font-size: 10px">Structural</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+          <section class="card" aria-labelledby="plan-h">
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 14px">
+              <div class="col" style="gap: 2px">
+                <h2 class="eyebrow" id="plan-h">Your review</h2>
+                <p style="font-size: 20px; line-height: 28px; font-weight: 600">~75 min · 2 Sittings</p>
+              </div>
+              <ol class="col" style="gap: 8px">
+                <li class="inset" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; border-color: oklch(1 0 0 / 18%)">
+                  <div class="row"><span class="b">Sitting 1 · Rules &amp; data</span><span class="grow"></span><span class="xs muted">~40 min</span></div>
+                  <div class="xs muted">Steps 1–5 · 326 lines · includes the Unrequested Step</div>
+                  <div class="row" style="gap: 4px"><span class="g g-sup"></span><span class="g g-req"></span><span class="g g-req"></span><span class="g g-req"></span><span class="g g-unreq"></span></div>
+                </li>
+                <li class="inset" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+                  <div class="row"><span class="b">Sitting 2 · API &amp; UI</span><span class="grow"></span><span class="xs muted">~35 min</span></div>
+                  <div class="xs muted">Steps 6–9 · 274 lines</div>
+                  <div class="row" style="gap: 4px"><span class="g g-req"></span><span class="g g-req"></span><span class="g g-req"></span><span class="g g-sup"></span></div>
+                </li>
+              </ol>
+              <a href="Workspace.dc.html" class="btn btn-lg" style="width: 100%">Start Sitting 1<span class="kbd" style="background: oklch(0.205 0 0 / 12%); color: oklch(0.205 0 0)">↵</span></a>
+              <div class="row" style="justify-content: center; gap: 4px">
+                <button class="btn btn-ghost btn-sm muted" type="button">File tree</button>
+                <button class="btn btn-ghost btn-sm muted" type="button">Findings</button>
+                <button class="btn btn-ghost btn-sm muted" type="button">Export</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="risk-h">
+            <div class="card-head row"><h2 class="h3" id="risk-h">Risk hotspots</h2><span class="grow"></span><span class="xs muted">Not reordered</span></div>
+            <ul class="card-body col" style="gap: 2px; padding-top: 8px">
+              <li class="li" style="align-items: flex-start">
+                <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical</span></span>
+                <div class="grow col"><span class="sm"><span class="mono muted">3</span> Calculate refundable balance</span><span class="xs muted">Payments math · 5 callers</span></div>
+              </li>
+              <li class="li" style="align-items: flex-start">
+                <span class="risk crit" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Critical</span></span>
+                <div class="grow col"><span class="sm"><span class="mono muted">4</span> Issue partial refunds</span><span class="xs muted">Gateway call · idempotency</span></div>
+              </li>
+              <li class="li" style="align-items: flex-start">
+                <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated</span></span>
+                <div class="grow col"><span class="sm"><span class="mono muted">1</span> Add partial-refund columns</span><span class="xs muted">Migration on a 40M-row table</span></div>
+              </li>
+              <li class="li" style="align-items: flex-start">
+                <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated</span></span>
+                <div class="grow col"><span class="sm row" style="gap: 6px"><span class="mono muted">5</span> Move audit logging<span class="g g-unreq"></span></span><span class="xs muted">Audit trail · Unrequested</span></div>
+              </li>
+              <li class="li" style="align-items: flex-start">
+                <span class="risk elev" style="margin-top: 4px"><i></i><i></i><i></i><span class="sr">Elevated</span></span>
+                <div class="grow col"><span class="sm"><span class="mono muted">6</span> Accept amount on refund endpoint</span><span class="xs muted">Public API contract</span></div>
+              </li>
+            </ul>
+          </section>
+
+          <section class="card" aria-labelledby="test-h">
+            <div class="card-head"><h2 class="h3" id="test-h">How to test</h2></div>
+            <div class="card-body col" style="gap: 10px; padding-top: 10px">
+              <div class="eyebrow">From the PR</div>
+              <label class="row sm" style="align-items: flex-start; gap: 10px"><input type="checkbox" class="cb" style="margin-top: 1px"><span>Refund a 45-day-old order. It succeeds.</span></label>
+              <label class="row sm" style="align-items: flex-start; gap: 10px"><input type="checkbox" class="cb" style="margin-top: 1px"><span>Refund $20 twice on a $50 order, then $20 again. The third is rejected: “exceeds refundable balance ($10.00)”.</span></label>
+              <div class="eyebrow" style="margin-top: 4px">Suggested by Legible</div>
+              <label class="row sm" style="align-items: flex-start; gap: 10px"><input type="checkbox" class="cb" style="margin-top: 1px"><span>Refund the remaining balance. Shipping is included only then.</span></label>
+              <label class="row sm" style="align-items: flex-start; gap: 10px"><input type="checkbox" class="cb" style="margin-top: 1px"><span>Check a new audit entry. Does it name the operator?</span></label>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

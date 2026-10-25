@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Publish Pending Review</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app overlay" style="width: 1000px; height: 900px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; background: oklch(0.1 0 0)">
+  <div role="dialog" aria-modal="true" aria-labelledby="pr-h" class="popover" style="width: 640px; border-radius: 14px; display: flex; flex-direction: column; overflow: hidden">
+
+    <header style="padding: 18px 20px 14px; display: flex; flex-direction: column; gap: 4px">
+      <div class="row"><h1 class="h2 grow" id="pr-h">Publish review</h1><span class="badge badge-outline">Reviewer mode</span><button class="btn btn-ghost btn-icon btn-xs muted" type="button" aria-label="Close"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></div>
+      <p class="sm muted">acme/storefront #477 · Partial refunds for marketplace orders · by @jordan-lee</p>
+    </header>
+
+    <div style="padding: 0 20px 16px; display: flex; flex-direction: column; gap: 16px">
+      <div class="alert" style="background: oklch(1 0 0 / 3%)">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"></path><path d="M15 3v6h6"></path></svg>
+        <div class="col grow" style="gap: 6px">
+          <span class="sm b">1 To-check is still open</span>
+          <span class="sm muted">“Does the webhook retry respect the new 60-day window?” <span class="mono xs">webhooks/refund.ts:41</span></span>
+          <div class="row" style="gap: 6px"><button class="btn btn-secondary btn-xs" type="button">Look first</button><button class="btn btn-ghost btn-xs muted" type="button">Turn into a Note</button></div>
+        </div>
+      </div>
+
+      <section class="col" style="gap: 6px" aria-labelledby="notes-h">
+        <div class="row"><h2 class="eyebrow grow" id="notes-h">Comments to publish</h2><span class="xs muted">5 of 5</span></div>
+        <div class="inset" style="padding: 4px">
+          <label class="li" style="align-items: flex-start; padding: 8px"><input type="checkbox" class="cb" checked style="margin-top: 2px"><span class="col grow" style="gap: 2px"><span class="sm">Shipping is only refunded on the final refund. Please add this to the PR description so support knows.</span><span class="xs muted"><span class="mono">RefundService.ts:50</span> · Note · from Description Gap</span></span></label>
+          <label class="li" style="align-items: flex-start; padding: 8px"><input type="checkbox" class="cb" checked style="margin-top: 2px"><span class="col grow" style="gap: 2px"><span class="sm">Audit entries need the operator. Was dropping it intended?</span><span class="xs muted"><span class="mono">RefundAuditSubscriber.ts:22</span> · Note · from Finding</span></span></label>
+          <label class="li" style="align-items: flex-start; padding: 8px"><input type="checkbox" class="cb" checked style="margin-top: 2px"><span class="col grow" style="gap: 2px"><span class="row" style="gap: 6px"><span class="sm">Take a refund sequence before calling the gateway</span><span class="badge badge-ask">Suggestion</span></span><span class="xs muted"><span class="mono">RefundService.ts:51–54</span> · from Revision 1 · 2 hunks</span></span></label>
+          <label class="li" style="align-items: flex-start; padding: 8px"><input type="checkbox" class="cb" checked style="margin-top: 2px"><span class="col grow" style="gap: 2px"><span class="row" style="gap: 6px"><span class="sm">Pass operator in refund.issued</span><span class="badge badge-ask">Suggestion</span></span><span class="xs muted"><span class="mono">RefundService.ts:55</span> · from Revision 1</span></span></label>
+          <label class="li" style="align-items: flex-start; padding: 8px"><input type="checkbox" class="cb" checked style="margin-top: 2px"><span class="col grow" style="gap: 2px"><span class="sm">Reply: Thanks, the rounding fix looks right now.</span><span class="xs muted">Reply in @maria-s's thread · <span class="mono">refund-math.ts:12</span></span></span></label>
+        </div>
+      </section>
+
+      <fieldset class="col" style="gap: 8px; border: 0; padding: 0; margin: 0">
+        <legend class="eyebrow" style="margin-bottom: 8px">Verdict</legend>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <label class="inset row" style="padding: 10px 12px; gap: 8px; cursor: pointer"><input type="radio" class="rb" name="verdict"><span class="sm">Comment</span></label>
+          <label class="inset row" style="padding: 10px 12px; gap: 8px; cursor: pointer"><input type="radio" class="rb" name="verdict"><span class="sm">Approve</span></label>
+          <label class="inset row" style="padding: 10px 12px; gap: 8px; cursor: pointer; border-color: oklch(0.922 0 0 / 60%); background: oklch(1 0 0 / 5%)"><input type="radio" class="rb" name="verdict" checked><span class="sm">Request changes</span></label>
+        </div>
+      </fieldset>
+
+      <div class="col" style="gap: 6px">
+        <label class="label" for="pr-sum">Summary</label>
+        <textarea id="pr-sum" class="textarea" style="min-height: 64px">Partial refunds look right. Two things before merging: keep the operator on audit entries, and make the idempotency key safe under concurrent refunds (suggestions attached).</textarea>
+      </div>
+    </div>
+
+    <footer class="row wrap" style="padding: 14px 20px; gap: 10px; border-top: 1px solid oklch(1 0 0 / 10%); background: oklch(0.185 0 0)">
+      <p class="xs muted grow" style="max-width: 330px">Posts <b style="color: oklch(0.985 0 0)">5 comments</b> and a <b style="color: oklch(0.985 0 0)">Request changes</b> review to github.com as @dkozma. This can't be unpublished from Legible.</p>
+      <button class="btn btn-ghost btn-sm" type="button">Cancel</button>
+      <button class="btn btn-sm" type="button">Publish review</button>
+    </footer>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

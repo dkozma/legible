@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent Review</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/f36255f79369f28678fbd333fe7a63aa">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(0.985 0 0)}a:hover{color:oklch(0.922 0 0)}
+</style>
+</helmet>
+<div class="app" style="min-height: 100vh; display: flex; flex-direction: column">
+
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="crumbs grow" aria-label="Location"><span>PR #482</span><svg class="i i-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><b>Agent Review</b></nav>
+    <span class="xs muted">Three states of one run: plan, running, Findings</span>
+  </header>
+
+  <div style="flex: 1 1 auto; padding: 20px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+    <!-- Review Plan -->
+    <section class="card" aria-labelledby="plan-h" style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column">
+      <div class="card-head col" style="gap: 4px">
+        <div class="row"><span class="badge badge-secondary">1</span><h2 class="h2 grow" id="plan-h">Review Plan</h2></div>
+        <p class="xs muted">Lenses picked for this Change Set. Toggle any, then run.</p>
+      </div>
+      <ul class="card-body col" style="gap: 2px; padding-top: 12px">
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Intent Conformance"></button><span class="col grow" style="gap: 0"><span class="sm">Intent Conformance</span><span class="xs muted">Always · drives Scope tagging</span></span><span class="mono xs muted">$0.22</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Correctness and Bugs"></button><span class="col grow" style="gap: 0"><span class="sm">Correctness &amp; Bugs</span><span class="xs muted">Always</span></span><span class="mono xs muted">$0.31</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Tests"></button><span class="col grow" style="gap: 0"><span class="sm">Tests</span><span class="xs muted">Non-trivial change</span></span><span class="mono xs muted">$0.14</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Security"></button><span class="col grow" style="gap: 0"><span class="sm">Security</span><span class="xs muted">User input and money movement</span></span><span class="mono xs muted">$0.18</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Data Model and Migrations"></button><span class="col grow" style="gap: 0"><span class="sm">Data Model &amp; Migrations</span><span class="xs muted">Step 1 is a migration</span></span><span class="mono xs muted">$0.12</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="API Contract"></button><span class="col grow" style="gap: 0"><span class="sm">API Contract</span><span class="xs muted">Step 6 changes an endpoint</span></span><span class="mono xs muted">$0.10</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="false" aria-label="Performance"></button><span class="col grow" style="gap: 0"><span class="sm muted">Performance</span><span class="xs muted">No hot paths found · off</span></span><span class="mono xs dim">$0.11</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Frontend"></button><span class="col grow" style="gap: 0"><span class="sm">Frontend</span><span class="xs muted">Step 8 changes the UI</span></span><span class="mono xs muted">$0.09</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Altitude and Design"></button><span class="col grow" style="gap: 0"><span class="sm">Altitude &amp; Design</span><span class="xs muted">Always</span></span><span class="mono xs muted">$0.15</span></li>
+        <li class="li" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Code Quality"></button><span class="col grow" style="gap: 0"><span class="sm">Code Quality</span><span class="xs muted">Always · nits collapsed</span></span><span class="mono xs muted">$0.08</span></li>
+      </ul>
+      <div style="padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px">
+        <hr class="sep">
+        <div class="row" style="gap: 10px"><button class="switch" role="switch" aria-checked="true" aria-label="Cross-check Verification"></button><span class="col grow"><span class="sm">Cross-check Verification</span><span class="xs muted">Claude's Findings verified by OpenAI, and the reverse</span></span></div>
+        <div class="row"><span class="sm muted grow">Estimate · 9 Lenses + Verification</span><span class="mono sm b">$1.40–1.90</span></div>
+        <div class="row"><label class="sm muted grow" for="cap">Spend cap for this run</label><input id="cap" class="input mono" value="$5.00" style="width: 88px; height: 28px; text-align: right"></div>
+        <button class="btn" type="button" style="width: 100%"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>Run Agent Review</button>
+      </div>
+    </section>
+
+    <!-- Running -->
+    <section class="card" aria-labelledby="run-h" style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column">
+      <div class="card-head col" style="gap: 10px">
+        <div class="row"><span class="badge badge-secondary">2</span><h2 class="h2 grow" id="run-h">Running</h2><button class="btn btn-ghost btn-xs muted" type="button">Cancel</button></div>
+        <ol class="row" style="gap: 6px" aria-label="Stages">
+          <li class="badge badge-outline">Lenses 6/9</li>
+          <li aria-hidden="true" class="dim"><svg class="i i-xs" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></li>
+          <li class="badge badge-muted">Verification</li>
+          <li aria-hidden="true" class="dim"><svg class="i i-xs" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></li>
+          <li class="badge badge-muted">Merge</li>
+        </ol>
+        <div class="col" style="gap: 6px">
+          <div class="row xs"><span class="muted grow">Spent</span><span class="mono">$0.92 of $5.00 cap</span></div>
+          <div class="progress"><span style="width: 18.4%"></span></div>
+        </div>
+      </div>
+      <ul class="card-body col" style="gap: 2px; padding-top: 12px">
+        <li class="li"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223)"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">Intent Conformance</span><span class="xs muted">2 Findings</span></li>
+        <li class="li"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223)"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">Correctness &amp; Bugs</span><span class="xs muted">3 Findings</span></li>
+        <li class="li"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223)"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">Tests</span><span class="xs muted">1 Finding</span></li>
+        <li class="li"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223)"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">Security</span><span class="xs muted">1 Finding</span></li>
+        <li class="li"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223)"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">Data Model &amp; Migrations</span><span class="xs muted">none</span></li>
+        <li class="li"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223)"><path d="M20 6 9 17l-5-5"></path></svg><span class="sm grow">API Contract</span><span class="xs muted">1 Finding</span></li>
+        <li class="li" style="flex-wrap: wrap"><svg class="i i-sm spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg><span class="sm grow">Frontend</span><span class="xs muted">reading Step 8</span><div class="progress" style="flex: 1 1 100%; margin-left: 24px; height: 4px"><span style="width: 55%"></span></div></li>
+        <li class="li" style="flex-wrap: wrap"><svg class="i i-sm spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg><span class="sm grow">Altitude &amp; Design</span><span class="xs muted">tracing Connections</span><div class="progress" style="flex: 1 1 100%; margin-left: 24px; height: 4px"><span style="width: 30%"></span></div></li>
+        <li class="li"><svg class="i i-sm dim" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle></svg><span class="sm grow muted">Code Quality</span><span class="xs muted">queued</span></li>
+      </ul>
+      <div style="padding: 0 18px 18px">
+        <div class="inset col" style="padding: 10px 12px; gap: 6px">
+          <div class="row"><span class="xs b grow">Verification, as Findings arrive</span><span class="xs muted">OpenAI · cross-check</span></div>
+          <div class="row wrap xs" style="gap: 10px"><span class="muted">8 challenged</span><span>5 confirmed</span><span>1 plausible</span><span class="muted">2 disproved</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Findings -->
+    <section class="card" aria-labelledby="find-h" style="flex: 1.5 1 520px; min-width: 0; display: flex; flex-direction: column">
+      <div class="card-head col" style="gap: 10px">
+        <div class="row wrap"><span class="badge badge-secondary">3</span><h2 class="h2" id="find-h">Findings</h2><span class="xs muted">6 shown</span><span class="grow"></span><button class="select" style="height: 28px; font-size: 12px" type="button">By Intent &amp; domain impact<svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+      </div>
+      <ul class="col" style="padding: 10px 10px 0; gap: 2px">
+        <li><a class="li" href="#" style="color: inherit; text-decoration: none; align-items: flex-start; padding: 8px"><span class="gm gm-find crit" style="margin-top: 2px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span class="col grow" style="gap: 2px"><span class="sm">Audit entries no longer record the operator</span><span class="xs muted">Intent Conformance + Security agree · <span class="mono">RefundAuditSubscriber.ts:22</span></span></span><span class="badge badge-crit">critical</span><span class="badge badge-ok">confirmed</span></a></li>
+        <li><a class="li active" href="#" style="color: inherit; text-decoration: none; align-items: flex-start; padding: 8px"><span class="gm gm-find" style="margin-top: 2px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span class="col grow" style="gap: 2px"><span class="sm b">Concurrent partial refunds can reuse an idempotency key</span><span class="xs muted">Correctness &amp; Bugs · <span class="mono">RefundService.ts:53</span></span></span><span class="badge badge-elev">warning</span><span class="badge badge-ok">confirmed</span></a></li>
+        <li><a class="li" href="#" style="color: inherit; text-decoration: none; align-items: flex-start; padding: 8px"><span class="gm gm-find" style="margin-top: 2px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span class="col grow" style="gap: 2px"><span class="sm">Refund endpoint accepts amount: 0</span><span class="xs muted">API Contract · <span class="mono">api/orders/refunds.ts:27</span></span></span><span class="badge badge-elev">warning</span><span class="badge badge-ok">confirmed</span></a></li>
+        <li><a class="li" href="#" style="color: inherit; text-decoration: none; align-items: flex-start; padding: 8px"><span class="gm gm-find" style="margin-top: 2px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span class="col grow" style="gap: 2px"><span class="sm">Rounding can leave one unrefundable cent</span><span class="xs muted">Correctness &amp; Bugs · <span class="mono">RefundService.ts:88</span></span></span><span class="badge badge-elev">warning</span><span class="badge badge-outline">plausible</span></a></li>
+        <li><a class="li" href="#" style="color: inherit; text-decoration: none; align-items: flex-start; padding: 8px"><span class="gm gm-remote" style="margin-top: 2px; border-radius: 3px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></span><span class="col grow" style="gap: 2px"><span class="sm muted">6 nits from Code Quality</span><span class="xs muted">Collapsed</span></span><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></a></li>
+      </ul>
+      <div class="row xs muted" style="padding: 6px 18px 0"><span class="grow">2 disproved Findings hidden</span><button class="btn btn-link xs muted" type="button" style="font-size: 11px; color: oklch(0.708 0 0)">Show</button></div>
+
+      <article style="margin: 12px 10px 10px; display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 12px" class="inset" aria-label="Finding detail">
+        <div class="row wrap" style="gap: 8px"><span class="badge badge-elev">warning</span><span class="xs muted">Correctness &amp; Bugs</span><span class="grow"></span><a href="#" class="mono xs muted">RefundService.ts:53</a></div>
+        <h3 class="h3" style="font-size: 14px">Concurrent partial refunds can reuse an idempotency key</h3>
+        <p class="sm" style="color: oklch(0.87 0 0)">The key is built from <span class="code-inline">balance.count</span>, read before the gateway call. Two support agents refunding the same order at once read the same count, send the same key, and the gateway treats the second refund as a retry of the first. The customer gets one refund; the order records two.</p>
+        <div class="row" style="gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: oklch(0.765 0.177 163.223 / 8%); border: 1px solid oklch(0.765 0.177 163.223 / 30%)">
+          <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: oklch(0.765 0.177 163.223); margin-top: 2px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          <div class="col" style="gap: 2px"><span class="xs b" style="color: oklch(0.765 0.177 163.223)">Confirmed by Verification · OpenAI cross-check</span><span class="xs" style="color: oklch(0.87 0 0)">No lock or transaction wraps the read and the gateway call. Reproduced with two interleaved calls in the trace.</span></div>
+        </div>
+        <div class="col" style="gap: 4px"><span class="xs b muted">Suggested fix</span><div class="diff panel" style="overflow: hidden"><div class="dl add" style="grid-template-columns: 3px 0 0 0 18px minmax(0, 1fr)"><span class="st"></span><span></span><span></span><span></span><span class="sg">+</span><span class="cd">    <span class="k">const</span> seq = <span class="k">await</span> <span class="k">this</span>.orders.<span class="f">nextRefundSeq</span>(orderId);</span></div></div></div>
+        <div class="row wrap" style="gap: 6px">
+          <button class="btn btn-sm" type="button">Turn into Change Request</button>
+          <button class="btn btn-outline btn-sm" type="button">Turn into Note</button>
+          <span class="grow"></span>
+          <button class="btn btn-ghost btn-sm muted" type="button">Dismiss…</button>
+        </div>
+      </article>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
