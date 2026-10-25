@@ -1,5 +1,6 @@
 import type { DiffChunk } from '@legible/domain';
 import { describe, expect, it } from 'vitest';
+
 import { buildFileDiff, collapseReason, detectMoves, diffLines, highlightLines, languageForPath, splitLines, wordDiff } from '../src/index';
 
 function check(base: string[], head: string[], chunks: DiffChunk[]) {

@@ -1,5 +1,6 @@
 import { FileCode2, Search, Terminal } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+
 import { formatKey, fuzzy } from '../commands';
 import { cn, Kbd } from '../components/ui';
 import { useUI } from '../state';
@@ -17,19 +18,22 @@ interface Item {
 function Highlight({ text, indices }: { text: string; indices: number[] }) {
   if (!indices.length) return <>{text}</>;
   const set = new Set(indices);
-  return (
-    <>
-      {[...text].map((ch, i) =>
-        set.has(i) ? (
-          <mark key={i} className="bg-transparent font-semibold text-foreground">
-            {ch}
-          </mark>
-        ) : (
-          <span key={i}>{ch}</span>
-        ),
-      )}
-    </>
-  );
+  // `indices` are UTF-16 offsets (from indexOf). Walk code points so emoji stay whole, keyed by offset.
+  const parts: ReactNode[] = [];
+  let at = 0;
+  for (const ch of text) {
+    parts.push(
+      set.has(at) ? (
+        <mark key={at} className="bg-transparent font-semibold text-foreground">
+          {ch}
+        </mark>
+      ) : (
+        <span key={at}>{ch}</span>
+      ),
+    );
+    at += ch.length;
+  }
+  return <>{parts}</>;
 }
 
 export function Palette() {
@@ -49,7 +53,7 @@ export function Palette() {
       { id: 'shortcuts', title: 'Show keyboard shortcuts', keys: ['?'], run: () => set({ shortcuts: true }) },
       { id: 'home', title: 'All Reviews', keys: [], run: () => go({ name: 'home' }) },
     ];
-    for (const c of [...cmds.filter((c) => !c.paletteHidden && (!c.enabled || c.enabled())), ...globals]) {
+    for (const c of [...cmds.filter((cmd) => !cmd.paletteHidden && (!cmd.enabled || cmd.enabled())), ...globals]) {
       const title = 'title' in c ? c.title : '';
       const m = fuzzy(q, title);
       if (m) out.push({ id: `c:${c.id}`, kind: 'command', label: title, keys: c.keys, indices: m.indices, score: m.score - 1, run: c.run });
@@ -91,7 +95,7 @@ export function Palette() {
           <Search className="size-4 text-muted-foreground" />
           <input
             autoFocus
-            className="h-full flex-auto select-text border-0 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-full flex-auto border-0 bg-transparent text-[15px] text-foreground outline-none select-text placeholder:text-muted-foreground"
             aria-label="Search files and actions"
             placeholder="Search files and actions"
             value={q}

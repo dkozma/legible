@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+
 import { type Command, useKeyboard } from './commands';
 import { useClient } from './context';
 import { Palette } from './overlays/Palette';

@@ -89,7 +89,7 @@ const NAME_LANG: Record<string, string> = {
 
 export function languageForPath(path: string): string | null {
   const name = path.split('/').pop() ?? path;
-  if (NAME_LANG[name]) return NAME_LANG[name] as string;
+  if (NAME_LANG[name]) return NAME_LANG[name];
   if (name.startsWith('Dockerfile')) return 'dockerfile';
   const dot = name.lastIndexOf('.');
   if (dot <= 0) return null;

@@ -1,6 +1,7 @@
 import type { FileChange } from '@legible/domain';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
 import { cn } from '../components/ui';
 
 interface Dir {

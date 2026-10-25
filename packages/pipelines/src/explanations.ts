@@ -2,6 +2,7 @@
 // range or file — Before · After · What changed · Watch out. Fast tier.
 
 import { createHash } from 'node:crypto';
+
 import type { AgentTask, ToolContext } from '@legible/agent-runtime';
 import { READ_TOOLS } from '@legible/agent-runtime';
 import type { DiffChunk, ExplanationBody, ExplanationTarget, FileChange } from '@legible/domain';

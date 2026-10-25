@@ -19,7 +19,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const buttonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent font-medium leading-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent leading-none font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -56,7 +56,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 });
 
 export const badgeVariants = cva(
-  'inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border border-transparent px-[7px] text-xs font-medium leading-none [&_svg]:size-3',
+  'inline-flex h-5 shrink-0 items-center gap-1 rounded-sm border border-transparent px-[7px] text-xs leading-none font-medium whitespace-nowrap [&_svg]:size-3',
   {
     variants: {
       tone: {
@@ -106,7 +106,7 @@ export function Kbd({ keys, className }: { keys: string[]; className?: string })
         <kbd
           key={i}
           className={cn(
-            'inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[4px] bg-muted px-[5px] font-sans text-xs font-medium leading-none text-muted-foreground',
+            'inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[4px] bg-muted px-[5px] font-sans text-xs leading-none font-medium text-muted-foreground',
             className,
           )}
         >
@@ -133,7 +133,7 @@ export function Tab({ selected, className, ...props }: ButtonHTMLAttributes<HTML
       role="tab"
       aria-selected={selected}
       className={cn(
-        'inline-flex h-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-2.5 text-sm font-medium text-muted-foreground [&_svg]:size-3.5',
+        'inline-flex h-full items-center justify-center gap-1.5 rounded-md border border-transparent px-2.5 text-sm font-medium whitespace-nowrap text-muted-foreground [&_svg]:size-3.5',
         selected && 'border-input bg-field-selected text-foreground shadow-xs',
         className,
       )}
@@ -150,7 +150,7 @@ export function LineTab({ selected, className, ...props }: ButtonHTMLAttributes<
       role="tab"
       aria-selected={selected}
       className={cn(
-        'inline-flex h-[38px] items-center gap-1.5 whitespace-nowrap px-2.5 text-sm font-medium text-muted-foreground shadow-[inset_0_-2px_0_transparent] [&_svg]:size-3.5',
+        'inline-flex h-[38px] items-center gap-1.5 px-2.5 text-sm font-medium whitespace-nowrap text-muted-foreground shadow-[inset_0_-2px_0_transparent] [&_svg]:size-3.5',
         selected && 'text-foreground shadow-[inset_0_-2px_0_var(--foreground)]',
         className,
       )}
@@ -258,7 +258,7 @@ export function Titlebar({ children, className }: { children: ReactNode; classNa
   return (
     <header
       className={cn(
-        'app-drag flex h-11 shrink-0 items-center gap-3 border-b bg-background px-3 [.platform-darwin_&]:pl-[84px] [&_button]:app-no-drag [&_input]:app-no-drag [&_select]:app-no-drag',
+        'flex h-11 shrink-0 items-center gap-3 border-b bg-background px-3 app-drag [&_button]:app-no-drag [&_input]:app-no-drag [&_select]:app-no-drag [.platform-darwin_&]:pl-[84px]',
         className,
       )}
     >

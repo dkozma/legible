@@ -62,7 +62,7 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 | GitLab | Thin typed REST client (or @gitbeaker) | |
 | Diagrams | Mermaid (sequence diagrams for Scenario traces, mini-graphs) | |
 | Tests | Vitest (unit), Playwright `_electron` (E2E), eval harness for AI pipelines | §12 |
-| Lint/format | Biome (or ESLint + Prettier) | |
+| Lint/format | oxlint (type-aware) + oxfmt | ADR 0011 |
 | Packaging | electron-builder: macOS notarized DMG, Windows/Linux beta; auto-update via GitHub Releases | |
 | Monorepo | pnpm workspaces | |
 
@@ -450,7 +450,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - AgentRuntime with both Claude auth paths, provider-neutral tool definitions and schema lint from day one, tier router (Claude-only catalog), scheduler, cost meter; Explanations on ranges and files.
 - Packaging: notarized macOS build, auto-update.
 - **Exit:** the author reviews real agent branches in Legible daily; click any range → Explanation in < 5 s (fast tier).
-- **As built:** see [Dogfooding M1](./dogfooding.md). Decisions made while building it are recorded in ADRs 0007–0010. Not yet done: notarized builds (the release workflow is ready once signing secrets are added) and the `apps/prototype` browser build from M0.
+- **As built:** see [Dogfooding M1](./dogfooding.md). Decisions made while building it are recorded in ADRs 0007–0011. Not yet done: notarized builds (the release workflow is ready once signing secrets are added) and the `apps/prototype` browser build from M0.
 
 ### M2 — Code structure
 - Indexer utilityProcess, grammar manifest + Language Tiers, parse cache, highlighting moved to tree-sitter.

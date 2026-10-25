@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createContext, type ReactNode, useContext } from 'react';
+
 import type { LegibleClient } from './client';
 
 const ClientContext = createContext<LegibleClient | null>(null);

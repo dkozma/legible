@@ -4,10 +4,12 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+
 import { ClaudeSdkRuntime, DEFAULT_TIERS, Router, runTask, Scheduler } from '@legible/agent-runtime';
 import { diffLines, splitLines } from '@legible/diff';
 import { GitRepo } from '@legible/git';
 import { expect, it } from 'vitest';
+
 import { explanationTask, toExplanationBody } from '../src/index';
 
 it('explains a real range with Claude Code', async () => {

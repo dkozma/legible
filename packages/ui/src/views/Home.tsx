@@ -3,6 +3,7 @@ import type { RepoInspection } from '@legible/ipc';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, FolderGit2, GitPullRequest, Loader2, Settings as SettingsIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+
 import { ClientError } from '../client';
 import { relativeTime } from '../components/Inline';
 import { Badge, Button, Callout, Card, Input, Radio, Select, Tab, Tabs, Titlebar } from '../components/ui';

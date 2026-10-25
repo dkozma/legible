@@ -4,6 +4,7 @@
 
 import { type HostAccount, type HostKind, hostTokenSecret, type Settings } from '@legible/domain';
 import { ghToken, glabToken, whoAmI } from '@legible/hosts';
+
 import type { SecretStore } from './secrets';
 
 export class HostService {

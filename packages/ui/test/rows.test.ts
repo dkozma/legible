@@ -1,5 +1,6 @@
 import type { FileChange } from '@legible/domain';
 import { describe, expect, it } from 'vitest';
+
 import { buildRows, type RowOptions, rangesForRows, rowAt } from '../src/diff/rows';
 
 const opts = (o: Partial<RowOptions> = {}): RowOptions => ({

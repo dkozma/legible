@@ -1,5 +1,6 @@
 import type { Explanation, ExplanationJob } from '@legible/domain';
 import { AlertTriangle, BookOpen, Loader2, RefreshCw, X } from 'lucide-react';
+
 import { formatKey } from '../commands';
 import { Inline, usd } from '../components/Inline';
 import { Button, Callout, cn, Eyebrow, Kbd, LineTab, Skeleton } from '../components/ui';
@@ -62,7 +63,7 @@ export function ExplainPanel({ job, explanation, history, onShow, onJump, onRetr
               <AlertTriangle className="size-3.5" />
               Couldn't explain {job.label}
             </div>
-            <p className="select-text text-sm">{job.error}</p>
+            <p className="text-sm select-text">{job.error}</p>
             <div>
               <Button variant="outline" size="xs" onClick={() => onRetry(true)}>
                 Try again
@@ -148,7 +149,7 @@ function ExplanationCard({ e, onJump, onRefresh }: { e: Explanation; onJump(): v
           {e.label}
         </Button>
       </header>
-      <div className="grid select-text grid-cols-[88px_minmax(0,1fr)] gap-x-3.5">
+      <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-x-3.5 select-text">
         <Section label="Before" first>
           {b.before ? (
             <p className="text-sm">
@@ -184,7 +185,7 @@ function ExplanationCard({ e, onJump, onRefresh }: { e: Explanation; onJump(): v
             <AlertTriangle className="size-3.5" />
             Watch out
           </div>
-          <ol className="flex select-text flex-col gap-2 text-sm">
+          <ol className="flex flex-col gap-2 text-sm select-text">
             {b.watchOut.map((w, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="mt-px font-mono text-xs text-elevated">{i + 1}</span>

@@ -5,12 +5,12 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "dependencies": {
-    "@legible/domain": "workspace:*",
-    "zod": "^4.6.7"
-  },
   "exports": {
     ".": "./src/index.ts",
     "./channels": "./src/channels.ts"
+  },
+  "dependencies": {
+    "@legible/domain": "workspace:*",
+    "zod": "^4.6.7"
   }
 }

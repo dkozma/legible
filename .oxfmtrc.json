@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 140,
+  "singleQuote": true,
+  "sortImports": true,
+  "sortTailwindcss": {
+    "stylesheet": "./packages/ui/src/styles/index.css",
+    "functions": ["cn", "cva"]
+  },
+  "ignorePatterns": ["**/*.md", "docs/design/**", "fixtures/.generated/**", "pnpm-lock.yaml"]
+}

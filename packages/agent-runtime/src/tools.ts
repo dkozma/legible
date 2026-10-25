@@ -3,6 +3,7 @@
 // read git objects, so agents never need a checkout, a shell, or the network.
 
 import { z } from 'zod';
+
 import type { ToolContext } from './types';
 
 export interface LegibleTool<S extends z.ZodRawShape = z.ZodRawShape> {
@@ -44,7 +45,7 @@ export interface AnyLegibleTool {
 }
 
 function define<S extends z.ZodRawShape>(t: LegibleTool<S>): AnyLegibleTool {
-  return t as unknown as AnyLegibleTool;
+  return t;
 }
 
 export const TOOLS: AnyLegibleTool[] = [
@@ -148,17 +149,21 @@ export function grantedTools(names: string[]): AnyLegibleTool[] {
 /** One-line description of a tool call for progress display. */
 export function summarizeToolCall(name: string, input: Record<string, unknown>): string {
   const bare = name.replace(/^mcp__legible__/, '');
+  // Input comes from the model before validation; show only scalar values.
+  const str = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
+  const path = str(input.path);
+  const line = str(input.startLine);
   switch (bare) {
     case 'read_file':
-      return `Reading ${input.path}${input.startLine ? `:${input.startLine}` : ''} (${input.side})`;
+      return `Reading ${path}${line ? `:${line}` : ''} (${str(input.side)})`;
     case 'search':
       return `Searching for ${JSON.stringify(input.pattern)}`;
     case 'list_files':
-      return `Listing ${input.directory ?? 'files'}`;
+      return `Listing ${str(input.directory) || 'files'}`;
     case 'git_log':
-      return `Reading history${input.path ? ` of ${input.path}` : ''}`;
+      return `Reading history${path ? ` of ${path}` : ''}`;
     case 'git_blame':
-      return `Blaming ${input.path}:${input.startLine}`;
+      return `Blaming ${path}:${line}`;
     case 'get_change_set_summary':
       return 'Reading the Change Set summary';
     default:

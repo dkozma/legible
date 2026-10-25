@@ -1,8 +1,10 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { DEFAULT_SETTINGS, type Explanation } from '@legible/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { Store } from '../src/index';
 
 let dir: string;

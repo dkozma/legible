@@ -1,6 +1,7 @@
 // A long-lived `git cat-file --batch` process for fast blob reads.
 
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
+
 import { baseEnv, GitError, gitBinary } from './run';
 
 interface Pending {

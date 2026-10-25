@@ -2,8 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+
 import { Store } from '@legible/store';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
 import { compareFiles } from '../src/main/changeSet';
 import { ReviewService } from '../src/main/reviews';
 
@@ -44,7 +46,7 @@ describe('ReviewService', () => {
     expect(byPath.get('src/config/limits.ts')?.structural).toBe('whitespace');
     expect(byPath.get('src/refunds/RefundService.ts')?.structural).toBeNull();
     // Directories before files, like the tree.
-    expect(cs.files.map((f) => f.path)).toEqual([...cs.files].sort(compareFiles).map((f) => f.path));
+    expect(cs.files.map((f) => f.path)).toEqual(cs.files.toSorted(compareFiles).map((f) => f.path));
 
     const d = await reviews.fileDiff(r.id, cs.iterationId, byPath.get('src/refunds/RefundPolicy.ts')!.id, false);
     expect(d.headTokens).not.toBeNull();

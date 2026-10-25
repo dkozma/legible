@@ -1,4 +1,5 @@
 import { Keyboard } from 'lucide-react';
+
 import { formatKey } from '../commands';
 import { Eyebrow, Kbd } from '../components/ui';
 import { useUI } from '../state';

@@ -2,6 +2,7 @@ import type { Explanation, ExplanationTarget, FileChange, FileDiff } from '@legi
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Loader2, RefreshCw, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import { type Command, formatKey, useKeyboard } from '../commands';
 import { relativeTime, usd } from '../components/Inline';
 import { Badge, Button, Callout, Kbd, Progress, Select, Switch, Tab, Tabs, Titlebar } from '../components/ui';
@@ -76,7 +77,6 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
 
   // A selection is row indices into this model; any re-layout (split, gaps,
   // expanding, viewed) invalidates it, so drop it rather than explain the wrong lines.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on model change by design.
   useEffect(() => {
     useUI.getState().set({ selection: null });
   }, [model]);
@@ -441,7 +441,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
             value={iterationId ?? ''}
             onChange={(e) => ui.set({ iterationId: e.target.value === latestId ? null : e.target.value, selection: null })}
           >
-            {[...iterations.data].reverse().map((x) => (
+            {iterations.data.toReversed().map((x) => (
               <option key={x.id} value={x.id}>
                 Iteration {x.seq} of {iterations.data.length} · {relativeTime(x.createdAt)}
               </option>
@@ -551,7 +551,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           </div>
           {cs.isError ? (
             <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
-              <span className="text-sm">{(cs.error as Error).message}</span>
+              <span className="text-sm">{cs.error.message}</span>
               <Button variant="outline" size="sm" onClick={() => ui.go({ name: 'home' })}>
                 <ArrowLeft />
                 All Reviews
@@ -602,7 +602,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
               const t = job?.target ?? ui.shownExplanation?.target ?? null;
               runExplain(t, force);
             }}
-            onCancel={() => job && client.call('explain.cancel', { jobId: job.jobId })}
+            onCancel={() => job && void client.call('explain.cancel', { jobId: job.jobId })}
           />
         </aside>
       </div>

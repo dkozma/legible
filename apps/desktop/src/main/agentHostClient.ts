@@ -2,8 +2,10 @@
 // if it dies, and turns its messages back into promises and events.
 
 import { randomUUID } from 'node:crypto';
+
 import type { AgentEvent } from '@legible/agent-runtime';
 import type { RuntimeStatus } from '@legible/domain';
+
 import {
   createAgentHost,
   type ExplanationRunInput,

@@ -2,8 +2,10 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { Store } from '@legible/store';
 import { expect, it } from 'vitest';
+
 import { ReviewService } from '../src/main/reviews';
 
 it('opens a GitLab merge request into a blobless cache clone', async () => {

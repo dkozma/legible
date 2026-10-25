@@ -2,6 +2,7 @@
 // under a global concurrency cap with priority (engineering plan §8.4, §8.6).
 
 import type { ModelTier, Provider, TierAssignment } from '@legible/domain';
+
 import { DEFAULT_TIERS } from './catalog';
 import type { AgentResult, AgentRuntime, AgentTask, RunOptions, TaskKind } from './types';
 

@@ -30,7 +30,7 @@ export interface SchemaProblem {
 }
 
 export function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
-  return z.toJSONSchema(schema, { target: 'draft-7', io: 'output', unrepresentable: 'throw' }) as Record<string, unknown>;
+  return z.toJSONSchema(schema, { target: 'draft-7', io: 'output', unrepresentable: 'throw' });
 }
 
 export function lintSchema(schema: z.ZodType): SchemaProblem[] {
@@ -60,7 +60,7 @@ function walk(node: unknown, path: string, problems: SchemaProblem[]) {
   }
   const isObject = obj.type === 'object' || (Array.isArray(obj.type) && obj.type.includes('object'));
   if (isObject && obj.properties) {
-    const props = Object.keys(obj.properties as object);
+    const props = Object.keys(obj.properties);
     const required = new Set((obj.required as string[] | undefined) ?? []);
     for (const p of props) {
       if (!required.has(p)) problems.push({ path: `${path}.${p}`, message: 'Optional property; use .nullable() instead of .optional()' });
@@ -70,7 +70,7 @@ function walk(node: unknown, path: string, problems: SchemaProblem[]) {
   }
   for (const [k, v] of Object.entries(obj)) {
     if (k === 'properties' && v && typeof v === 'object') {
-      for (const [pk, pv] of Object.entries(v as object)) walk(pv, `${path}.${pk}`, problems);
+      for (const [pk, pv] of Object.entries(v)) walk(pv, `${path}.${pk}`, problems);
     } else if (typeof v === 'object') {
       walk(v, `${path}.${k}`, problems);
     }

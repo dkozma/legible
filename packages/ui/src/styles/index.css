@@ -2,13 +2,13 @@
    Tokens are shadcn/ui's neutral palette (dark is the designed theme) plus
    Legible's semantic colors; components use utilities only. */
 
-@import "tailwindcss";
+@import 'tailwindcss';
 @source "../";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root,
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   color-scheme: dark;
   --radius: 0.625rem;
   --background: oklch(0.145 0 0);
@@ -79,7 +79,7 @@
   --syn-property: oklch(0.905 0.06 220);
 }
 
-:root[data-theme="light"] {
+:root[data-theme='light'] {
   color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -222,8 +222,8 @@
 }
 
 @theme {
-  --font-sans: "Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* The M0 type scale: dense, calm. */
   --text-xs: 11px;
   --text-xs--line-height: 16px;
@@ -262,7 +262,7 @@
     border-color: var(--border);
   }
   button:not(:disabled),
-  [role="button"] {
+  [role='button'] {
     cursor: pointer;
   }
   ::selection {

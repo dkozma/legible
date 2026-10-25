@@ -2,6 +2,7 @@
 // needs no native module (no electron-rebuild, same binary in tests and Electron).
 
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
+
 import { Kysely, type SqliteDatabase, SqliteDialect, type SqliteStatement } from 'kysely';
 
 type Param = null | number | bigint | string | Uint8Array;

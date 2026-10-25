@@ -63,7 +63,7 @@ export function Code({
       for (let c = s; c < e; c++) inWord[c] = 1;
     }
   }
-  const points = [...cuts].filter((p) => p >= 0 && p <= text.length).sort((a, b) => a - b);
+  const points = [...cuts].filter((p) => p >= 0 && p <= text.length).toSorted((a, b) => a - b);
   const out: ReactNode[] = [];
   for (let i = 0; i < points.length - 1; i++) {
     const s = points[i] as number;

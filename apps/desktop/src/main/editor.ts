@@ -3,6 +3,7 @@
 
 import { spawn } from 'node:child_process';
 import { access } from 'node:fs/promises';
+
 import type { EditorChoice } from '@legible/domain';
 import { shell } from 'electron';
 

@@ -2,11 +2,12 @@
 // with a canned output, and can exercise tools to prove they work end to end.
 
 import type { ModelInfo, RuntimeStatus } from '@legible/domain';
+
 import { MODEL_CATALOG } from './catalog';
 import { grantedTools } from './tools';
 import type { AgentResult, AgentRuntime, AgentTask, RunOptions } from './types';
 
-export type FakeResponder = (task: AgentTask<unknown>) => unknown | Promise<unknown>;
+export type FakeResponder = (task: AgentTask<unknown>) => unknown; // or a Promise of it
 
 export class FakeRuntime implements AgentRuntime {
   readonly provider = 'anthropic' as const;
@@ -18,7 +19,7 @@ export class FakeRuntime implements AgentRuntime {
   ) {}
 
   async run<T>(task: AgentTask<T>, model: string, opts: RunOptions): Promise<AgentResult<T>> {
-    this.calls.push({ task: task as AgentTask<unknown>, model });
+    this.calls.push({ task, model });
     const started = Date.now();
     for (const call of this.opts.callTools ?? []) {
       const t = grantedTools(task.tools).find((x) => x.name === call.name);
@@ -35,7 +36,7 @@ export class FakeRuntime implements AgentRuntime {
         });
       });
     }
-    const raw = await this.respond(task as AgentTask<unknown>);
+    const raw = await this.respond(task);
     const output = task.output ? task.output.parse(raw) : null;
     return {
       output,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { apiBase, getPullRequest, HostError, parsePullRequestUrl } from '../src/index';
 
 describe('parsePullRequestUrl', () => {

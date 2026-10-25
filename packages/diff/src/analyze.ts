@@ -2,7 +2,9 @@
 // intra-line word ranges, and Structural proofs.
 
 import { createHash } from 'node:crypto';
+
 import type { DiffChunk, FileDiff, Fragment, LineTokens, MoveBlock, StructuralProof } from '@legible/domain';
+
 import { INDENTATION_SENSITIVE, WHITESPACE_PROOF_LANGUAGES } from './classify';
 import { linesInsideStrings, STRING_SCOPE } from './highlight';
 import { diffLines } from './lineDiff';

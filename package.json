@@ -2,10 +2,6 @@
   "name": "legible",
   "private": true,
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.28.0",
-  "engines": {
-    "node": ">=22.12"
-  },
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @legible/desktop dev",
@@ -13,17 +9,23 @@
     "build": "pnpm --filter @legible/desktop build",
     "dist": "pnpm --filter @legible/desktop dist",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "biome check .",
-    "format": "biome format --write .",
+    "lint": "oxlint && oxfmt --check",
+    "format": "oxfmt",
     "test": "vitest run",
     "test:e2e": "pnpm --filter @legible/desktop test:e2e",
     "fixtures": "node fixtures/make-refund-repo.mjs",
     "dist:mac": "pnpm --filter @legible/desktop dist:mac"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.3",
     "@types/node": "^22.15.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2005",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
-  }
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "packageManager": "pnpm@10.28.0"
 }

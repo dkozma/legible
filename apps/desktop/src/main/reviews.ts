@@ -3,10 +3,12 @@
 
 import { type FSWatcher, watch } from 'node:fs';
 import { basename, join } from 'node:path';
+
 import type { ChangeSetSummary, FileDiff, Iteration, Mode, ReviewSummary, Source } from '@legible/domain';
 import { ensureCacheClone, fetchRefs, GitRepo, tokenAuthEnv } from '@legible/git';
 import { getPullRequest, HostError, type PullRequestInfo, parsePullRequestUrl } from '@legible/hosts';
 import type { Store } from '@legible/store';
+
 import { type BuiltChangeSet, buildChangeSet } from './changeSet';
 import type { HostService } from './hosts';
 
@@ -313,9 +315,11 @@ export class ReviewService {
         checking = false;
       }
     };
+    // check() catches its own errors.
+    const poll = () => void check();
     const debounced = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(check, 1500);
+      timer = setTimeout(poll, 1500);
     };
 
     let fsWatcher: FSWatcher | null = null;
@@ -324,19 +328,19 @@ export class ReviewService {
       // FSEvents / ReadDirectoryChangesW handle recursive watches cheaply.
       try {
         fsWatcher = watch(review.repo.workTree, { recursive: true }, (_e, file) => {
-          const f = String(file ?? '');
+          const f = file ?? '';
           if (f.startsWith('.git/') && !/^\.git\/(HEAD|index|refs\/)/.test(f)) return;
           debounced();
         });
       } catch {
         fsWatcher = null;
       }
-      interval = setInterval(check, 30_000);
+      interval = setInterval(poll, 30_000);
     } else if (review.sourceKind === 'pull_request') {
-      interval = setInterval(check, 60_000);
+      interval = setInterval(poll, 60_000);
     } else {
       // Linux: recursive inotify watches on big repos exhaust the watch limit, so poll.
-      interval = setInterval(check, 6_000);
+      interval = setInterval(poll, 6_000);
     }
     this.watcher = {
       reviewId,

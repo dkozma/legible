@@ -1,5 +1,6 @@
 // Regressions from review: a Structural proof must never hide a behavioral change.
 import { describe, expect, it } from 'vitest';
+
 import { buildFileDiff, detectMoves, diffLines, highlightLines, languageForPath } from '../src/index';
 
 function proofs(path: string, base: string[], head: string[]) {

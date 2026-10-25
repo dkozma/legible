@@ -20,6 +20,7 @@ import {
   type SpendSummary,
 } from '@legible/domain';
 import { z } from 'zod';
+
 import type { Channel, EventName } from './channels';
 
 export { CHANNELS, type Channel, EVENTS, type EventName } from './channels';

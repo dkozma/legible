@@ -1,4 +1,5 @@
 import { AlertTriangle, Info, X } from 'lucide-react';
+
 import { Button, cn } from '../components/ui';
 import { useUI } from '../state';
 
@@ -12,7 +13,7 @@ export function Toasts() {
           key={t.id}
           role={t.kind === 'error' ? 'alert' : 'status'}
           className={cn(
-            'flex select-text items-start gap-2.5 rounded-lg border bg-popover px-3 py-2.5 text-sm text-popover-foreground shadow-popover',
+            'flex items-start gap-2.5 rounded-lg border bg-popover px-3 py-2.5 text-sm text-popover-foreground shadow-popover select-text',
             t.kind === 'error' && 'border-critical-border',
           )}
         >

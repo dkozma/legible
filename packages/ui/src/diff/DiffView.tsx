@@ -5,6 +5,7 @@ import type { ChangeSetSummary, FileChange, FileDiff } from '@legible/domain';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { BookOpen, Check, ChevronsUpDown, ExternalLink, FileCode2, Loader2 } from 'lucide-react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
 import { Badge, Button, cn } from '../components/ui';
 import { useUI } from '../state';
 import { Code } from './code';
@@ -411,7 +412,7 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
             </span>
             <span className={cn('w-[18px] shrink-0 text-center', bg.sign)}>{row.t === ' ' ? '' : row.t === '-' ? '−' : '+'}</span>
           </span>
-          <span className={cn('flex-auto select-text whitespace-pre pr-4', text === null && 'text-dim')}>
+          <span className={cn('flex-auto pr-4 whitespace-pre select-text', text === null && 'text-dim')}>
             {text === null ? '…' : <Code text={text ?? ''} tokens={tokens} words={words} wordClass={row.t === '-' ? 'del' : 'add'} />}
           </span>
         </div>
@@ -438,7 +439,7 @@ const RowView = memo(function RowView({ row, index, file, diff, viewed, isCur, i
               </span>
               <span className={cn('w-[18px] shrink-0 text-center', bg.sign)}>{t === ' ' ? '' : t === '-' ? '−' : '+'}</span>
             </span>
-            <span className="flex-auto select-text overflow-hidden text-ellipsis whitespace-pre pr-4">
+            <span className="flex-auto overflow-hidden pr-4 text-ellipsis whitespace-pre select-text">
               {text === undefined ? '…' : <Code text={text} tokens={tokens} words={words} wordClass={t === '-' ? 'del' : 'add'} />}
             </span>
           </div>

@@ -2,6 +2,7 @@ import type { ClaudeAuth, HostKind, ModelTier, Settings } from '@legible/domain'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, RefreshCw, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
+
 import { usd } from '../components/Inline';
 import { Badge, Button, Callout, Card, cn, Input, Kbd, Radio, Select, Switch, Tab, Tabs, Titlebar } from '../components/ui';
 import { useClient } from '../context';
@@ -321,7 +322,7 @@ function Providers({ settings, update }: { settings: Settings; update: (fn: (s: 
                       {status.data?.detail ?? 'Checking…'}
                       {status.data?.executablePath ? ` · ${status.data.executablePath}` : ''}
                     </span>
-                    <Button variant="muted" size="xs" onClick={() => status.refetch()}>
+                    <Button variant="muted" size="xs" onClick={() => void status.refetch()}>
                       <RefreshCw />
                       Recheck
                     </Button>

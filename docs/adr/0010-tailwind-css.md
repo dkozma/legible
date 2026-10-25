@@ -9,4 +9,4 @@ Components use utilities directly. Repeated controls are shadcn-style primitives
 - There's no hand-written component CSS. The stylesheet holds tokens, the type scale (11/12/13/15/22 px from M0), and two small utilities for Electron's window-drag regions.
 - Tailwind scans `packages/ui/src` (`@source`), because the renderer's Vite root is in `apps/desktop`.
 - Tests select elements by role, test id or data attribute (`data-kind`, `data-selected`), never by class name.
-- Biome parses Tailwind directives (`css.parser.tailwindDirectives`).
+- oxfmt sorts Tailwind classes against this stylesheet ([ADR 0011](./0011-oxlint-and-oxfmt.md)).

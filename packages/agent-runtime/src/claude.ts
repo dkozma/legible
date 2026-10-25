@@ -13,8 +13,10 @@ import { execFile } from 'node:child_process';
 import { access, constants } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+
 import { createSdkMcpServer, type Options, query, type SDKMessage, tool } from '@anthropic-ai/claude-agent-sdk';
 import type { ModelInfo, RuntimeStatus } from '@legible/domain';
+
 import { MODEL_CATALOG } from './catalog';
 import { toJsonSchema } from './schemaLint';
 import { grantedTools, summarizeToolCall } from './tools';
@@ -30,7 +32,7 @@ function exec(
   return new Promise((resolve) => {
     execFile(cmd, args, { timeout: opts.timeoutMs, env: opts.env, maxBuffer: 1024 * 1024 }, (err, stdout) => {
       const code = err ? (typeof (err as NodeJS.ErrnoException).code === 'number' ? Number((err as NodeJS.ErrnoException).code) : 1) : 0;
-      resolve({ stdout: String(stdout ?? ''), code });
+      resolve({ stdout: stdout ?? '', code });
     });
   });
 }
@@ -56,7 +58,7 @@ export async function resolveClaudeExecutable(explicit: string | null): Promise<
     const found = r.stdout
       .split('\n')
       .map((s) => s.trim())
-      .reverse()
+      .toReversed()
       .find((s) => s.startsWith('/'));
     if (found && (await isExecutable(found))) return found;
   } else {

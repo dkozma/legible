@@ -1,5 +1,6 @@
 import type { Explanation, ExplanationJob } from '@legible/domain';
 import { create } from 'zustand';
+
 import type { Command } from './commands';
 
 export type View = { name: 'home' } | { name: 'review'; reviewId: string } | { name: 'settings'; section: string | null };

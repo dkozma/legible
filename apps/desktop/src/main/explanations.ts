@@ -2,10 +2,12 @@
 // and cost records.
 
 import { randomUUID } from 'node:crypto';
+
 import type { Explanation, ExplanationJob, ExplanationTarget, Settings } from '@legible/domain';
 import { targetLabel } from '@legible/domain';
 import { EXPLANATION_PROMPT_VERSION, explanationCacheKey, toExplanationBody } from '@legible/pipelines';
 import type { Store } from '@legible/store';
+
 import { type AgentHostClient, AgentRunError } from './agentHostClient';
 import type { ExplanationRunInput } from './agentHostCore';
 import { type ReviewService, UserError } from './reviews';

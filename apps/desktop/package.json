@@ -1,9 +1,9 @@
 {
   "name": "@legible/desktop",
-  "productName": "Legible",
   "version": "0.1.0",
   "private": true,
   "description": "Understand code changes, mainly ones written by AI agents.",
+  "homepage": "https://github.com/dkozma/legible",
   "license": "Apache-2.0",
   "author": {
     "name": "Dave Kozma",
@@ -38,15 +38,15 @@
     "@legible/store": "workspace:*",
     "@legible/ui": "workspace:*",
     "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "44.9.3",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
-    "vite": "^8.3.5",
-    "@tailwindcss/vite": "^4.3.3",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5"
   },
-  "homepage": "https://github.com/dkozma/legible"
+  "productName": "Legible"
 }

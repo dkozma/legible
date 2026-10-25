@@ -4,6 +4,7 @@ import { mkdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
 import { type ClaudeRuntimeConfig, DEFAULT_TIERS, MODEL_CATALOG } from '@legible/agent-runtime';
 import { DEFAULT_SETTINGS, type ExplanationJob, hostTokenSecret, type Settings } from '@legible/domain';
 import { gitVersion } from '@legible/git';
@@ -11,6 +12,7 @@ import { parsePullRequestUrl } from '@legible/hosts';
 import { CHANNELS, type Channel, type Events, type Req, type Responses, requests } from '@legible/ipc';
 import { Store } from '@legible/store';
 import { app, BrowserWindow, dialog, ipcMain, Menu, type MenuItemConstructorOptions, net, protocol, shell, utilityProcess } from 'electron';
+
 import { AgentHostClient, inProcessTransport, type Transport } from './agentHostClient';
 import type { FromHost } from './agentHostCore';
 import { openInEditor } from './editor';
@@ -121,6 +123,8 @@ function configureAgents(s: Settings) {
 function spawnAgentHost(): Transport {
   const child = utilityProcess.fork(join(here, 'agentHost.js'), [], { serviceName: 'Legible Agent Host', stdio: 'inherit' });
   return {
+    // A utility process port, not window.postMessage: there's no origin.
+    // oxlint-disable-next-line unicorn/require-post-message-target-origin
     post: (m) => child.postMessage(m),
     onMessage: (cb) => child.on('message', (m: FromHost) => cb(m)),
     onExit: (cb) => child.on('exit', cb),
@@ -427,35 +431,42 @@ if (!app.requestSingleInstanceLock()) {
     for (const s of sourcesFromArgv(argv)) void openFromCli(s);
   });
 
-  app.whenReady().then(async () => {
-    await loadShellPath().catch(() => undefined);
-    const dataDir = app.getPath('userData');
-    mkdirSync(dataDir, { recursive: true });
-    store = new Store(join(dataDir, 'legible.db'));
-    secrets = new SecretStore(join(dataDir, 'secrets.json'));
-    hosts = new HostService(secrets, getSettings);
-    reviews = new ReviewService(store, hosts, join(dataDir, 'repos'), (reviewId, detail) =>
-      send('review.changesAvailable', { reviewId, detail }),
-    );
-    agentHost = new AgentHostClient(process.env.LEGIBLE_IN_PROCESS_AGENTS === '1' ? inProcessTransport : spawnAgentHost);
-    configureAgents(await getSettings().catch(() => DEFAULT_SETTINGS));
-    explanations = new ExplanationService(store, reviews, agentHost, getSettings, (job: ExplanationJob) => send('job.updated', job));
+  app
+    .whenReady()
+    .then(async () => {
+      await loadShellPath().catch(() => undefined);
+      const dataDir = app.getPath('userData');
+      mkdirSync(dataDir, { recursive: true });
+      store = new Store(join(dataDir, 'legible.db'));
+      secrets = new SecretStore(join(dataDir, 'secrets.json'));
+      hosts = new HostService(secrets, getSettings);
+      reviews = new ReviewService(store, hosts, join(dataDir, 'repos'), (reviewId, detail) =>
+        send('review.changesAvailable', { reviewId, detail }),
+      );
+      agentHost = new AgentHostClient(process.env.LEGIBLE_IN_PROCESS_AGENTS === '1' ? inProcessTransport : spawnAgentHost);
+      configureAgents(await getSettings().catch(() => DEFAULT_SETTINGS));
+      explanations = new ExplanationService(store, reviews, agentHost, getSettings, (job: ExplanationJob) => send('job.updated', job));
 
-    registerIpc();
-    serveRenderer();
-    buildMenu();
-    pendingOpen.push(...sourcesFromArgv(process.argv));
-    createWindow();
+      registerIpc();
+      serveRenderer();
+      buildMenu();
+      pendingOpen.push(...sourcesFromArgv(process.argv));
+      createWindow();
 
-    if (app.isPackaged && !process.env.LEGIBLE_NO_UPDATE) {
-      const { autoUpdater } = await import('electron-updater');
-      autoUpdater.checkForUpdatesAndNotify().catch(() => undefined);
-    }
+      if (app.isPackaged && !process.env.LEGIBLE_NO_UPDATE) {
+        const { autoUpdater } = await import('electron-updater');
+        autoUpdater.checkForUpdatesAndNotify().catch(() => undefined);
+      }
 
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      });
+    })
+    .catch((err: unknown) => {
+      // A failed start (e.g. the database can't open) would otherwise leave no window and no message.
+      dialog.showErrorBox("Legible couldn't start", err instanceof Error ? err.message : String(err));
+      app.exit(1);
     });
-  });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();

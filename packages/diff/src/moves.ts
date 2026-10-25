@@ -2,6 +2,7 @@
 // reappear as added lines (in the same or another file) become MoveBlocks.
 
 import type { DiffChunk, MoveBlock } from '@legible/domain';
+
 import { hash, isTrivialLine } from './analyze';
 import { INDENTATION_SENSITIVE } from './classify';
 

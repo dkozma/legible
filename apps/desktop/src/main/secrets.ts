@@ -4,6 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { chmod, rename, writeFile } from 'node:fs/promises';
+
 import { safeStorage } from 'electron';
 
 export class SecretStore {

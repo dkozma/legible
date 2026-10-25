@@ -12,7 +12,7 @@ export async function loadShellPath(): Promise<void> {
       shell,
       ['-ilc', `printf '${marker}%s${marker}' "$PATH"`],
       { timeout: 5000, env: { ...process.env, DISABLE_AUTO_UPDATE: 'true' } },
-      (_err, stdout) => resolve(String(stdout ?? '')),
+      (_err, stdout) => resolve(stdout ?? ''),
     );
   });
   const m = out.match(new RegExp(`${marker}(.*)${marker}`));

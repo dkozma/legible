@@ -3,6 +3,7 @@ import '@fontsource-variable/geist-mono';
 import './styles/index.css';
 import type { LegibleBridge } from '@legible/ipc';
 import { createRoot } from 'react-dom/client';
+
 import { App } from './App';
 import { createClient, type LegibleClient } from './client';
 import { Providers } from './context';

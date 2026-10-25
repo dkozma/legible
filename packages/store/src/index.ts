@@ -1,6 +1,7 @@
 // Local persistence: one SQLite database per user. Secrets never come here.
 
 import { randomUUID } from 'node:crypto';
+
 import {
   DEFAULT_SETTINGS,
   type Explanation,
@@ -19,6 +20,7 @@ import {
 } from '@legible/domain';
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
+
 import { MIGRATIONS } from './migrations';
 import { createKysely, NodeSqliteDatabase } from './sqlite';
 
@@ -459,8 +461,8 @@ export class Store {
     const byProvider: Record<Provider, number> = { anthropic: 0, openai: 0 };
     let runs = 0;
     for (const m of month) {
-      byProvider[m.provider as Provider] = Number(m.total);
-      runs += Number(m.runs);
+      byProvider[m.provider as Provider] = m.total;
+      runs += m.runs;
     }
     return {
       reviewUsd: review,
