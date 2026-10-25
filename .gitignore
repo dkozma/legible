@@ -1,0 +1,13 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+.DS_Store
+.vite/
+coverage/
+test-results/
+playwright-report/
+fixtures/.generated/
+apps/desktop/release/
+apps/desktop/test-results/

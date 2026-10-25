@@ -2,8 +2,14 @@
 
 _Working name._ A desktop app for understanding code changes, mainly changes written by AI agents, so you keep an accurate mental model of your system and catch incorrect logic, wrongly codified business rules, and changes nobody asked for.
 
-**Status:** planning. No code yet.
+**Status:** M1. Daily use has begun: read agent-written changes in a viewer built for understanding them, and click anything to have Claude explain it. See [Dogfooding M1](docs/dogfooding.md) to run it.
 
+```sh
+pnpm install
+pnpm dev ~/code/your-repo
+```
+
+- [Dogfooding M1](docs/dogfooding.md): what's in this milestone, how to run and build it, keyboard shortcuts
 - [Product plan](docs/product-plan.md)
 - [Engineering plan](docs/engineering-plan.md)
 - [Glossary (CONTEXT.md)](CONTEXT.md): the canonical names for every concept, used in code and docs alike

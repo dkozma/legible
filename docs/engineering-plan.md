@@ -41,7 +41,7 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 
 **Why two utility processes:** parsing and agent orchestration are both bursty and crash-prone. Isolating them keeps the main process (IPC, DB, windows) responsive and lets either restart without losing UI state.
 
-**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md).
+**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md), [ADR 0007 — `node:sqlite`](./adr/0007-node-sqlite-over-better-sqlite3.md), [ADR 0008 — M1 agents read git objects](./adr/0008-m1-agents-read-git-objects.md), [ADR 0009 — Lezer highlighting until M2](./adr/0009-lezer-highlighting-until-m2.md).
 
 ## 2. Stack
 
@@ -49,12 +49,12 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 |---|---|---|
 | Shell | Electron | ADR 0001 |
 | Language | TypeScript (strict) everywhere | |
-| Build | Vite (via electron-vite or Electron Forge's Vite plugin) | Pick at M1 start |
+| Build | Vite via electron-vite; electron-builder for packaging | Decided in M1 |
 | UI | React | |
 | UI state | Zustand (client state) + TanStack Query over IPC (server-ish state) | |
 | Virtualization | TanStack Virtual | Variable-height rows (inline threads) |
 | Styling | CSS variables design tokens + CSS modules (or Tailwind if M0 prefers) | Tokens come out of M0 |
-| DB | SQLite via better-sqlite3 + a typed query layer (Drizzle or Kysely) | Migrations versioned in repo |
+| DB | SQLite via Node's built-in `node:sqlite` + Kysely | ADR 0007; migrations versioned in repo |
 | Parsing | web-tree-sitter + prebuilt WASM grammars | Language Tiers |
 | Agents | Claude Agent SDK (default) and OpenAI Agents SDK, both behind `AgentRuntime` | ADR 0002, ADR 0006 |
 | Typed judgments | `Judge` interface: TypeSafe JS SDK (Jev), OpenAI SDK (Decisions API), fast-tier structured output | ADR 0005; external backends optional |
@@ -450,6 +450,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - AgentRuntime with both Claude auth paths, provider-neutral tool definitions and schema lint from day one, tier router (Claude-only catalog), scheduler, cost meter; Explanations on ranges and files.
 - Packaging: notarized macOS build, auto-update.
 - **Exit:** the author reviews real agent branches in Legible daily; click any range → Explanation in < 5 s (fast tier).
+- **As built:** see [Dogfooding M1](./dogfooding.md). Deviations from this plan are recorded in ADRs 0007–0009. Not yet done: notarized builds (the release workflow is ready once signing secrets are added) and the `apps/prototype` browser build from M0.
 
 ### M2 — Code structure
 - Indexer utilityProcess, grammar manifest + Language Tiers, parse cache, highlighting moved to tree-sitter.
@@ -499,8 +500,8 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 
 ## 17. Open technical questions
 
-- electron-vite vs Electron Forge (decide at M1 start).
-- Drizzle vs Kysely (decide at M1 start).
+- ~~electron-vite vs Electron Forge~~: electron-vite (M1).
+- ~~Drizzle vs Kysely~~: Kysely over `node:sqlite` (ADR 0007).
 - Exact Sitting size and per-backend Judge thresholds: tune on evals.
 - The default external Judge backend if a user enables both. Decide from Judge evals.
 - Whether Domain Change extraction needs the strong tier or mid tier suffices — decide from M3 evals.

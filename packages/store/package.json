@@ -1,0 +1,12 @@
+{
+  "name": "@legible/store",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@legible/domain": "workspace:*",
+    "kysely": "^0.29.7"
+  }
+}

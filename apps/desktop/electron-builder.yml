@@ -1,0 +1,43 @@
+# Packaging. `pnpm dist:mac` builds a signed, notarized DMG when signing
+# credentials are in the environment (CSC_LINK / CSC_KEY_PASSWORD, and
+# APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarization);
+# without them it builds an unsigned app for local use.
+appId: dev.legible.desktop
+productName: Legible
+copyright: Copyright © 2026 Dave Kozma
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  # Only the libc variant the platform uses.
+  - "!node_modules/@anthropic-ai/claude-agent-sdk-*-musl/**"
+# The Agent SDK spawns its bundled native `claude`; binaries can't run from inside an asar archive.
+asarUnpack:
+  - node_modules/@anthropic-ai/claude-agent-sdk-*/**
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    # The zip is what auto-update downloads.
+    - target: zip
+      arch: [arm64, x64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
+linux:
+  executableName: legible
+  category: Development
+  target: [AppImage, deb]
+  maintainer: Dave Kozma
+win:
+  target: [nsis]
+publish:
+  provider: github
+  owner: dkozma
+  repo: legible
+  releaseType: draft
