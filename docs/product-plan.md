@@ -286,6 +286,6 @@ Apache-2.0, with DCO sign-off for contributions.
 10. **Pending Review publish** — Notes list, verdict, confirmation.
 11. **Iteration banner and Interdiff toggle.**
 12. **Command palette** and keyboard-shortcut overlay.
-13. **Settings** — Claude auth (Use my Claude Code status / API key), model tiers, hosts and accounts, Jev toggle with privacy note, spend caps.
+13. **Settings** — Claude auth (Use my Claude Code status / API key), model tiers, hosts and accounts, judgment-model backends (TypeSafe Jev, OpenAI Decisions) with privacy notes, spend caps.
 
 **Fixtures to design against:** a ~600-line agent-written "refund window + partial refunds" feature spanning migration → service → API → client store → UI, including one Unrequested audit-log change and one Description Gap; a ~3,000-line multi-Chapter Change Set; a PR with existing Remote Comment threads.
