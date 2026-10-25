@@ -92,7 +92,7 @@ Open a source ──► Review created ──► Change Brief ──► Walkthro
 
 ### 7.3 Intent
 
-- Sources: Pull Request title/description and linked issue; **Agent Transcript** import from local Claude Code sessions (original prompt, plans, user corrections); pasted text.
+- Sources: Pull Request title/description and linked issue; **Agent Transcript** import from local Claude Code and Codex CLI sessions (original prompt, plans, user corrections); pasted text.
 - With no Intent, Legible produces an **Inferred Intent** and asks the user to correct it. A wrong Inferred Intent is itself a signal worth noticing.
 - Future: install agent hooks that record edit provenance (the agent's reasoning per edit, à la git-ai / Entire) and attach it to the hunks it produced.
 
@@ -205,16 +205,40 @@ The orientation page every Review opens on:
 - Sign-in order: reuse `gh` / `glab` CLI credentials → OAuth device flow → personal access token.
 - Polls open Reviews (~60 s, conditional requests) for new pushes and Remote Comments.
 
-### 7.15 Claude and settings
+### 7.15 Models, providers, and settings
 
-- **"Use my Claude Code"** — Legible drives the user's own installed, signed-in `claude`; Legible never touches credentials. **"API key"** — Anthropic, Bedrock, Vertex, or Foundry, stored in the OS keychain.
-- Model tiers (overridable): strongest for Lenses, Verification, Change Requests, Scenario traces; mid-tier for Walkthrough, Brief, Domain Changes, Conversations; fast for Explanations and Scope tagging.
-- **Judgment models (optional):** a TypeSafe (Jev) key and/or an OpenAI key for the Decisions API. These make Legible's many small yes/no and pick-one judgments faster, cheaper, and better calibrated. Examples: Scope tagging, Description Gap checks, Risk signals, Lens selection, "likely addressed" threads, Finding dedupe, and Connection disambiguation. Without either key, Claude makes these judgments.
+**Providers.** Claude (Anthropic) is the default. OpenAI (ChatGPT) is an alternative. Users connect either or both ([ADR 0006](./adr/0006-multiple-model-providers.md)):
+
+| Provider | Subscription | Usage-based |
+|---|---|---|
+| **Claude** (default) | **Use my Claude Code**: Legible drives the user's own installed, signed-in `claude`. Legible never touches the credentials. | Anthropic API key, Bedrock, Vertex, or Foundry |
+| **OpenAI** | **Continue with ChatGPT**: OpenAI's official sign-in for open-source apps, using the user's Plus or Pro plan | OpenAI API key |
+
+Secrets and tokens are stored in the OS keychain.
+
+**Model Tiers.** Each kind of agent work is assigned a tier. Each tier is mapped to a provider and model from a list built from whatever the user has connected:
+
+| Tier | Work | Default (Claude only) |
+|---|---|---|
+| Strong | Lenses, Verification, Change Requests, Scenario traces, Domain Changes | strongest Claude model |
+| Mid | Walkthrough, Change Brief, Conversations, Invariant suggestions | mid-tier Claude model |
+| Fast | Explanations, generated wording (e.g. Description Gap suggestions) | fast Claude model |
+
+- Tiers don't have to share a provider. For example, Claude for Strong and an OpenAI model for Fast.
+- With only OpenAI connected, every tier defaults to OpenAI models.
+- The model list marks each model **recommended** (passes Legible's evals) or **experimental**, and shows relative cost.
+- Advanced: override the tier for an individual kind of work.
+- **Cross-check Verification** (optional, available when both providers are connected): Findings are verified by the provider that didn't produce them, so the two models' blind spots don't line up.
+- A Conversation, or a Batch's Change Request run, stays on one provider from start to finish.
+
+**Judgment models (optional).** A TypeSafe (Jev) key and/or an OpenAI key for the Decisions API. These make Legible's many small yes/no and pick-one judgments faster, cheaper, and better calibrated: Scope tagging, Description Gap checks, Risk signals, Lens selection, "likely addressed" threads, Finding dedupe, and Connection disambiguation. Without either, the fast tier's model makes these judgments.
+
+**Spend caps** per Agent Review and a running cost meter, across all providers.
 
 ## 8. Privacy and trust
 
 - No telemetry; opt-in crash reports only.
-- Code leaves the machine only for: the user's git host, Claude (through the user's chosen auth), and TypeSafe and/or OpenAI, only if the user enables those judgment backends. Enabling one shows exactly what will be sent. The README states this plainly.
+- Code leaves the machine only for: the user's git host, the model providers the user has connected (Anthropic and/or OpenAI), and TypeSafe, only if the user enables it as a judgment backend. Enabling one shows exactly what will be sent. The README states this plainly.
 - Agents are read-only everywhere except the isolated Revision worktree. Legible never pushes, publishes, or comments without explicit confirmation.
 
 ## 9. Milestones
@@ -222,13 +246,13 @@ The orientation page every Review opens on:
 | # | Milestone | Outcome |
 |---|---|---|
 | **M0** | **UI design** — visual exploration in Claude Design, then a coded prototype in the real React stack with fixture Change Sets; becomes the M1 component library | Every core screen designed and clickable |
-| **M1** | **Shell, viewer, Explanations** — Electron app; Change Sets from refs, working-tree Snapshots, and PR diffs (read); diff viewer, file tree, keyboard; Structural/Behavioral and move detection; AgentRuntime with both auth paths; Explanations | **Daily use begins** — read agent changes in a better viewer and click anything to explain it |
+| **M1** | **Shell, viewer, Explanations** — Electron app; Change Sets from refs, working-tree Snapshots, and PR diffs (read); diff viewer, file tree, keyboard; Structural/Behavioral and move detection; AgentRuntime with both Claude auth paths (provider-neutral tools from day one); Explanations | **Daily use begins** — read agent changes in a better viewer and click anything to explain it |
 | **M2** | **Code structure** — tree-sitter Language Tiers, Symbols, Connections panel, Connection changes, Trail, ⌘-click | See how changes connect to the rest of the system |
-| **M3** | **Understanding** — Intent (PR, Agent Transcript, Inferred), Walkthrough (Steps, Layers, Chapters, Sittings), Change Brief, Domain Changes, Scope, Risk, Description Gap | Priorities 1–3 delivered |
+| **M3** | **Understanding** — Intent (PR, Agent Transcript, Inferred), Walkthrough (Steps, Layers, Chapters, Sittings), Change Brief, Domain Changes, Scope, Risk, Description Gap; **OpenAI provider** (Continue with ChatGPT, API key) and per-tier model choice, validated by the same evals | Priorities 1–3 delivered; Claude or ChatGPT |
 | **M4** | **The feedback loop** — Notes, Remote Comments (reply/resolve), Pending Review; Asks, Batches, Revisions with partial accept; Iterations and Interdiff; Scratchpad | Steer the agent's next round from inside Legible |
 | **M5** | **Agent Review and deep tools** — Review Plan, Lenses, Verification, Findings; Invariant checks; Scenario traces; Conversations; Connection disambiguation through external judgment models | Priorities 4–5 delivered |
 | **v1.1** | Focused passes with fading checklists; self-explanation prompts; coverage tracking and honest coverage statements; pace and break nudges; tests-first toggle | |
-| **Later** | Retrieval practice and spaced revisits; track record; linter/type-check integration; edit-provenance agent hooks; precise resolution (LSP/SCIP); sparse checkout for monorepos; other agents (Codex, Gemini CLI, local models) | |
+| **Later** | Retrieval practice and spaced revisits; track record; linter/type-check integration; edit-provenance agent hooks; precise resolution (LSP/SCIP); sparse checkout for monorepos; more providers (Gemini, Azure OpenAI, local models) | |
 
 ## 10. Non-goals for v1
 
@@ -236,7 +260,7 @@ The orientation page every Review opens on:
 - A hosted service, team sync, or multi-machine sync.
 - Running the project's tests or arbitrary shell commands from agents.
 - Gamification.
-- Non-Claude agents (the interface allows them; none ship).
+- Providers beyond Anthropic and OpenAI. The interface allows more, but none ship in v1.
 
 ## 11. How we'll know it works
 
@@ -255,6 +279,8 @@ Adjacent tools surfaced during planning (verify before launch): **Reviewly** (op
 ## 13. Open questions and risks
 
 - **Subscription auth path** must be confirmed with Anthropic before public release (see [ADR 0002](./adr/0002-agent-runtime-and-claude-auth.md)).
+- **Sign in with ChatGPT registration.** Register Legible as an open-source client and follow OpenAI's branding rules: a "Continue with ChatGPT" label, given prominence comparable to the other sign-in options.
+- **Quality parity across providers.** Prompts are tuned per provider where evals show gaps. A model is "recommended" only once it passes.
 - **Name** — "Legible" is a working name; trademark search before public launch. Product name must not include "Claude Code".
 - **Judgment-model data handling.** TypeSafe's data retention isn't documented. OpenAI offers Zero Data Retention only to eligible customers. Disclose both before a user enables either. The two backends' probabilities aren't directly comparable, so thresholds are tuned for each backend.
 - **Domain Change accuracy** — the highest-value output is also the hardest to get right; needs an evaluation set of real agent PRs early (M3).
@@ -286,6 +312,6 @@ Apache-2.0, with DCO sign-off for contributions.
 10. **Pending Review publish** — Notes list, verdict, confirmation.
 11. **Iteration banner and Interdiff toggle.**
 12. **Command palette** and keyboard-shortcut overlay.
-13. **Settings** — Claude auth (Use my Claude Code status / API key), model tiers, hosts and accounts, judgment-model backends (TypeSafe Jev, OpenAI Decisions) with privacy notes, spend caps.
+13. **Settings** — Providers (Claude: Use my Claude Code status / API key; OpenAI: Continue with ChatGPT / API key), per-tier model picker across connected providers with recommended/experimental badges and cost, Cross-check Verification toggle, hosts and accounts, judgment-model backends (TypeSafe Jev, OpenAI Decisions) with privacy notes, spend caps.
 
 **Fixtures to design against:** a ~600-line agent-written "refund window + partial refunds" feature spanning migration → service → API → client store → UI, including one Unrequested audit-log change and one Description Gap; a ~3,000-line multi-Chapter Change Set; a PR with existing Remote Comment threads.

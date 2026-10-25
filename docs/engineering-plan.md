@@ -4,7 +4,7 @@ _Status: v1 planning. Companion docs: [Product Plan](./product-plan.md), [Glossa
 
 Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.md) verbatim (`ChangeSet`, `Step`, `Ask`, `Revision`, …). If code and glossary disagree, fix one of them.
 
-> Library versions and API details below reflect planning-time knowledge. At the start of each milestone, verify current APIs (Context7 / official docs) for Electron, the Claude Agent SDK, web-tree-sitter, Octokit, and GitLab before writing code against them.
+> Library versions and API details below reflect planning-time knowledge. At the start of each milestone, verify current APIs (Context7 / official docs) for Electron, the Claude Agent SDK, the OpenAI Agents SDK and Sign in with ChatGPT, web-tree-sitter, Octokit, and GitLab before writing code against them.
 
 ---
 
@@ -26,22 +26,22 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 │        │ MessagePort                         │ MessagePort               │
 │        ▼                                     ▼                           │
 │  utilityProcess: Indexer              utilityProcess: Agent host         │
-│  web-tree-sitter + WASM grammars      AgentRuntime (Claude Agent SDK)    │
-│  diff engine · Symbols · Connections  pipelines · in-process MCP tools   │
-│  structural equivalence · highlighting      │ spawns                     │
-│                                             ▼                            │
-│                                       `claude` binary (user's install    │
-│                                        or SDK-bundled) per agent run     │
+│  web-tree-sitter + WASM grammars      router → AgentRuntimes · Judge     │
+│  diff engine · Symbols · Connections  pipelines · provider-neutral tools │
+│  structural equivalence · highlighting   │ Claude SDK      │ OpenAI SDK  │
+│                                          ▼ spawns          │ (HTTPS)     │
+│                                    `claude` binary         │             │
+│                                    (user's or bundled)     │             │
 └──────────────────────────────────────────────────────────────────────────┘
-        │                    │                         │
-   git remotes        GitHub / GitLab APIs      Anthropic / Bedrock / Vertex /
-                                                Foundry  (+ TypeSafe / OpenAI
-                                                if a Judge backend is enabled)
+        │                    │                 │                 │
+   git remotes        GitHub / GitLab   Anthropic / Bedrock   OpenAI Responses
+                           APIs         Vertex / Foundry      (+ Decisions; and
+                                                              TypeSafe if on)
 ```
 
 **Why two utility processes:** parsing and agent orchestration are both bursty and crash-prone. Isolating them keeps the main process (IPC, DB, windows) responsive and lets either restart without losing UI state.
 
-**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md).
+**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md).
 
 ## 2. Stack
 
@@ -56,8 +56,8 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 | Styling | CSS variables design tokens + CSS modules (or Tailwind if M0 prefers) | Tokens come out of M0 |
 | DB | SQLite via better-sqlite3 + a typed query layer (Drizzle or Kysely) | Migrations versioned in repo |
 | Parsing | web-tree-sitter + prebuilt WASM grammars | Language Tiers |
-| Agents | Claude Agent SDK (TypeScript) behind `AgentRuntime` | ADR 0002 |
-| Typed judgments | `Judge` interface: TypeSafe JS SDK (Jev), OpenAI SDK (Decisions API), Claude structured output | ADR 0005; external backends optional |
+| Agents | Claude Agent SDK (default) and OpenAI Agents SDK, both behind `AgentRuntime` | ADR 0002, ADR 0006 |
+| Typed judgments | `Judge` interface: TypeSafe JS SDK (Jev), OpenAI SDK (Decisions API), fast-tier structured output | ADR 0005; external backends optional |
 | GitHub | Octokit (REST + GraphQL) | |
 | GitLab | Thin typed REST client (or @gitbeaker) | |
 | Diagrams | Mermaid (sequence diagrams for Scenario traces, mini-graphs) | |
@@ -84,8 +84,8 @@ legible/
 │  ├─ diff/                        line/word diff, fragments, move detection
 │  ├─ indexer/                     tree-sitter, grammars, Symbols, Connections, equivalence, highlighting
 │  ├─ hosts/                       github/, gitlab/ adapters behind a common Host interface
-│  ├─ agent-runtime/               AgentRuntime interface, Claude SDK impl, fake/replay impl
-│  ├─ judge/                       Judge interface; Jev, OpenAI Decisions, Claude backends; judgment catalog
+│  ├─ agent-runtime/               AgentRuntime interface, Claude + OpenAI impls, router, model catalog, tools, fake/replay
+│  ├─ judge/                       Judge interface; Jev, OpenAI Decisions, fast-tier backends; judgment catalog
 │  └─ pipelines/                   Intent, Walkthrough, Brief, Explanations, Asks, Revisions, Lenses…
 │                                  (prompts + output schemas + orchestration, versioned)
 ├─ grammars/                       WASM grammars + tags/highlights queries, manifest with Language Tiers
@@ -121,7 +121,7 @@ Core tables (abridged):
 | `explanations` | cache_key, target_kind, body_json, model, prompt_version |
 | `scratchpad_items` | review_id, kind (invariant \| to_check), body, anchor_id, status, check_result_json |
 | `conversations`, `messages` | review_id, role, content, cited_anchor_ids |
-| `agent_runs` | task_kind, model, started/ended, cost_usd, tokens, status, error — every agent call, for cost meters and debugging |
+| `agent_runs` | task_kind, provider, model, tier, started/ended, cost_usd, tokens, status, error — every agent call, for cost meters and debugging |
 | `settings`, `accounts` | non-secret config; secrets live only in the keychain |
 
 **Identity rules.** Fragments, Symbols, and Steps get **stable content-derived ids** (hash of path + normalized content + enclosing Symbol) so that viewed state, Anchors, and Walkthrough structure survive Iterations where code didn't change.
@@ -172,7 +172,7 @@ Parse results are keyed by **blob OID + grammar version**, so identical files ac
 ### 7.4 Resolution pipeline (name → definition)
 
 1. **Deterministic rules:** language-specific import/module resolution where tractable (TS/JS relative imports and `tsconfig` paths, Python relative/package imports, Go package paths, Rust `use` paths, Java/Kotlin packages), same-file and lexical scope (`locals.scm`), receiver type when syntactically evident, arity filter.
-2. **Judge (`resolve-call-site`, §8.6):** the remaining ambiguous call sites go out as one batched Judge request per indexing pass, with one choice question per call site. The input is the call-site snippet, the file's imports and path, and each candidate's signature and path; the options are the candidates plus "none of these". Results are cached by call-site content hash. This step runs only when an external Judge backend (Jev or OpenAI Decisions) is enabled. Without one, Claude isn't used here; the volume is too high, so those call sites simply stay ambiguous.
+2. **Judge (`resolve-call-site`, §8.7):** the remaining ambiguous call sites go out as one batched Judge request per indexing pass, with one choice question per call site. The input is the call-site snippet, the file's imports and path, and each candidate's signature and path; the options are the candidates plus "none of these". Results are cached by call-site content hash. This step runs only when an external Judge backend (Jev or OpenAI Decisions) is enabled. Without one, the fast-tier model isn't used here; the volume is too high, so those call sites simply stay ambiguous.
 3. **Confidence gate:** ≥ threshold (start 0.85, tune on evals) → resolved, marked "likely"; below → **Ambiguous Connection** with candidates ranked by probability.
 4. **Precise resolver slot:** a `Resolver` interface so an LSP/SCIP-backed resolver can later override per language.
 
@@ -190,13 +190,15 @@ Tree-sitter highlight queries produce compact token arrays per line (`[startCol,
 
 ```ts
 interface AgentRuntime {
+  provider: 'anthropic' | 'openai';
   run<T>(task: AgentTask<T>, opts: RunOptions): Promise<AgentResult<T>>;
   status(): Promise<RuntimeStatus>;          // e.g. "Claude Code detected, signed in"
+  models(): Promise<ModelInfo[]>;            // feeds the model catalog (§8.6)
 }
 
 interface AgentTask<T> {
   kind: TaskKind;                            // 'explanation' | 'question' | 'lens' | ...
-  modelTier: 'strong' | 'mid' | 'fast';
+  modelTier: 'strong' | 'mid' | 'fast';      // resolved to { provider, model } by the router (§8.6)
   system: string;                            // versioned prompt
   prompt: string;
   cwd: string;                               // Base, Head, or Revision worktree
@@ -212,28 +214,44 @@ interface RunOptions {
 }
 ```
 
-v1 implementation: `ClaudeSdkRuntime` using the Agent SDK's `query()`:
+v1 has two implementations ([ADR 0006](./adr/0006-multiple-model-providers.md)). Feature code never imports either directly. It submits tasks to the router.
+
+**`ClaudeSdkRuntime`** (default) uses the Claude Agent SDK's `query()`:
 
 - Auth per ADR 0002: "Use my Claude Code" sets `pathToClaudeCodeExecutable` to the user's resolved `claude`; "API key" passes credentials via `env` (spread `process.env` — the SDK's `env` replaces, not merges).
 - Structured output via `outputFormat: { type: 'json_schema', schema }` with zod → JSON Schema draft-07. Handle the structured-output retry-exhausted failure explicitly.
 - `maxBudgetUsd` per run; cost and usage from the result (`total_cost_usd`, `modelUsage`) recorded in `agent_runs`.
 - Cancellation via `AbortController`; interactive tasks use streaming input so they can be interrupted.
-- A `FakeRuntime` / `ReplayRuntime` replays recorded runs for tests and the M0 prototype.
 
-### 8.2 Legible tools (in-process MCP server)
+**`OpenAIAgentsRuntime`** uses the OpenAI Agents SDK (TypeScript) over the Responses API:
 
-Exposed with `createSdkMcpServer` and granted per task (all read-only, marked `readOnlyHint`):
+- Auth: **Continue with ChatGPT** (OIDC + PKCE through OpenAI's Sign in with ChatGPT open-source client flow, using a registered client id and no client secret; a loopback redirect to the app; tokens in the keychain, refreshed by the runtime) or an **OpenAI API key**. Plan-backed tokens are used only for the Responses API requests the program allows.
+- Every tool is a Legible-defined function tool (§8.2). There are no hosted or built-in tools (no web search, code interpreter, or file search), so the permission policy is enforced entirely in Legible's code.
+- Structured output via the SDK's zod output type with strict JSON schema.
+- Cost from Responses API `usage` × the model price table; budgets are enforced by the runtime, which aborts when the projected spend exceeds the cap.
+- Conversation continuity via the SDK's session/previous-response mechanism.
+- Cancellation via `AbortSignal`.
 
-`get_change_set_summary`, `list_fragments`, `get_fragment`, `read_file(side, path, range)`, `search(side, pattern)`, `get_symbol`, `find_references`, `get_connections(symbol, direction, depth)`, `get_connection_changes`, `get_intent`, `get_step`, `get_findings`, `git_log(path?, range?)`, `git_blame(path, range)`.
+The Codex SDK was considered and rejected for this runtime: it brings its own coding agent and sandbox rather than Legible's tools, and its MCP server mode has been removed.
+
+**`FakeRuntime` / `ReplayRuntime`** replay recorded runs for tests and the M0 prototype.
+
+### 8.2 Legible tools (provider-neutral)
+
+Tools are defined once in `packages/agent-runtime/tools/` as `{ name, description, input: ZodSchema, readOnly, handler }`. Adapters expose them as an in-process MCP server (`createSdkMcpServer`) for Claude and as function tools for OpenAI. Each is granted per task.
+
+**Read tools:** `get_change_set_summary`, `list_fragments`, `get_fragment`, `read_file(side, path, range)`, `list_files(side, glob)`, `search(side, pattern)`, `get_symbol`, `find_references`, `get_connections(symbol, direction, depth)`, `get_connection_changes`, `get_intent`, `get_step`, `get_findings`, `git_log(path?, range?)`, `git_blame(path, range)`.
+
+**Write tools** (only for `revision-write`, OpenAI runtime): `edit_file(path, oldText, newText)`, `write_file(path, content)`. These are constrained to the Revision worktree in the handler itself. The Claude runtime uses Claude Code's built-in Edit/Write, which are tuned for that model, with the same path restriction enforced by `canUseTool`.
 
 `git_log`/`git_blame`/`search` are Legible tools rather than Bash, so agents get the capability without a shell.
 
 ### 8.3 Permission policy
 
-| Access | Built-in tools allowed | Enforcement |
-|---|---|---|
-| `read-only` | Read, Grep, Glob + Legible tools | `allowedTools` allowlist; `canUseTool` denies everything else; no Bash, no Web* tools |
-| `revision-write` | the above + Edit, Write | `canUseTool` denies any path outside the Revision worktree; no Bash; no network tools |
+| Access | Claude runtime | OpenAI runtime | Enforcement |
+|---|---|---|---|
+| `read-only` | Read, Grep, Glob + Legible read tools | Legible read tools | Claude: `allowedTools` allowlist + `canUseTool` denies the rest; OpenAI: only granted function tools exist. Neither has a shell, network, or web tools |
+| `revision-write` | the above + built-in Edit, Write | the above + Legible `edit_file`, `write_file` | Writes outside the Revision worktree are denied (`canUseTool` / tool handler); no shell; no network tools |
 
 Agents never load the repository's `.claude/` settings, hooks, plugins, or MCP config (`settingSources` empty) — see [ADR 0004](./adr/0004-agents-ignore-repo-claude-settings.md). Repo guidance files (`CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`) are read as plain text and supplied as context to the Lenses that need them.
 
@@ -247,13 +265,24 @@ A priority queue in the agent host with a global concurrency cap (default 6, con
 2. Foreground batch: Change Request runs, Scenario traces, Invariant checks
 3. Background: Walkthrough/Brief generation, Lens runs, Verification, pre-generated Explanations
 
-Each Review has a spend cap; the Review Plan's estimate is computed from context size × model price table before running.
+Each Review has a spend cap; the Review Plan's estimate is computed from context size × model price table before running. Concurrency is also capped per provider, and rate-limit responses back off per provider without stalling the other.
 
 ### 8.5 Prompts and schemas
 
-Each pipeline's prompt + output schema lives in `packages/pipelines/<pipeline>/` with a `PROMPT_VERSION`. Cache keys include the prompt version, so prompt changes invalidate exactly the right cached outputs.
+Each pipeline's prompt + output schema lives in `packages/pipelines/<pipeline>/` with a `PROMPT_VERSION`. Optional per-provider overrides (`prompt.openai.md`) are allowed only when evals show a gap. Cache keys include provider, model, and prompt version, so prompt changes invalidate exactly the right cached outputs.
 
-### 8.6 Judge (`packages/judge`)
+**Schemas** must satisfy both providers' structured-output rules: every field required (nullable instead of optional), `additionalProperties: false`, no unsupported keywords. A CI lint converts each zod schema into both providers' JSON Schema dialects and fails on anything one of them rejects.
+
+### 8.6 Model catalog and tier routing
+
+- **Catalog:** the union of `models()` across connected runtimes, joined with a curated `models.json` shipped with Legible. That file records context window, tool-use and structured-output support, price, and eval status (`recommended` / `experimental`). Models absent from `models.json` show as experimental with unknown price.
+- **Tier map:** a setting `{ strong, mid, fast } → { provider, model }`, plus optional per-`TaskKind` overrides. Defaults: Claude models for every tier when Anthropic is connected; OpenAI models when only OpenAI is.
+- **Router:** resolves each task to a runtime and model, and checks that the model supports the task's needs (tools, structured output, context size). If it doesn't, the task falls back to the tier's default and the user is told why.
+- **Provider affinity:** a Conversation, and a Batch's Change Request run, are pinned to the provider they started on.
+- **Cross-check Verification** (setting, available when both providers are connected): Verification runs on the provider that didn't produce the Finding.
+- **Fast-tier Judge fallback:** the fallback Judge backend (§8.7) uses the fast tier's model, whichever provider that is.
+
+### 8.7 Judge (`packages/judge`)
 
 The Judge handles typed judgments that don't need generated text or tool-driven investigation ([ADR 0005](./adr/0005-judge-interface-for-typed-judgments.md)).
 
@@ -275,12 +304,12 @@ interface Judge {
 |---|---|---|
 | TypeSafe Jev | `POST https://api.typesafe.ai/v1/systemone` (Choice / Noul / Score) | ≤ 255 options per choice; long input needs the `TypeSafe-Danger-Zone-Long-Context` header; pricing, latency, and retention undocumented at planning time |
 | OpenAI Decisions | `POST /v1/decisions`, `client.decisions.create(...)`, model `gpt-6-luna` (choice / predicate / score) | 1–400 questions per request; input billed ($0.10 / 1M uncached at planning time), output free; prompt caching on shared input (≥ 1,024-token prefix); ZDR for eligible customers |
-| Claude | Agent SDK structured output, fast tier | Always available; one run per request with all judgments in one schema; self-reported confidence |
+| Fast-tier model | Structured output on whichever provider serves the fast tier (§8.6) | Always available; one run per request with all judgments in one schema; self-reported confidence |
 
 **Rules**
 
 - **Batch over shared input.** Group judgments over the same Change Set, Step, or Finding set into one request. Put the large shared evidence first (it's the cached prefix) and keep per-question text short.
-- **Thresholds per judgment and per backend**, stored in the judgment catalog and tuned on evals. Below threshold, a judgment is either shown as uncertain ("likely Unrequested") or escalated to a Claude run with tools, depending on the catalog entry.
+- **Thresholds per judgment and per backend**, stored in the judgment catalog and tuned on evals. Below threshold, a judgment is either shown as uncertain ("likely Unrequested") or escalated to an agent run with tools, depending on the catalog entry.
 - **Cache by** hash(input, judgment definitions, backend, backend model).
 - **Untrusted input:** the same delimiting rules as agents (§8.3). Judges have no tools, so there's no action surface.
 
@@ -289,7 +318,7 @@ interface Judge {
 | Judgment | Kind | Used by | Below threshold |
 |---|---|---|---|
 | `step-scope` | choice: each requirement id, `supporting`, `unrequested` | Walkthrough / Scope | show as "likely …"; Intent Conformance Lens re-checks |
-| `requirement-covered` | predicate per requirement | Change Brief | escalate to Claude |
+| `requirement-covered` | predicate per requirement | Change Brief | escalate to an agent run |
 | `description-states-domain-change` | predicate per Domain Change | Description Gap | treat as a gap with "possibly stated" |
 | `risk-signal` | predicate per sensitive area per Step | Risk | fall back to deterministic detectors |
 | `lens-applies` | predicate per conditional Lens | Review Plan | include the Lens (fail open) |
@@ -308,7 +337,7 @@ interface Judge {
 ### 9.1 Intent
 
 1. Collect sources: PR title/body/linked issue (host), Agent Transcript (below), user text.
-2. **Agent Transcript import:** find Claude Code session files under `~/.claude/projects/` whose project path matches the repo/worktree, whose timestamps overlap the Change Set's commits/Snapshot, and (if available) whose branch matches. Extract user prompts, plan outputs, and user corrections. The transcript format is internal to Claude Code and undocumented — parse defensively, version-detect, and fail soft ("couldn't read transcript").
+2. **Agent Transcript import:** find agent session files whose project path matches the repo or worktree, whose timestamps overlap the Change Set's commits or Snapshot, and whose branch matches if that's recorded. v1 reads Claude Code sessions (`~/.claude/projects/`) and Codex CLI sessions (`~/.codex/sessions/`). Each source is an adapter, so others can be added. Extract user prompts, plan outputs, and user corrections. Both formats are internal and undocumented, so parse defensively, detect versions, and fail soft ("couldn't read transcript").
 3. Mid-tier model produces a structured Intent: `{ goal, requirements: [{ id, statement }] }`. With no sources → **Inferred Intent** from the code, flagged for user confirmation.
 
 ### 9.2 Walkthrough planner
@@ -325,7 +354,7 @@ interface Judge {
 - **Domain Changes (strong tier):** from Behavioral fragments + Intent → `[{ statement, before, after, fragmentIds }]` in domain language.
 - **Scope:** the Judge's `step-scope` judgment per Step, against the Intent's requirement ids, plus `requirement-covered` per requirement to find requirements with no implementing code. Re-checked by the Intent Conformance Lens when an Agent Review runs.
 - **Risk:** deterministic detectors (paths, identifiers, APIs) and the Judge's `risk-signal` predicates per sensitive area (auth, payments, crypto, migrations, deletes, concurrency, public API surface), combined with blast radius (transitive Used-by count), give a base level. A model adjustment with a stated reason follows, and critical Findings raise the level.
-- **Description Gap:** the Judge's `description-states-domain-change` predicate for each Domain Change against the PR title and description. Missing ones get suggested wording, generated by Claude.
+- **Description Gap:** the Judge's `description-states-domain-change` predicate for each Domain Change against the PR title and description. Missing ones get suggested wording, generated by the fast tier.
 
 ### 9.4 Explanations
 
@@ -391,7 +420,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 
 - Renderer: `sandbox: true`, `contextIsolation: true`, `nodeIntegration: false`, strict CSP, no remote content; all Markdown (PR bodies, comments, agent output) rendered through a sanitizer; links open externally after confirmation.
 - IPC: every request and event validated against zod schemas in `packages/ipc`; the renderer can't name arbitrary paths or commands — only domain operations.
-- Secrets: keychain only (`safeStorage`); never logged; never written to SQLite. Claude.ai credentials are never read (ADR 0002).
+- Secrets: keychain only (`safeStorage`); never logged; never written to SQLite. Claude.ai credentials are never read (ADR 0002). ChatGPT sign-in tokens are stored only in the keychain and used only for Responses API requests (ADR 0006).
 - Agents: §8.3 permission policy; ADR 0004.
 - Foreign repos: hooks disabled, no repo scripts executed.
 - Judge backends: TypeSafe and OpenAI are off by default; enabling one shows exactly what is sent (code snippets, PR text, Intent) before saving the key.
@@ -402,7 +431,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - **Unit (Vitest):** git operations against generated fixture repos; diff/fragment/move detection; structural-equivalence proofs; Walkthrough validator (coverage + topological guarantees as property tests); Anchoring; Sitting packing; IPC schema round-trips.
 - **Integration:** pipelines run against `ReplayRuntime` recordings for determinism; host adapters against recorded HTTP fixtures.
 - **E2E (Playwright `_electron`):** open a fixture repo → Brief → Walkthrough → Ask → Revision → accept.
-- **AI evals (`evals/`):** a growing set of real agent-written Change Sets with hand labels — Step grouping, Layer, Scope (esp. Unrequested), Domain Changes, Description Gaps, seeded bugs. Scored metrics: fragment coverage (must be 100%), dependency violations (must be 0 after validation), Unrequested recall, Domain Change recall/precision (judged), Finding precision after Verification, cost per 1k changed lines. Run on every prompt-version change; results committed. **Judge evals** score every catalog judgment on each backend against the same labels (accuracy, calibration, latency, cost), and set the per-backend thresholds.
+- **AI evals (`evals/`):** a growing set of real agent-written Change Sets with hand labels — Step grouping, Layer, Scope (esp. Unrequested), Domain Changes, Description Gaps, seeded bugs. Scored metrics: fragment coverage (must be 100%), dependency violations (must be 0 after validation), Unrequested recall, Domain Change recall/precision (judged), Finding precision after Verification, cost per 1k changed lines. Run on every prompt-version change; results committed. **Judge evals** score every catalog judgment on each backend against the same labels (accuracy, calibration, latency, cost), and set the per-backend thresholds. **Model evals** run the pipeline evals for every candidate provider+model per tier; a model is marked `recommended` in `models.json` only when it meets the tier's targets.
 - **Fixtures:** `fixtures/` scripts generate deterministic repos, including the M0 design fixtures (refund-window feature with an Unrequested audit change and a Description Gap; a ~3,000-line multi-Chapter Change Set; a PR with Remote Comment threads).
 
 ## 15. Milestones — engineering scope and exit criteria
@@ -418,7 +447,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - Git layer: local repos, ref comparisons, Snapshots + change banner, PR diffs read-only (GitHub + GitLab fetch of PR refs; `gh`/`glab` token reuse for read).
 - Diff engine: fragments (line-based until M2), word diff, renames, moves, generated/lockfile collapse.
 - Structural detection: formatting/whitespace proofs (AST-backed proofs arrive with M2's indexer).
-- AgentRuntime with both auth paths, scheduler, cost meter; Explanations on ranges and files.
+- AgentRuntime with both Claude auth paths, provider-neutral tool definitions and schema lint from day one, tier router (Claude-only catalog), scheduler, cost meter; Explanations on ranges and files.
 - Packaging: notarized macOS build, auto-update.
 - **Exit:** the author reviews real agent branches in Legible daily; click any range → Explanation in < 5 s (fast tier).
 
@@ -434,7 +463,8 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - Walkthrough planner + validator, Chapters, Sittings, Step editing.
 - Change Brief: Domain Changes, Scope, Risk, Description Gap, component map, Sitting estimate.
 - Evals harness live with ≥ 20 labeled Change Sets.
-- `packages/judge` with the Claude backend plus the Jev and OpenAI Decisions backends; an early spike measures latency and cost on large Change Sets; thresholds come from Judge evals.
+- `packages/judge` with the fast-tier backend plus the Jev and OpenAI Decisions backends; an early spike measures latency and cost on large Change Sets; thresholds come from Judge evals.
+- `OpenAIAgentsRuntime`: Continue with ChatGPT (registered open-source client) and API key; model catalog across both providers; per-tier and per-task model picker; Cross-check Verification setting (used in M5); Codex CLI transcript adapter. Gated on model evals.
 - **Exit:** 100% fragment coverage and 0 dependency violations on evals; Unrequested recall ≥ target agreed after first eval run.
 
 ### M4 — The feedback loop
@@ -457,12 +487,14 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 | Subscription auth path not accepted by Anthropic | AgentRuntime transport swap to `claude -p --output-format stream-json` (ADR 0002); API key path always works |
 | Agent Transcript format is internal and may change | Defensive parser, version detection, fail-soft; later replace with our own provenance hooks |
 | Concurrent SDK `query()` calls not explicitly documented as supported | Validate early in M1 with a spike; scheduler cap; fall back to per-run processes |
+| Sign in with ChatGPT program terms or eligibility change | API-key path always works; the OpenAI runtime is independent of how it authenticates |
+| Quality differs across providers on the same prompts | Per-provider prompt overrides, model evals per tier, only `recommended` models offered by default |
 | WASM grammar ABI drift | Pin grammars to one web-tree-sitter ABI; CI loads every grammar |
 | LLM grouping drops/duplicates fragments or breaks order | Deterministic validator guarantees coverage and topology regardless of model output |
 | Cost on large Change Sets | Clustered planning, caching by content hash, Review Plan estimates, hard spend caps |
 | Large repos / monorepos | `git grep`-scoped indexing, blob-OID parse cache; sparse checkout later |
 | Host API complexity (pending reviews, suggestion mapping) | Adapter-level recorded-fixture tests; suggestions fall back to patch Notes |
-| Judge backends disagree or are poorly calibrated on code | Per-backend thresholds from evals; Claude fallback; uncertain results shown as "likely", never as fact |
+| Judge backends disagree or are poorly calibrated on code | Per-backend thresholds from evals; fast-tier fallback; uncertain results shown as "likely", never as fact |
 | Prompt injection via PR content | No network/shell tools, delimited untrusted data, writes only in a reviewed Revision worktree |
 
 ## 17. Open technical questions

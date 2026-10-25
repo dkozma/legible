@@ -1,5 +1,7 @@
 # AgentRuntime over the Claude Agent SDK, with two auth paths
 
+> **Partially superseded by [ADR 0006](./0006-multiple-model-providers.md):** OpenAI is now a second Provider in v1. The Claude authentication rules below still apply.
+
 All Claude work (Explanations, Questions, Lenses, Verification, Change Requests, Conversations) goes through an internal **AgentRuntime** interface, implemented in v1 by the Claude Agent SDK (TypeScript). The interface is shaped so other agents (Codex CLI, Gemini CLI, local models) could be added later, but only Claude ships in v1.
 
 Users authenticate one of two ways, chosen in Settings:

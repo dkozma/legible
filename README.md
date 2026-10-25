@@ -14,8 +14,8 @@ _Working name._ A desktop app for understanding code changes, mainly changes wri
 Legible collects no telemetry. Your code leaves your machine only for three destinations:
 
 - your git host (GitHub or GitLab)
-- Claude, through the authentication you choose
-- TypeSafe and/or OpenAI, only if you turn on the optional judgment-model backends (Jev, Decisions API)
+- the model providers you connect: Claude (Anthropic, the default) and/or OpenAI
+- TypeSafe, only if you turn on the optional Jev judgment backend
 
 ## License
 

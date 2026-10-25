@@ -7,12 +7,22 @@ _Legible is a working name._ A desktop tool for understanding and supervising co
 ### Modes
 
 **Author mode**:
-Reviewing a change on a branch the user owns and can push to (typically agent-written). Claude-directed change requests are applied as local edits.
+Reviewing a change on a branch the user owns and can push to (typically agent-written). **Change Requests** are applied as local edits.
 _Avoid_: Self-review, local mode
 
 **Reviewer mode**:
-Reviewing a change on a branch the user cannot (or should not) push to, such as a teammate's pull request. Claude-directed change requests become suggestion comments, never pushes.
+Reviewing a change on a branch the user cannot (or should not) push to, such as a teammate's pull request. **Change Requests** become suggestion comments, never pushes.
 _Avoid_: PR mode, remote mode
+
+### Models
+
+**Provider**:
+A company whose models Legible can run agent work on: Anthropic (Claude, the default) or OpenAI. A user may configure one or both.
+_Avoid_: Vendor, backend, LLM
+
+**Model Tier**:
+One of three capability levels (strong, mid, fast). Every kind of agent work is assigned a tier, and each tier is mapped to one Provider and model of the user's choosing. Tiers need not share a Provider.
+_Avoid_: Model size, quality level
 
 ### Reviews
 
@@ -51,7 +61,7 @@ What a **Change Set** was supposed to accomplish: its goal and the business requ
 _Avoid_: Spec, requirements doc, description
 
 **Inferred Intent**:
-An **Intent** reconstructed by Claude from the code alone when none was supplied, shown to the user for correction. A wrong Inferred Intent is itself a review signal.
+An **Intent** reconstructed by the agent from the code alone when none was supplied, shown to the user for correction. A wrong Inferred Intent is itself a review signal.
 
 **Agent Transcript**:
 The record of the AI agent session that produced a **Change Set** — the user's prompts, plans, and corrections. A source of **Intent**.
@@ -85,11 +95,11 @@ _Avoid_: Summary, description
 ### Scratchpad
 
 **Scratchpad**:
-The user's private external memory for a **Review**, holding **Invariants** and **To-checks**. User-owned: Claude may suggest entries, but only the user adds them.
+The user's private external memory for a **Review**, holding **Invariants** and **To-checks**. User-owned: the agent may suggest entries, but only the user adds them.
 _Avoid_: Notebook, notes (a Note is a human-directed comment)
 
 **Invariant**:
-A rule the user believes must always hold (e.g. "refunded total never exceeds paid total"). Claude can be asked to check an Invariant against **Head**.
+A rule the user believes must always hold (e.g. "refunded total never exceeds paid total"). The agent can be asked to check an Invariant against **Head**.
 _Avoid_: Assertion, rule, constraint
 
 **To-check**:
@@ -120,7 +130,7 @@ _Avoid_: Validation, triage
 ### Conversation
 
 **Conversation**:
-An unanchored, read-only dialogue with Claude about the **Change Set** or the wider repository, kept with the review. Its answers cite code as **Anchors**; it never edits code — suggested edits must be turned into a **Change Request**.
+An unanchored, read-only dialogue with the agent about the **Change Set** or the wider repository, kept with the review. Its answers cite code as **Anchors**; it never edits code — suggested edits must be turned into a **Change Request**.
 _Avoid_: Chat, Q&A (a Question is anchored; a Conversation is not)
 
 ### Comments and Asks
@@ -141,8 +151,8 @@ _Avoid_: Local comment, draft
 The set of unpublished **Notes** that are published together with a verdict (approve, request changes, comment) to a **Pull Request**.
 
 **Ask**:
-A comment addressed to Claude, anchored to code and carrying its own instructions and context. Either a **Question** or a **Change Request**.
-_Avoid_: Prompt, Claude comment, instruction
+A comment addressed to the AI agent (whichever **Provider** serves it), anchored to code and carrying its own instructions and context. Either a **Question** or a **Change Request**.
+_Avoid_: Prompt, AI comment, instruction
 
 **Question**:
 A read-only **Ask** seeking an explanation; answered inline as a thread on the Ask.
@@ -219,4 +229,4 @@ _Avoid_: Session, chunk, batch (a Batch is a group of Asks)
 >
 > **Domain expert:** So the code's already fixed?
 >
-> **Dev:** Not yet — the Change Request produces a **Revision**. I'll review that as its own Change Set, accept it, and it becomes the next **Iteration**. Then I only read the **Interdiff**. I also added an **Invariant** to my **Scratchpad** — "refunded total never exceeds paid total" — and asked Claude to check it holds across Head.
+> **Dev:** Not yet — the Change Request produces a **Revision**. I'll review that as its own Change Set, accept it, and it becomes the next **Iteration**. Then I only read the **Interdiff**. I also added an **Invariant** to my **Scratchpad** — "refunded total never exceeds paid total" — and asked the agent to check it holds across Head.
