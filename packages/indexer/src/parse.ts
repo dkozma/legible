@@ -14,7 +14,7 @@ import { languageTier } from "./manifest"
 import { extractOutline, type Outline } from "./outline"
 
 /** Bumped when what extractOutline or highlightTree produce changes. */
-const EXTRACT_VERSION = 2
+const EXTRACT_VERSION = 4
 
 /** Files longer than this are diffed but not highlighted or indexed. */
 export const MAX_PARSE_LINES = 20_000

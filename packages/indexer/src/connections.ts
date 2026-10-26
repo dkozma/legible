@@ -77,6 +77,20 @@ const CALLABLE = new Set<SymbolKind>(["function", "method", "class", "macro"])
 const MEMBER = new Set<SymbolKind>(["method", "field", "function"])
 const SELF = new Set(["this", "self", "cls", "@", "Self"])
 
+/**
+ * Methods of built-in types (Map, Array, Promise, dict, list…). On a receiver
+ * whose type isn't known, `x.get()` is far more likely one of these than the
+ * one `get` the index happens to hold, so it's external.
+ */
+const BUILTIN_METHODS = new Set(
+  "get set has delete add clear push pop shift unshift map filter reduce forEach find findIndex findLast some every includes indexOf join split slice splice concat sort toSorted reverse keys values entries then catch finally toString valueOf toJSON trim replace replaceAll match matchAll test exec apply call bind emit on off once append extend update items copy format startswith endswith lower upper strip close open read write send next log error warn info debug resolve reject parse stringify assign freeze from of at fill flat flatMap padStart padEnd startsWith endsWith toLowerCase toUpperCase charAt slice substring".split(
+    " ",
+  ),
+)
+
+/** Languages where a bare name never means a member of the enclosing class (members need `this.` or `self.`). */
+const MEMBERS_NEED_RECEIVER = new Set(["js", "python", "go", "rust", "php"])
+
 function compatible(kind: RawReference["kind"], s: CodeSymbol): boolean {
   switch (kind) {
     case "calls":
@@ -237,6 +251,9 @@ export class CodeIndex {
       for (const s of e.symbols) if (s.change !== "unchanged") names.add(s.name)
       for (const r of e.outline.references) {
         if (r.kind === "read") continue
+        // Built-in methods on unknown receivers resolve as external; no point searching for them.
+        if (r.receiver && !SELF.has(r.receiver) && BUILTIN_METHODS.has(r.name))
+          continue
         if (!this.deterministic(e.side, e, r)) names.add(r.name)
       }
     }
@@ -530,7 +547,8 @@ export class CodeIndex {
           )
         return null
       }
-      const head = r.receiver.split(".")[0] as string
+      // Only the receiver as a whole names a module or class: `refunds.issue()`, not `refunds.client.issue()`.
+      const head = r.receiver
       const imp = this.importFor(e, head)
       if (imp) {
         const spec = imp.names.find((n) => n.local === head)
@@ -581,7 +599,15 @@ export class CodeIndex {
     }
 
     // Same file: the closest definition by that name.
-    const inFile = fits(e.symbols.filter((s) => s.name === r.name))
+    const byId = new Map(e.symbols.map((s) => [s.id, s]))
+    const memberOfType = (s: CodeSymbol) => {
+      const p = s.parentId ? byId.get(s.parentId) : undefined
+      return p !== undefined && TYPE_LIKE.has(p.kind)
+    }
+    const bare = MEMBERS_NEED_RECEIVER.has(familyOf(e.language))
+    const inFile = fits(
+      e.symbols.filter((s) => s.name === r.name && !(bare && memberOfType(s))),
+    )
     if (inFile.length) {
       const owner = r.owner >= 0 ? (e.symbols[r.owner] as CodeSymbol) : null
       const scoped = inFile.find(
@@ -648,6 +674,8 @@ export class CodeIndex {
     const d = this.deterministic(e.side, e, r, u)
     if (d) return d
     if (r.kind === "read") return null
+    if (r.receiver && !SELF.has(r.receiver) && BUILTIN_METHODS.has(r.name))
+      return { status: "external", targets: [], module: null }
     const family = familyOf(e.language)
     const pool = (this.byName[u].get(r.name) ?? []).filter(
       (s) => familyOf(s.language) === family && compatible(r.kind, s),

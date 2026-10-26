@@ -117,7 +117,7 @@ class RefundService(Base):
     expect(uses(o, "calls")).toEqual([
       "calls self.check@8 in RefundService.refund",
       "calls log@9 in RefundService.refund",
-      "calls refund@10 in RefundService.refund",
+      "calls payments.gateway.refund@10 in RefundService.refund",
     ])
     expect(uses(o, "implements")).toEqual([
       "implements Base@6 in RefundService",

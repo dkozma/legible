@@ -96,12 +96,10 @@ describe("Fragments split at Symbol boundaries", () => {
         headEnd: h.length,
       },
     ]
-    expect(changes(splitAtSymbols(chunks, bs, hs, b.length, h.length))).toEqual(
-      [
-        [1, 3, 1, 3],
-        [3, 5, 3, 5],
-      ],
-    )
+    expect(changes(splitAtSymbols(chunks, bs, hs, b, h))).toEqual([
+      [1, 3, 1, 3],
+      [3, 5, 3, 5],
+    ])
   })
 
   it("gives each added function its own Fragment, with its doc comment", async () => {
@@ -109,7 +107,7 @@ describe("Fragments split at Symbol boundaries", () => {
     const head =
       "export const a = 1\n\n/** One. */\nfunction one() {}\n\n/** Two. */\nfunction two() {}\n"
     const { b, h, bs, hs } = await symbols("typescript", base, head)
-    const split = splitAtSymbols(diffLines(b, h), bs, hs, b.length, h.length)
+    const split = splitAtSymbols(diffLines(b, h), bs, hs, b, h)
     // The blank line before each function goes with it.
     expect(changes(split)).toEqual([
       [2, 2, 2, 4],
@@ -123,8 +121,22 @@ describe("Fragments split at Symbol boundaries", () => {
       "function a() {\n  const f = () => 1\n  run(f)\n}\n",
       "function a() {\n  const f = () => 2\n  run(f, 1)\n}\n",
     )
-    const split = splitAtSymbols(diffLines(b, h), bs, hs, b.length, h.length)
+    const split = splitAtSymbols(diffLines(b, h), bs, hs, b, h)
     expect(changes(split)).toEqual([[1, 3, 1, 3]])
+  })
+
+  it("keeps a blank line and doc comment inside a class with the next method", async () => {
+    const { b, h, bs, hs } = await symbols(
+      "typescript",
+      "class A {\n  x() {}\n  y() {\n    return 1\n  }\n}",
+      "class A {\n  x() {}\n\n  /** New. */\n  n() {}\n  y() {\n    return 2\n  }\n}",
+    )
+    const split = splitAtSymbols(diffLines(b, h), bs, hs, b, h)
+    // Lines 2–4 (blank, doc, n) are one Fragment; y's change is another.
+    expect(changes(split)).toEqual([
+      [2, 2, 2, 5],
+      [3, 4, 6, 7],
+    ])
   })
 
   it("covers every changed line exactly once, in order", async () => {
@@ -134,7 +146,7 @@ describe("Fragments split at Symbol boundaries", () => {
       "package x\n\nfunc C() {}\n\nfunc A() {\n\taa()\n}\n\nfunc B() {\n\tbb()\n}\n",
     )
     const original = diffLines(b, h)
-    const split = splitAtSymbols(original, bs, hs, b.length, h.length)
+    const split = splitAtSymbols(original, bs, hs, b, h)
     let bi = 0
     let hi = 0
     for (const c of split) {

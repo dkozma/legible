@@ -37,7 +37,7 @@ export interface RawReference {
   line: number
   col: number
   endCol: number
-  /** For member uses (`a.b()`), the receiver's text when it's a simple name like `this`, `self` or `refunds`. */
+  /** For member uses (`a.b()`): the receiver's text when it's a name or dotted names (`this`, `this.items`), else "?". */
   receiver: string | null
   /** Argument count at a call site. */
   args: number | null
@@ -155,6 +155,8 @@ export function extractOutline(
         const kind = REFERENCE_KINDS[ref.kind]
         if (!kind) continue
         if (nameNode.startPosition.row !== nameNode.endPosition.row) continue
+        // `const built = …` or a parameter declares a local; it isn't a use of anything.
+        if (kind === "read" && isBinding(nameNode)) continue
         refs.push({
           kind,
           name: nameNode.text,
@@ -234,6 +236,17 @@ export function extractOutline(
     references,
     imports: extractImports(language, root),
   }
+}
+
+const BINDING_PARENT = /declarator|parameter|pattern|for_in_clause|catch_clause/
+
+/** A name being declared (a local, parameter or destructured binding) rather than used. */
+function isBinding(name: Node): boolean {
+  const parent = name.parent
+  if (!parent || !BINDING_PARENT.test(parent.type)) return false
+  const declared =
+    parent.childForFieldName("name") ?? parent.childForFieldName("left")
+  return !declared || declared.startIndex === name.startIndex
 }
 
 function isTypeLike(k: SymbolKind) {
@@ -333,9 +346,13 @@ function argCount(node: Node): number | null {
   return args.namedChildren.filter((c) => c && !NOT_ARGUMENT.has(c.type)).length
 }
 
-const SIMPLE_RECEIVER = /^[A-Za-z_$@][\w$]*$/
+const SIMPLE_RECEIVER = /^[A-Za-z_$@][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/
 
-/** `this` in `this.audit()`, `refunds` in `refunds.issue()`, `self` in `self.x`. */
+/**
+ * For a member use (`a.b()`): `this` in `this.audit()`, `refunds` in
+ * `refunds.issue()`, `this.items` in `this.items.get()`, or "?" when the
+ * receiver is an expression like `load().then()`. Null for a bare name.
+ */
 function receiverOf(name: Node): string | null {
   const parent = name.parent
   if (!parent) return null
@@ -353,5 +370,5 @@ function receiverOf(name: Node): string | null {
   if (!object || object.startIndex === name.startIndex) return null
   if (object.endIndex > name.startIndex) return null
   const text = object.text
-  return SIMPLE_RECEIVER.test(text) || text === "self" ? text : null
+  return SIMPLE_RECEIVER.test(text) ? text : "?"
 }

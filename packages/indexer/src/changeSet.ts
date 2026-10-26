@@ -273,8 +273,8 @@ export async function buildChangeSet(
       chunksById.get(f.id) ?? [],
       baseSymbols,
       headSymbols,
-      f.base.length,
-      f.head.length,
+      f.base,
+      f.head,
     )
     const proofs =
       parse && !reason

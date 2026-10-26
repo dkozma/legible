@@ -39,12 +39,24 @@ interface Run {
   end: number
 }
 
-/** Runs of lines with the same key; unkeyed lines join the next keyed run (doc comments, blank lines), else the previous. */
-function runs(keys: (string | null)[], start: number, end: number): Run[] {
+/** Blank and comment lines. `#` only with a space after it, so not `#define` or Rust's `#[derive]`. */
+const LOOSE = /^\s*(?:$|\/\/|\/\*|\*|#(?:\s|$)|--|"""|''')/
+
+/**
+ * Runs of lines with the same key. Unkeyed lines, and blank or comment lines
+ * anywhere (doc comments, the blank line before a method), join the next
+ * keyed run, else the previous one.
+ */
+function runs(
+  keys: (string | null)[],
+  lines: string[],
+  start: number,
+  end: number,
+): Run[] {
   const out: Run[] = []
   let pending = start
   for (let l = start; l < end; l++) {
-    const k = keys[l] ?? null
+    const k = LOOSE.test(lines[l] ?? "") ? null : (keys[l] ?? null)
     if (k === null) continue
     const last = out[out.length - 1]
     if (last && last.key === k) last.end = l + 1
@@ -113,12 +125,12 @@ export function splitAtSymbols(
   chunks: DiffChunk[],
   base: CodeSymbol[],
   head: CodeSymbol[],
-  baseLineCount: number,
-  headLineCount: number,
+  baseLines: string[],
+  headLines: string[],
 ): DiffChunk[] {
   if (base.length === 0 && head.length === 0) return chunks
-  const baseKeys = lineKeys(base, baseLineCount)
-  const headKeys = lineKeys(head, headLineCount)
+  const baseKeys = lineKeys(base, baseLines.length)
+  const headKeys = lineKeys(head, headLines.length)
   const counterpart = new Map(base.map((s) => [s.id, s.counterpartId]))
   const out: DiffChunk[] = []
   for (const c of chunks) {
@@ -126,8 +138,8 @@ export function splitAtSymbols(
       out.push(c)
       continue
     }
-    const b = runs(baseKeys, c.baseStart, c.baseEnd)
-    const h = runs(headKeys, c.headStart, c.headEnd)
+    const b = runs(baseKeys, baseLines, c.baseStart, c.baseEnd)
+    const h = runs(headKeys, headLines, c.headStart, c.headEnd)
     if (b.length + h.length <= 1) {
       out.push(c)
       continue

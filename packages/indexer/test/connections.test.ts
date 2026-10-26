@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 
 import type { CodeSymbol, Connection, SymbolConnections } from "@legible/domain"
 import { GitRepo } from "@legible/git"
@@ -159,8 +159,8 @@ describe("Connections in Go, with neighbors found by name", () => {
       { cwd: gdir },
     )
   const write = (path: string, text: string) => {
-    execFileSync("mkdir", ["-p", join(gdir, path, "..")])
-    require("node:fs").writeFileSync(join(gdir, path), text)
+    mkdirSync(dirname(join(gdir, path)), { recursive: true })
+    writeFileSync(join(gdir, path), text)
   }
 
   beforeAll(async () => {
@@ -255,5 +255,82 @@ describe("Connections in Go, with neighbors found by name", () => {
     expect(all.usedBy.map((c) => describeConn(all, c, "usedBy"))).toContain(
       "calls main likely",
     )
+  })
+})
+
+describe("resolution doesn't guess", () => {
+  let tdir: string
+  let trepo: GitRepo
+  let tindex: CodeIndex
+
+  beforeAll(async () => {
+    tdir = mkdtempSync(join(tmpdir(), "legible-ts-"))
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(tdir, path)), { recursive: true })
+      writeFileSync(join(tdir, path), text)
+    }
+    const sh = (...args: string[]) =>
+      execFileSync(
+        "git",
+        ["-c", "user.name=t", "-c", "user.email=t@t", ...args],
+        { cwd: tdir },
+      )
+    sh("init", "-q", "-b", "main")
+    write(
+      "src/secrets.ts",
+      "export class SecretStore {\n  get(name: string) {\n    return name\n  }\n}\n",
+    )
+    write(
+      "src/cache.ts",
+      "export class Cache {\n  private items = new Map<string, number>()\n  refresh() {}\n  lookup(key: string) {\n    return this.items.get(key)\n  }\n}\n",
+    )
+    sh("add", "-A")
+    sh("commit", "-qm", "base")
+    write(
+      "src/cache.ts",
+      "export class Cache {\n  private items = new Map<string, number>()\n  refresh() {}\n  lookup(key: string) {\n    const refresh = this.items.get(key)\n    return refresh\n  }\n}\n",
+    )
+    sh("add", "-A")
+    sh("commit", "-qm", "head")
+    trepo = await GitRepo.open(tdir)
+    const base = (await trepo.resolveCommit("HEAD~1")) as string
+    const head = (await trepo.resolveCommit("HEAD")) as string
+    const built = await buildChangeSet(
+      trepo,
+      parsing,
+      { reviewId: "r", iterationId: "i" },
+      base,
+      head,
+      {
+        ignoreWhitespace: false,
+        prefetch: false,
+      },
+    )
+    tindex = new CodeIndex({
+      repo: trepo,
+      parsing,
+      baseSha: base,
+      headSha: head,
+      files: built.indexed,
+    })
+    await tindex.ready
+  })
+
+  afterAll(() => {
+    trepo.close()
+    rmSync(tdir, { recursive: true, force: true })
+  })
+
+  it("leaves built-in methods on unknown receivers external, and locals aren't members", () => {
+    const e = tindex["entries"].find(
+      (x) => x.path === "src/cache.ts" && x.side === "head",
+    )!
+    const lookup = e.symbols.find((s) => s.qualifiedName === "Cache.lookup")!
+    const all = tindex.forSymbol(lookup.id)!
+    const uses = all.uses.map((c) => describeConn(all, c, "uses"))
+    // Map#get, not the only `get` in the repository.
+    expect(uses).toContain("calls !get external")
+    // The local `refresh` is neither a use of the method Cache.refresh nor a binding.
+    expect(uses.some((u) => u.includes("Cache.refresh"))).toBe(false)
   })
 })

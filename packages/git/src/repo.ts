@@ -463,23 +463,44 @@ export class GitRepo {
         await this.fetchBlobs(need)
       }
     }
-    const args = ["grep", "-I", "-o", "-w", "-F", "--no-color", "--full-name"]
+    // -l is fast; -o with hundreds of patterns isn't. Find files that mention any word, then see which words each has.
+    const args = [
+      "grep",
+      "-I",
+      "-l",
+      "-z",
+      "-w",
+      "-F",
+      "--no-color",
+      "--full-name",
+    ]
     for (const w of words) args.push("-e", w)
     args.push(rev, "--", ...(opts.pathspecs ?? []))
     const r = await this.git(args, { allowFailure: true })
     if (r.code !== 0 && r.code !== 1)
       throw new Error(r.stderr.trim() || "git grep failed")
     const prefix = `${rev}:`
-    for (const line of r.stdout.toString("utf8").split("\n")) {
-      if (!line) continue
-      const l = line.startsWith(prefix) ? line.slice(prefix.length) : line
-      const sep = l.lastIndexOf(":")
-      if (sep <= 0) continue
-      const path = l.slice(0, sep)
-      const word = l.slice(sep + 1)
-      let set = found.get(word)
-      if (!set) found.set(word, (set = new Set()))
-      set.add(path)
+    const paths = r.stdout
+      .toString("utf8")
+      .split("\0")
+      .filter(Boolean)
+      .map((l) => (l.startsWith(prefix) ? l.slice(prefix.length) : l))
+    if (paths.length === 0) return found
+    const wanted = new Set(words)
+    const blobs = await this.treeBlobs(rev)
+    for (const path of paths) {
+      const oid = blobs.get(path)
+      const buf = oid ? await this.blobs().read(oid) : null
+      if (!buf) continue
+      const seen = new Set<string>()
+      for (const m of buf.toString("utf8").matchAll(/[A-Za-z_$][\w$]*/g)) {
+        const w = m[0]
+        if (!wanted.has(w) || seen.has(w)) continue
+        seen.add(w)
+        let set = found.get(w)
+        if (!set) found.set(w, (set = new Set()))
+        set.add(path)
+      }
     }
     return found
   }
