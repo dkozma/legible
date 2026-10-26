@@ -132,6 +132,11 @@ export class ClaudeSdkRuntime implements AgentRuntime {
     const c = this.config
     switch (c.auth) {
       case "claude-code":
+        // Use the claude.ai sign-in. Run non-interactively, claude prefers an API key or
+        // token from the environment, so one exported in the user's shell would otherwise
+        // bill Explanations to that key instead of their plan.
+        delete env.ANTHROPIC_API_KEY
+        delete env.ANTHROPIC_AUTH_TOKEN
         break
       case "anthropic-api":
         env.ANTHROPIC_API_KEY = c.env.ANTHROPIC_API_KEY
@@ -431,11 +436,14 @@ export class ClaudeSdkRuntime implements AgentRuntime {
         version: null,
       }
     }
-    const v = await exec(exe, ["--version"], { timeoutMs: 10_000 })
+    // The same environment runs get, so the status describes what an Explanation would use.
+    const env = this.env()
+    const v = await exec(exe, ["--version"], { timeoutMs: 10_000, env })
     const version = v.stdout.match(/\d+\.\d+\.\d+/)?.[0] ?? null
     // `claude auth status` reports whether the user is signed in without exposing credentials.
     const s = await exec(exe, ["auth", "status", "--json"], {
       timeoutMs: 10_000,
+      env,
     })
     let loggedIn: boolean | null = null
     let configDir: string | null = null
