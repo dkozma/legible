@@ -1,7 +1,7 @@
 // Deterministic runtime for tests and the browser prototype: answers each task
 // with a canned output, and can exercise tools to prove they work end to end.
 
-import type { ModelInfo, RuntimeStatus } from "@legible/domain"
+import type { ModelInfo, Provider, RuntimeStatus } from "@legible/domain"
 
 import { MODEL_CATALOG } from "./catalog"
 import { grantedTools } from "./tools"
@@ -10,7 +10,7 @@ import type { AgentResult, AgentRuntime, AgentTask, RunOptions } from "./types"
 export type FakeResponder = (task: AgentTask<unknown>) => unknown // or a Promise of it
 
 export class FakeRuntime implements AgentRuntime {
-  readonly provider = "anthropic" as const
+  readonly provider: Provider
   readonly calls: { task: AgentTask<unknown>; model: string }[] = []
 
   constructor(
@@ -19,8 +19,11 @@ export class FakeRuntime implements AgentRuntime {
       delayMs?: number
       costUsd?: number
       callTools?: { name: string; input: Record<string, unknown> }[]
+      provider?: Provider
     } = {},
-  ) {}
+  ) {
+    this.provider = opts.provider ?? "anthropic"
+  }
 
   async run<T>(
     task: AgentTask<T>,
@@ -49,7 +52,7 @@ export class FakeRuntime implements AgentRuntime {
     return {
       output,
       text: typeof raw === "string" ? raw : "",
-      provider: "anthropic",
+      provider: this.provider,
       model,
       costUsd: this.opts.costUsd ?? 0.001,
       durationMs: Date.now() - started,
@@ -61,8 +64,8 @@ export class FakeRuntime implements AgentRuntime {
 
   async status(): Promise<RuntimeStatus> {
     return {
-      provider: "anthropic",
-      auth: "claude-code",
+      provider: this.provider,
+      auth: this.provider === "openai" ? "api-key" : "claude-code",
       ready: true,
       detail: "Fake runtime",
       executablePath: null,
@@ -71,6 +74,6 @@ export class FakeRuntime implements AgentRuntime {
   }
 
   async models(): Promise<ModelInfo[]> {
-    return MODEL_CATALOG
+    return MODEL_CATALOG.filter((m) => m.provider === this.provider)
   }
 }

@@ -3,11 +3,13 @@
 import { randomUUID } from "node:crypto"
 
 import {
+  type ChangeBrief,
   DEFAULT_SETTINGS,
   type Explanation,
   type ExplanationBody,
   type ExplanationTarget,
   type Iteration,
+  type Intent,
   type IterationKind,
   type Mode,
   type ModelTier,
@@ -17,6 +19,7 @@ import {
   type ReviewSummary,
   Settings,
   type SourceKind,
+  type Walkthrough,
 } from "@legible/domain"
 import type { Kysely } from "kysely"
 import { sql } from "kysely"
@@ -93,6 +96,32 @@ interface DB {
   }
   settings: { key: string; value_json: string }
   review_state: { review_id: string; state_json: string }
+  intents: { review_id: string; body_json: string; updated_at: string }
+  transcript_choices: {
+    review_id: string
+    transcript_id: string
+    selected: number
+  }
+  walkthroughs: {
+    review_id: string
+    iteration_id: string
+    body_json: string
+    created_at: string
+  }
+  briefs: {
+    review_id: string
+    iteration_id: string
+    body_json: string
+    created_at: string
+  }
+  viewed_steps: { review_id: string; step_id: string; viewed_at: string }
+  judgments: {
+    cache_key: string
+    backend: string
+    model: string
+    answers_json: string
+    created_at: string
+  }
 }
 
 const now = () => new Date().toISOString()
@@ -509,6 +538,226 @@ export class Store {
       .limit(limit)
       .execute()
     return rows.map((r) => toExplanation(r, true))
+  }
+
+  // ---- Intent -----------------------------------------------------------------
+
+  async getIntent(reviewId: string): Promise<Intent | null> {
+    const row = await this.db
+      .selectFrom("intents")
+      .select("body_json")
+      .where("review_id", "=", reviewId)
+      .executeTakeFirst()
+    return row ? (JSON.parse(row.body_json) as Intent) : null
+  }
+
+  async saveIntent(intent: Intent) {
+    const values = {
+      review_id: intent.reviewId,
+      body_json: JSON.stringify(intent),
+      updated_at: intent.updatedAt,
+    }
+    await this.db
+      .insertInto("intents")
+      .values(values)
+      .onConflict((oc) => oc.column("review_id").doUpdateSet(values))
+      .execute()
+  }
+
+  async deleteIntent(reviewId: string) {
+    await this.db
+      .deleteFrom("intents")
+      .where("review_id", "=", reviewId)
+      .execute()
+  }
+
+  /** The user's include/exclude choices for Agent Transcripts, by transcript id. */
+  async transcriptChoices(reviewId: string): Promise<Map<string, boolean>> {
+    const rows = await this.db
+      .selectFrom("transcript_choices")
+      .select(["transcript_id", "selected"])
+      .where("review_id", "=", reviewId)
+      .execute()
+    return new Map(rows.map((r) => [r.transcript_id, r.selected === 1]))
+  }
+
+  async setTranscriptChoice(
+    reviewId: string,
+    transcriptId: string,
+    selected: boolean,
+  ) {
+    const values = {
+      review_id: reviewId,
+      transcript_id: transcriptId,
+      selected: selected ? 1 : 0,
+    }
+    await this.db
+      .insertInto("transcript_choices")
+      .values(values)
+      .onConflict((oc) =>
+        oc.columns(["review_id", "transcript_id"]).doUpdateSet(values),
+      )
+      .execute()
+  }
+
+  // ---- Walkthroughs and Change Briefs ------------------------------------------
+
+  async getWalkthrough(
+    reviewId: string,
+    iterationId: string,
+  ): Promise<Walkthrough | null> {
+    const row = await this.db
+      .selectFrom("walkthroughs")
+      .select("body_json")
+      .where("review_id", "=", reviewId)
+      .where("iteration_id", "=", iterationId)
+      .executeTakeFirst()
+    return row ? (JSON.parse(row.body_json) as Walkthrough) : null
+  }
+
+  /** The newest Walkthrough of an Iteration before this one, to keep unchanged Steps stable. */
+  async previousWalkthrough(
+    reviewId: string,
+    beforeSeq: number,
+  ): Promise<Walkthrough | null> {
+    const row = await this.db
+      .selectFrom("walkthroughs")
+      .innerJoin("iterations", "iterations.id", "walkthroughs.iteration_id")
+      .select("walkthroughs.body_json")
+      .where("walkthroughs.review_id", "=", reviewId)
+      .where("iterations.seq", "<", beforeSeq)
+      .orderBy("iterations.seq", "desc")
+      .executeTakeFirst()
+    return row ? (JSON.parse(row.body_json) as Walkthrough) : null
+  }
+
+  async saveWalkthrough(w: Walkthrough) {
+    const values = {
+      review_id: w.reviewId,
+      iteration_id: w.iterationId,
+      body_json: JSON.stringify(w),
+      created_at: w.createdAt,
+    }
+    await this.db
+      .insertInto("walkthroughs")
+      .values(values)
+      .onConflict((oc) =>
+        oc.columns(["review_id", "iteration_id"]).doUpdateSet(values),
+      )
+      .execute()
+  }
+
+  async getBrief(
+    reviewId: string,
+    iterationId: string,
+  ): Promise<ChangeBrief | null> {
+    const row = await this.db
+      .selectFrom("briefs")
+      .select("body_json")
+      .where("review_id", "=", reviewId)
+      .where("iteration_id", "=", iterationId)
+      .executeTakeFirst()
+    return row ? (JSON.parse(row.body_json) as ChangeBrief) : null
+  }
+
+  async saveBrief(b: ChangeBrief) {
+    const values = {
+      review_id: b.reviewId,
+      iteration_id: b.iterationId,
+      body_json: JSON.stringify(b),
+      created_at: b.createdAt,
+    }
+    await this.db
+      .insertInto("briefs")
+      .values(values)
+      .onConflict((oc) =>
+        oc.columns(["review_id", "iteration_id"]).doUpdateSet(values),
+      )
+      .execute()
+  }
+
+  /** Forgets an Iteration's Walkthrough and Brief, so they're rebuilt. */
+  async clearUnderstanding(reviewId: string, iterationId: string) {
+    await this.db
+      .deleteFrom("briefs")
+      .where("review_id", "=", reviewId)
+      .where("iteration_id", "=", iterationId)
+      .execute()
+    await this.db
+      .deleteFrom("walkthroughs")
+      .where("review_id", "=", reviewId)
+      .where("iteration_id", "=", iterationId)
+      .execute()
+  }
+
+  async viewedSteps(reviewId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom("viewed_steps")
+      .select("step_id")
+      .where("review_id", "=", reviewId)
+      .execute()
+    return rows.map((r) => r.step_id)
+  }
+
+  async setStepsViewed(reviewId: string, stepIds: string[], viewed: boolean) {
+    if (stepIds.length === 0) return
+    if (viewed) {
+      await this.db
+        .insertInto("viewed_steps")
+        .values(
+          stepIds.map((id) => ({
+            review_id: reviewId,
+            step_id: id,
+            viewed_at: now(),
+          })),
+        )
+        .onConflict((oc) => oc.doNothing())
+        .execute()
+    } else {
+      await this.db
+        .deleteFrom("viewed_steps")
+        .where("review_id", "=", reviewId)
+        .where("step_id", "in", stepIds)
+        .execute()
+    }
+  }
+
+  // ---- Judgments ----------------------------------------------------------------
+
+  async getJudgment(
+    cacheKey: string,
+  ): Promise<{ backend: string; model: string; answers: unknown } | null> {
+    const row = await this.db
+      .selectFrom("judgments")
+      .selectAll()
+      .where("cache_key", "=", cacheKey)
+      .executeTakeFirst()
+    return row
+      ? {
+          backend: row.backend,
+          model: row.model,
+          answers: JSON.parse(row.answers_json) as unknown,
+        }
+      : null
+  }
+
+  async saveJudgment(
+    cacheKey: string,
+    backend: string,
+    model: string,
+    answers: unknown,
+  ) {
+    await this.db
+      .insertInto("judgments")
+      .values({
+        cache_key: cacheKey,
+        backend,
+        model,
+        answers_json: JSON.stringify(answers),
+        created_at: now(),
+      })
+      .onConflict((oc) => oc.column("cache_key").doNothing())
+      .execute()
   }
 
   // ---- Agent runs and spend -----------------------------------------------------

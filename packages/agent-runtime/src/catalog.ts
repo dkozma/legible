@@ -1,8 +1,10 @@
 // The curated model catalog shipped with Legible (engineering plan §8.6).
 // Prices are USD per million tokens at Anthropic first-party rates (Bedrock
 // and Vertex bill separately). A model is "recommended" only once it passes
-// Legible's evals for its tier; until the eval harness lands (M3) the
-// current-generation defaults are marked recommended by fiat.
+// Legible's evals for its tier. The Claude defaults predate the eval harness
+// and were marked recommended by fiat; OpenAI models stay experimental until
+// `pnpm evals` passes them for a tier (evals/README.md). OpenAI prices are
+// Standard-tier rates for prompts up to 272K tokens.
 
 import type {
   ModelInfo,
@@ -20,6 +22,8 @@ export const MODEL_CATALOG: ModelInfo[] = [
     outputPrice: 20,
     contextWindow: 1_000_000,
     status: "recommended",
+    structuredOutput: true,
+    toolUse: true,
     costRank: 3,
     tiers: ["strong"],
   },
@@ -31,6 +35,8 @@ export const MODEL_CATALOG: ModelInfo[] = [
     outputPrice: 10,
     contextWindow: 1_000_000,
     status: "recommended",
+    structuredOutput: true,
+    toolUse: true,
     costRank: 2,
     tiers: ["strong", "mid", "fast"],
   },
@@ -42,6 +48,8 @@ export const MODEL_CATALOG: ModelInfo[] = [
     outputPrice: 0.5,
     contextWindow: 1_000_000,
     status: "recommended",
+    structuredOutput: true,
+    toolUse: true,
     costRank: 1,
     tiers: ["mid", "fast"],
   },
@@ -53,8 +61,49 @@ export const MODEL_CATALOG: ModelInfo[] = [
     outputPrice: 50,
     contextWindow: 1_000_000,
     status: "experimental",
+    structuredOutput: true,
+    toolUse: true,
     costRank: 3,
     tiers: ["strong"],
+  },
+  {
+    provider: "openai",
+    id: "gpt-6-astra",
+    displayName: "GPT-6 Astra",
+    inputPrice: 10,
+    outputPrice: 50,
+    contextWindow: null,
+    status: "experimental",
+    structuredOutput: true,
+    toolUse: true,
+    costRank: 3,
+    tiers: ["strong"],
+  },
+  {
+    provider: "openai",
+    id: "gpt-6.1-sol",
+    displayName: "GPT-6.1 Sol",
+    inputPrice: 2,
+    outputPrice: 10,
+    contextWindow: null,
+    status: "experimental",
+    structuredOutput: true,
+    toolUse: true,
+    costRank: 2,
+    tiers: ["strong", "mid", "fast"],
+  },
+  {
+    provider: "openai",
+    id: "gpt-6-luna",
+    displayName: "GPT-6 Luna",
+    inputPrice: 0.1,
+    outputPrice: 0.5,
+    contextWindow: null,
+    status: "experimental",
+    structuredOutput: true,
+    toolUse: true,
+    costRank: 1,
+    tiers: ["mid", "fast"],
   },
 ]
 
@@ -62,6 +111,21 @@ export const DEFAULT_TIERS: Record<ModelTier, TierAssignment> = {
   strong: { provider: "anthropic", model: "claude-opus-5-5" },
   mid: { provider: "anthropic", model: "claude-sonnet-5-5" },
   fast: { provider: "anthropic", model: "claude-haiku-5-5" },
+}
+
+/** The defaults when only OpenAI is connected. */
+export const OPENAI_DEFAULT_TIERS: Record<ModelTier, TierAssignment> = {
+  strong: { provider: "openai", model: "gpt-6-astra" },
+  mid: { provider: "openai", model: "gpt-6.1-sol" },
+  fast: { provider: "openai", model: "gpt-6-luna" },
+}
+
+/** Each provider's default for a tier. */
+export function providerDefault(
+  provider: Provider,
+  tier: ModelTier,
+): TierAssignment {
+  return (provider === "openai" ? OPENAI_DEFAULT_TIERS : DEFAULT_TIERS)[tier]
 }
 
 export function findModel(provider: Provider, id: string): ModelInfo | null {
