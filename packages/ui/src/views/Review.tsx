@@ -1,8 +1,12 @@
 import type {
+  CodeSymbol,
+  Connection,
+  ConnectionSite,
   Explanation,
   ExplanationTarget,
   FileChange,
   FileDiff,
+  SymbolConnections,
 } from "@legible/domain"
 import {
   useMutation,
@@ -14,6 +18,7 @@ import {
   ArrowLeft,
   BookOpen,
   ChevronLeft,
+  Network,
   ChevronRight,
   Loader2,
   RefreshCw,
@@ -28,6 +33,7 @@ import {
   Button,
   Callout,
   Kbd,
+  LineTab,
   Progress,
   Select,
   Switch,
@@ -37,7 +43,14 @@ import {
 } from "../components/ui"
 import { useClient } from "../context"
 import { type DiffActions, DiffLoading, DiffView } from "../diff/DiffView"
-import { buildRows, chunkRanges, rangesForRows, rowAt } from "../diff/rows"
+import {
+  buildRows,
+  chunkRanges,
+  rangesForRows,
+  rowAt,
+  rowForLine,
+} from "../diff/rows"
+import { ConnectionsPanel, symbolLabel } from "../review/ConnectionsPanel"
 import { ExplainPanel } from "../review/ExplainPanel"
 import { FileTree } from "../review/FileTree"
 import { useUI } from "../state"
@@ -173,21 +186,30 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
 
   // ---- Navigation ------------------------------------------------------------------
 
+  /** Records where the diff is and which Symbol the panel shows, so ⌘[ comes back here. */
+  const pushTrail = useCallback(() => {
+    const s = useUI.getState()
+    s.set({
+      trail: {
+        back: [
+          ...s.trail.back,
+          {
+            reviewId,
+            px: scrollTop.current,
+            symbolId: s.focusSymbol?.symbolId ?? null,
+            label: s.focusSymbol?.label ?? null,
+          },
+        ].slice(-100),
+        forward: [],
+      },
+    })
+  }, [reviewId])
   const scrollToPx = useCallback(
     (px: number, trail = false) => {
-      const s = useUI.getState()
-      if (trail)
-        s.set({
-          trail: {
-            back: [...s.trail.back, { reviewId, px: scrollTop.current }].slice(
-              -100,
-            ),
-            forward: [],
-          },
-        })
-      s.scroll(px)
+      if (trail) pushTrail()
+      useUI.getState().scroll(px)
     },
-    [reviewId],
+    [pushTrail],
   )
   const scrollToRow = useCallback(
     (row: number, trail = false) =>
@@ -254,10 +276,174 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     onSuccess: (job) => {
       const s = useUI.getState()
       s.upsertJob(job)
-      s.set({ activeJobId: job.jobId, shownExplanation: null })
+      s.set({
+        activeJobId: job.jobId,
+        shownExplanation: null,
+        panel: "explain",
+      })
     },
     onError: (e: Error) => useUI.getState().toast(e.message),
   })
+
+  // ---- Symbols and Connections ------------------------------------------------------
+
+  const fileOf = (side: "base" | "head", path: string) =>
+    files.find((f) =>
+      side === "base" ? (f.oldPath ?? f.path) === path : f.path === path,
+    ) ?? files.find((f) => f.path === path || f.oldPath === path)
+
+  /** Shows a Symbol in the panel and scrolls to it when the diff draws its line. Joins the Trail. */
+  const goToSymbol = (sym: CodeSymbol, opts: { keepPanel?: boolean } = {}) => {
+    const f = fileOf(sym.side, sym.path)
+    const row = f ? rowForLine(model, f.id, sym.side, sym.nameLine - 1) : -1
+    pushTrail()
+    useUI.getState().set({
+      focusSymbol: { symbolId: sym.id, label: symbolLabel(sym) },
+      // From an Explanation, stay on it when the diff shows the code; otherwise the
+      // Connections panel shows the code instead.
+      ...(opts.keepPanel && row >= 0 ? {} : { panel: "connections" as const }),
+    })
+    if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
+  }
+
+  /** Goes to where a Connection is made: the using line, with its Symbol in the panel. */
+  const goToSite = (site: ConnectionSite, from: CodeSymbol | null) => {
+    const f = fileOf(site.side, site.path)
+    const row = f ? rowForLine(model, f.id, site.side, site.line - 1) : -1
+    pushTrail()
+    if (from)
+      useUI.getState().set({
+        focusSymbol: { symbolId: from.id, label: symbolLabel(from) },
+        panel: "connections",
+      })
+    if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
+  }
+
+  const inspect = (
+    fileId: string,
+    side: "base" | "head",
+    line: number,
+    col: number,
+    follow: boolean,
+  ) => {
+    const f = files.find((x) => x.id === fileId)
+    if (!f || !iterationId) return
+    if (f.tier === "text") {
+      if (follow)
+        useUI
+          .getState()
+          .toast(
+            `No Symbols in ${f.path.split("/").pop()}: Legible has no grammar for it.`,
+            "info",
+          )
+      return
+    }
+    client
+      .call("connections.at", {
+        reviewId,
+        iterationId,
+        side,
+        path: side === "base" ? (f.oldPath ?? f.path) : f.path,
+        line: line + 1,
+        col,
+      })
+      .then((at) => {
+        const s = useUI.getState()
+        if (!follow) {
+          if (at.symbol)
+            s.set({
+              focusSymbol: {
+                symbolId: at.symbol.id,
+                label: symbolLabel(at.symbol),
+              },
+            })
+          return
+        }
+        const [only] = at.targets
+        if (only && at.targets.length === 1) goToSymbol(only)
+        else if (at.targets.length > 1 && at.symbol) {
+          s.set({
+            focusSymbol: {
+              symbolId: at.symbol.id,
+              label: symbolLabel(at.symbol),
+            },
+            panel: "connections",
+          })
+          s.toast(
+            `${at.connection?.name ?? "This name"} is ambiguous: ${at.targets.length} candidates, listed under Uses.`,
+            "info",
+          )
+        } else if (at.connection?.status === "external")
+          s.toast(
+            `${at.connection.name} is defined outside the indexed code${at.connection.module ? ` (${at.connection.module})` : ""}.`,
+            "info",
+          )
+        else if (at.symbol)
+          s.set({
+            focusSymbol: {
+              symbolId: at.symbol.id,
+              label: symbolLabel(at.symbol),
+            },
+            panel: "connections",
+          })
+      })
+      .catch((e: Error) => useUI.getState().toast(e.message))
+  }
+
+  const lines = (s: CodeSymbol | null): [number, number] | null =>
+    s ? [s.startLine, s.endLine] : null
+
+  /** A Symbol with its Connection changes. Base and Head ranges come from it and its counterpart. */
+  const symbolTarget = (all: SymbolConnections): ExplanationTarget | null => {
+    const s = all.symbol
+    const f = fileOf(s.side, s.path)
+    // A file's own Symbol is the file.
+    if (s.kind === "module" && f) return fileTarget(f.id)
+    const head = s.side === "head" ? s : all.counterpart
+    const base = s.side === "base" ? s : all.counterpart
+    return {
+      kind: "symbol",
+      symbolId: s.id,
+      fileId: f?.id ?? null,
+      path: f?.path ?? s.path,
+      oldPath: f?.oldPath ?? null,
+      qualifiedName: s.qualifiedName,
+      symbolKind: s.kind,
+      // Outside the Change Set the file is the same on both sides.
+      baseRange: f ? lines(base) : lines(s),
+      headRange: lines(head),
+    }
+  }
+
+  /** "How does A use B?": A's code, B's code, and what changed between them. */
+  const connectionTarget = (
+    c: Connection,
+    all: SymbolConnections,
+  ): ExplanationTarget | null => {
+    const from = all.symbols[c.fromId]
+    if (!from) return null
+    const to = c.toId ? (all.symbols[c.toId] ?? null) : null
+    const f = fileOf(from.side, from.path)
+    const other = from.counterpartId
+      ? (all.symbols[from.counterpartId] ?? null)
+      : null
+    const head = from.side === "head" ? from : other
+    const base = from.side === "base" ? from : other
+    return {
+      kind: "connection",
+      connectionId: c.id,
+      connectionKind: c.kind,
+      fromSymbolId: from.id,
+      toSymbolId: to?.id ?? null,
+      fromName: from.kind === "module" ? from.path : from.qualifiedName,
+      toName: to ? (to.kind === "module" ? to.path : to.qualifiedName) : c.name,
+      fileId: f?.id ?? null,
+      path: f?.path ?? from.path,
+      oldPath: f?.oldPath ?? null,
+      baseRange: f ? lines(base) : lines(from),
+      headRange: lines(head),
+    }
+  }
 
   const fileTarget = (fileId: string): ExplanationTarget | null => {
     const f = files.find((x) => x.id === fileId)
@@ -400,12 +586,30 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     explainFile: (fileId) => runExplain(fileTarget(fileId)),
     openInEditor,
     toggleViewed,
+    inspect,
     canOpenInEditor: Boolean(review.data?.repo.workTree),
   }
 
   const jumpToExplanation = (e: Explanation) => {
-    const f = model.files.find((x) => x.fileId === e.target.fileId)
-    if (!f) return
+    const t = e.target
+    // Symbols and Connections the diff doesn't show (outside the Change Set) open in the
+    // Connections panel, which shows their code.
+    const focus =
+      t.kind === "symbol"
+        ? { symbolId: t.symbolId, label: t.qualifiedName }
+        : t.kind === "connection"
+          ? { symbolId: t.fromSymbolId, label: t.fromName }
+          : null
+    const f = t.fileId
+      ? model.files.find((x) => x.fileId === t.fileId)
+      : undefined
+    if (!f) {
+      if (focus) {
+        pushTrail()
+        useUI.getState().set({ focusSymbol: focus, panel: "connections" })
+      }
+      return
+    }
     if (e.target.kind === "file") {
       scrollToRow(f.row, true)
       return
@@ -436,8 +640,17 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     const stack = dir === "back" ? s.trail.back : s.trail.forward
     const loc = stack[stack.length - 1]
     if (!loc) return
-    const here = { reviewId, px: scrollTop.current }
+    const here = {
+      reviewId,
+      px: scrollTop.current,
+      symbolId: s.focusSymbol?.symbolId ?? null,
+      label: s.focusSymbol?.label ?? null,
+    }
     s.set({
+      focusSymbol:
+        loc.symbolId && loc.label
+          ? { symbolId: loc.symbolId, label: loc.label }
+          : null,
       trail:
         dir === "back"
           ? {
@@ -496,6 +709,13 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       group: "Move",
       keys: ["mod+]"],
       run: () => trailMove("forward"),
+    },
+    {
+      id: "connections",
+      title: "Show Connections",
+      group: "View",
+      keys: [],
+      run: () => useUI.getState().set({ panel: "connections" }),
     },
     {
       id: "explain",
@@ -593,6 +813,29 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     },
   ]
   useKeyboard(commands, !ui.palette && !ui.shortcuts)
+
+  // The mouse's back and forward buttons walk the Trail, as in a browser.
+  const trailMoveRef = useRef(trailMove)
+  trailMoveRef.current = trailMove
+  useEffect(() => {
+    const side = (e: MouseEvent) => e.button === 3 || e.button === 4
+    const down = (e: MouseEvent) => {
+      if (side(e)) e.preventDefault()
+    }
+    const up = (e: MouseEvent) => {
+      if (!side(e)) return
+      e.preventDefault()
+      const s = useUI.getState()
+      if (s.palette || s.shortcuts) return
+      trailMoveRef.current(e.button === 3 ? "back" : "forward")
+    }
+    window.addEventListener("mousedown", down)
+    window.addEventListener("mouseup", up)
+    return () => {
+      window.removeEventListener("mousedown", down)
+      window.removeEventListener("mouseup", up)
+    }
+  }, [])
 
   // Expose commands and files to the palette.
   const commandsRef = useRef(commands)
@@ -934,25 +1177,65 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
               </Button>
             </Callout>
           )}
-          <ExplainPanel
-            job={job}
-            explanation={ui.shownExplanation}
-            history={(history.data ?? []).filter(
-              (h) => h.id !== (ui.shownExplanation?.id ?? job?.explanation?.id),
-            )}
-            onShow={(e) => ui.set({ shownExplanation: e, activeJobId: null })}
-            onJump={jumpToExplanation}
-            onRetry={(force) => {
-              const t = job?.target ?? ui.shownExplanation?.target ?? null
-              runExplain(t, force)
-            }}
-            onCancel={() => {
-              if (job)
-                client
-                  .call("explain.cancel", { jobId: job.jobId })
-                  .catch((e: Error) => useUI.getState().toast(e.message))
-            }}
-          />
+          <div
+            role="tablist"
+            className="flex shrink-0 items-stretch gap-0.5 border-b px-2"
+          >
+            <LineTab
+              selected={ui.panel === "connections"}
+              onClick={() => ui.set({ panel: "connections" })}
+            >
+              <Network />
+              Connections
+            </LineTab>
+            <LineTab
+              selected={ui.panel === "explain"}
+              onClick={() => ui.set({ panel: "explain" })}
+            >
+              <BookOpen />
+              Explain
+            </LineTab>
+          </div>
+          {ui.panel === "connections" ? (
+            <ConnectionsPanel
+              reviewId={reviewId}
+              iterationId={iterationId}
+              files={files}
+              topFileId={topFile}
+              focus={ui.focusSymbol}
+              trail={ui.trail.back}
+              onGoSymbol={goToSymbol}
+              onGoSite={goToSite}
+              onExplainSymbol={(all) => runExplain(symbolTarget(all))}
+              onExplainConnection={(c, all) =>
+                runExplain(connectionTarget(c, all))
+              }
+            />
+          ) : (
+            <ExplainPanel
+              reviewId={reviewId}
+              iterationId={iterationId}
+              onGoSymbol={(s) => goToSymbol(s, { keepPanel: true })}
+              job={job}
+              explanation={ui.shownExplanation}
+              history={(history.data ?? []).filter(
+                (h) =>
+                  h.id !== (ui.shownExplanation?.id ?? job?.explanation?.id),
+              )}
+              onShow={(e) => ui.set({ shownExplanation: e, activeJobId: null })}
+              onJump={jumpToExplanation}
+              onRetry={(force) => {
+                const t = job?.target ?? ui.shownExplanation?.target ?? null
+                runExplain(t, force)
+              }}
+              onCancel={() => {
+                if (job)
+                  client
+                    .call("explain.cancel", { jobId: job.jobId })
+                    .catch((e: Error) => useUI.getState().toast(e.message))
+              }}
+            />
+          )}
         </aside>
       </div>
     </>

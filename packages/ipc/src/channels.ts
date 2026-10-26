@@ -28,6 +28,12 @@ export const CHANNELS = [
   "explain.cancel",
   "explain.jobs",
   "explain.history",
+  "connections.status",
+  "connections.fileSymbols",
+  "connections.symbol",
+  "connections.at",
+  "symbol.source",
+  "connections.lookup",
   "spend.summary",
   "editor.open",
   "hosts.list",
@@ -45,3 +51,6 @@ export const EVENTS = [
   "app.error",
 ] as const
 export type EventName = (typeof EVENTS)[number]
+
+/** connections.lookup: at most this many code spans per request, each at most this long. */
+export const LOOKUP_LIMITS = { names: 50, length: 200 } as const

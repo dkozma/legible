@@ -4,26 +4,38 @@
 
 import {
   type ChangeSetSummary,
+  type CodeSymbol,
   type Explanation,
   type ExplanationJob,
   ExplanationTarget,
   type FileDiff,
   type HostAccount,
   HostKind,
+  type IndexStatus,
   type Iteration,
   type ModelInfo,
+  type PositionInfo,
   type ReviewSummary,
   type RuntimeStatus,
   SecretName,
   Settings,
+  Side,
   Source,
   type SpendSummary,
+  type SymbolConnections,
+  type SymbolSource,
 } from "@legible/domain"
 import { z } from "zod"
 
-import type { Channel, EventName } from "./channels"
+import { type Channel, type EventName, LOOKUP_LIMITS } from "./channels"
 
-export { CHANNELS, type Channel, EVENTS, type EventName } from "./channels"
+export {
+  CHANNELS,
+  type Channel,
+  EVENTS,
+  type EventName,
+  LOOKUP_LIMITS,
+} from "./channels"
 
 const id = z.string().min(1).max(200)
 
@@ -102,6 +114,43 @@ export const requests = {
   "explain.cancel": z.object({ jobId: id }),
   "explain.jobs": z.object({ reviewId: id }),
   "explain.history": z.object({ reviewId: id }),
+  "connections.status": z.object({ reviewId: id, iterationId: id }),
+  "connections.fileSymbols": z.object({
+    reviewId: id,
+    iterationId: id,
+    fileId: id,
+  }),
+  "connections.symbol": z.object({
+    reviewId: id,
+    iterationId: id,
+    symbolId: id,
+  }),
+  "connections.at": z.object({
+    reviewId: id,
+    iterationId: id,
+    side: Side,
+    path: z.string().min(1).max(4096),
+    /** 1-based line, 0-based column. */
+    line: z.number().int().min(1),
+    col: z.number().int().min(0),
+  }),
+  "symbol.source": z.object({
+    reviewId: id,
+    iterationId: id,
+    symbolId: id,
+  }),
+  "connections.lookup": z.object({
+    reviewId: id,
+    iterationId: id,
+    /** Code spans from an Explanation, as written. */
+    names: z
+      .array(z.string().max(LOOKUP_LIMITS.length))
+      .max(LOOKUP_LIMITS.names),
+    near: z.object({
+      path: z.string().max(4096).nullable(),
+      symbolIds: z.array(id).max(4),
+    }),
+  }),
   "spend.summary": z.object({ reviewId: id.nullable() }),
   "editor.open": z.object({
     reviewId: id,
@@ -148,6 +197,12 @@ export interface Responses {
   "explain.cancel": { ok: true }
   "explain.jobs": ExplanationJob[]
   "explain.history": Explanation[]
+  "connections.status": IndexStatus
+  "connections.fileSymbols": { base: CodeSymbol[]; head: CodeSymbol[] }
+  "connections.symbol": SymbolConnections | null
+  "connections.at": PositionInfo
+  "symbol.source": SymbolSource | null
+  "connections.lookup": Record<string, CodeSymbol[]>
   "spend.summary": SpendSummary
   "editor.open": { ok: boolean; error: string | null }
   "hosts.list": HostAccount[]

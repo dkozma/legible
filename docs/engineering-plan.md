@@ -41,7 +41,7 @@ Code, types, and table names use the glossary terms in [CONTEXT.md](../CONTEXT.m
 
 **Why two utility processes:** parsing and agent orchestration are both bursty and crash-prone. Isolating them keeps the main process (IPC, DB, windows) responsive and lets either restart without losing UI state.
 
-**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md), [ADR 0007 — `node:sqlite`](./adr/0007-node-sqlite-over-better-sqlite3.md), [ADR 0008 — M1 agents read git objects](./adr/0008-m1-agents-read-git-objects.md), [ADR 0009 — Lezer highlighting until M2](./adr/0009-lezer-highlighting-until-m2.md), [ADR 0010 — Tailwind CSS](./adr/0010-tailwind-css.md), [ADR 0011 — oxlint and oxfmt](./adr/0011-oxlint-and-oxfmt.md), [ADR 0012 — calendar versions](./adr/0012-calendar-versions.md), [ADR 0013 — opt-in error reports](./adr/0013-opt-in-error-reports.md).
+**Decisions recorded:** [ADR 0001 — Electron](./adr/0001-electron-over-tauri.md), [ADR 0002 — AgentRuntime & auth](./adr/0002-agent-runtime-and-claude-auth.md), [ADR 0003 — partial clones & worktrees](./adr/0003-blobless-clones-and-worktrees.md), [ADR 0004 — agents never load repo settings](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0005 — Judge interface](./adr/0005-judge-interface-for-typed-judgments.md), [ADR 0006 — multiple model providers](./adr/0006-multiple-model-providers.md), [ADR 0007 — `node:sqlite`](./adr/0007-node-sqlite-over-better-sqlite3.md), [ADR 0008 — M1 agents read git objects](./adr/0008-m1-agents-read-git-objects.md), [ADR 0009 — Lezer highlighting until M2](./adr/0009-lezer-highlighting-until-m2.md), [ADR 0010 — Tailwind CSS](./adr/0010-tailwind-css.md), [ADR 0011 — oxlint and oxfmt](./adr/0011-oxlint-and-oxfmt.md), [ADR 0012 — calendar versions](./adr/0012-calendar-versions.md), [ADR 0013 — opt-in error reports](./adr/0013-opt-in-error-reports.md), [ADR 0014 — the tree-sitter indexer](./adr/0014-tree-sitter-indexer.md).
 
 ## 2. Stack
 
@@ -82,13 +82,13 @@ legible/
 │  ├─ store/                       SQLite schema, migrations, repositories
 │  ├─ git/                         git CLI wrapper: clone cache, worktrees, Snapshots, diffs, apply
 │  ├─ diff/                        line/word diff, fragments, move detection
-│  ├─ indexer/                     tree-sitter, grammars, Symbols, Connections, equivalence, highlighting
+│  ├─ indexer/                     tree-sitter, Symbols, Connections, equivalence, highlighting; Change Set builds
+│  │  └─ grammars/                 manifest with Language Tiers + Legible's own queries (WASM from npm, ADR 0014)
 │  ├─ hosts/                       github/, gitlab/ adapters behind a common Host interface
 │  ├─ agent-runtime/               AgentRuntime interface, Claude + OpenAI impls, router, model catalog, tools, fake/replay
 │  ├─ judge/                       Judge interface; Jev, OpenAI Decisions, fast-tier backends; judgment catalog
 │  └─ pipelines/                   Intent, Walkthrough, Brief, Explanations, Asks, Revisions, Lenses…
 │                                  (prompts + output schemas + orchestration, versioned)
-├─ grammars/                       WASM grammars + tags/highlights queries, manifest with Language Tiers
 ├─ fixtures/                       scripts that generate deterministic fixture repos & Change Sets
 └─ evals/                          labeled real-world Change Sets + scoring for AI pipelines
 ```
@@ -153,7 +153,7 @@ All git work shells out to the user's `git` (≥ 2.38 required; checked at start
 
 ### 7.1 Grammars and Language Tiers
 
-- `grammars/manifest.json` lists each language: file globs, WASM grammar, `highlights.scm`, optional `tags.scm`, optional `locals.scm`, and derived **Language Tier** (Full if tags present, Structural if grammar only).
+- `packages/indexer/grammars/manifest.json` lists each language: file globs, WASM grammar, `highlights.scm`, optional `tags.scm`, optional `locals.scm`, and derived **Language Tier** (Full if tags present, Structural if grammar only).
 - Bundle every grammar that ships a tags query (~25 mainstream languages) plus structural grammars for config formats (JSON, YAML, TOML, SQL, HCL). Pin grammar versions to a single web-tree-sitter ABI; a CI check loads every grammar.
 - A generic "definitions" query per Structural-tier language yields Symbols without Connections.
 
@@ -458,6 +458,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - Symbol-boundary fragment splitting; AST-backed structural-equivalence proofs.
 - Connections panel, ⌘-click, Trail; Explanations on Symbols and Connections.
 - **Exit:** on fixture and real repos in ≥ 5 Full-tier languages, Connections panel loads < 500 ms after a Step opens.
+- **As built:** see [Dogfooding](./dogfooding.md#what-m2-adds) and [ADR 0014](./adr/0014-tree-sitter-indexer.md). The indexer builds Change Sets too, so the diff engine moved into its utility process. Until Steps exist (M3), the panel follows the clicked line's Symbol. Indexing the refund fixture takes about 30 ms after the Change Set opens. Not yet done: `rename-local`/`move`/`extract` proofs, `tsconfig` path aliases, and the mini-graph.
 
 ### M3 — Understanding
 - Intent pipeline incl. Agent Transcript import and Inferred Intent.

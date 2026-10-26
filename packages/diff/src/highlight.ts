@@ -1,6 +1,7 @@
 // Syntax highlighting with Lezer grammars, producing compact per-line token
-// arrays ([startCol, len, scopeId] triples). M2 replaces the grammars with
-// tree-sitter behind the same output format, so the renderer won't change.
+// arrays ([startCol, len, scopeId] triples). Since M2 the indexer highlights
+// with tree-sitter; this is the fallback for languages it has no grammar for
+// (ADR 0014).
 
 import { StreamLanguage, type StreamParser } from "@codemirror/language"
 import {
@@ -125,10 +126,7 @@ const highlighter = tagHighlighter([
 const stream = (p: StreamParser<unknown>): Parser =>
   StreamLanguage.define(p).parser
 
-/**
- * Legacy CodeMirror modes. They tokenize one line at a time, so their trees
- * never hold a multi-line string; see linesInsideStrings.
- */
+/** Legacy CodeMirror modes, for languages without a Lezer grammar. */
 const STREAM_MODES = new Map<string, StreamParser<unknown>>([
   ["shell", shell],
   ["ruby", ruby],
@@ -241,56 +239,6 @@ export function highlightLines(
   return out
 }
 
-const STRINGY = /String|Template|Heredoc|Nowdoc|TextBlock/
-
-/**
- * Marks lines that begin inside a multi-line string, template or heredoc,
- * from the parse tree (tokens can't tell: `${x}` and escapes aren't string
- * tokens). Whitespace on such lines is content. Null when not parseable.
- */
-export function linesInsideStrings(
-  language: string | null,
-  lines: string[],
-): Uint8Array | null {
-  // Unknown for stream modes: a string spanning lines is one token per line there.
-  if (!language || STREAM_MODES.has(language)) return null
-  const parser = parserFor(language)
-  if (!parser) return null
-  const text = lines.join("\n")
-  if (text.length > MAX_HIGHLIGHT_CHARS) return null
-  const starts = new Array<number>(lines.length)
-  let pos = 0
-  for (let i = 0; i < lines.length; i++) {
-    starts[i] = pos
-    pos += (lines[i] as string).length + 1
-  }
-  const lineOf = (offset: number) => {
-    let lo = 0
-    let hi = lines.length - 1
-    while (lo < hi) {
-      const mid = (lo + hi + 1) >> 1
-      if ((starts[mid] as number) <= offset) lo = mid
-      else hi = mid - 1
-    }
-    return lo
-  }
-  const out = new Uint8Array(lines.length)
-  try {
-    parser.parse(text).iterate({
-      enter(node) {
-        if (!STRINGY.test(node.name)) return
-        const first = lineOf(node.from)
-        const last = lineOf(Math.max(node.from, node.to - 1))
-        for (let l = first + 1; l <= last; l++) out[l] = 1
-        return false
-      },
-    })
-  } catch {
-    return null
-  }
-  return out
-}
-
 /** Scope id at a column, or -1. */
 export function scopeAt(tokens: LineTokens | undefined, col: number): number {
   if (!tokens) return -1
@@ -301,5 +249,3 @@ export function scopeAt(tokens: LineTokens | undefined, col: number): number {
   }
   return -1
 }
-
-export const STRING_SCOPE = TOKEN_SCOPES.indexOf("string")

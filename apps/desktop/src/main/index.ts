@@ -57,6 +57,12 @@ import {
 import { ERROR_REPORTS_ARG } from "./errorReportingShared"
 import { ExplanationService } from "./explanations"
 import { HostService } from "./hosts"
+import {
+  IndexerClient,
+  type IndexerTransport,
+  inProcessIndexer,
+} from "./indexerClient"
+import type { FromIndexer, Indexer } from "./indexerCore"
 import { ReviewService, UserError } from "./reviews"
 import { SecretStore } from "./secrets"
 import { loadShellEnv } from "./shellEnv"
@@ -96,6 +102,7 @@ let reviews: ReviewService
 let explanations: ExplanationService
 let hosts: HostService
 let agentHost: AgentHostClient
+let indexer: Indexer
 let settingsCache: Settings | null = null
 const pendingOpen: string[] = []
 
@@ -201,6 +208,22 @@ function spawnAgentHost(): Transport {
   }
 }
 
+function spawnIndexer(): IndexerTransport {
+  const args = errorReportingActive() ? [ERROR_REPORTS_ARG] : []
+  const child = utilityProcess.fork(join(here, "indexer.js"), args, {
+    serviceName: "Legible Indexer",
+    stdio: "inherit",
+  })
+  return {
+    // A utility process port, not window.postMessage: there's no origin.
+    // oxlint-disable-next-line unicorn/require-post-message-target-origin
+    post: (m) => child.postMessage(m),
+    onMessage: (cb) => child.on("message", (m: FromIndexer) => cb(m)),
+    onExit: (cb) => child.on("exit", cb),
+    kill: () => child.kill(),
+  }
+}
+
 type Handlers = { [C in Channel]: (req: Req<C>) => Promise<Responses[C]> }
 
 const handlers: Handlers = {
@@ -295,6 +318,27 @@ const handlers: Handlers = {
   },
   "explain.jobs": async ({ reviewId }) => explanations.list(reviewId),
   "explain.history": ({ reviewId }) => store.listExplanations(reviewId),
+  "connections.status": async ({ reviewId, iterationId }) =>
+    indexer.status(await reviews.indexKey(reviewId, iterationId)),
+  "connections.fileSymbols": async ({ reviewId, iterationId, fileId }) =>
+    indexer.fileSymbols(await reviews.indexKey(reviewId, iterationId), fileId),
+  "connections.symbol": async ({ reviewId, iterationId, symbolId }) =>
+    indexer.connections(
+      await reviews.indexKey(reviewId, iterationId),
+      symbolId,
+    ),
+  "connections.at": async ({ reviewId, iterationId, side, path, line, col }) =>
+    indexer.at(
+      await reviews.indexKey(reviewId, iterationId),
+      side,
+      path,
+      line,
+      col,
+    ),
+  "symbol.source": async ({ reviewId, iterationId, symbolId }) =>
+    indexer.source(await reviews.indexKey(reviewId, iterationId), symbolId),
+  "connections.lookup": async ({ reviewId, iterationId, names, near }) =>
+    indexer.lookup(await reviews.indexKey(reviewId, iterationId), names, near),
   "spend.summary": async ({ reviewId }) => {
     const start = new Date()
     start.setDate(1)
@@ -556,6 +600,8 @@ function createWindow() {
 /** Best-effort: a failed update check never affects the running app. */
 async function checkForUpdates() {
   if (!app.isPackaged || process.env.LEGIBLE_NO_UPDATE) return
+  // Prerelease builds (YYYY.MDD.N-g<sha>) are for trying a branch; never replace one with a release.
+  if (app.getVersion().includes("-")) return
   try {
     const { autoUpdater } = await import("electron-updater")
     await autoUpdater.checkForUpdatesAndNotify()
@@ -618,9 +664,19 @@ if (!app.requestSingleInstanceLock()) {
       store = new Store(join(dataDir, "legible.db"))
       secrets = new SecretStore(join(dataDir, "secrets.json"))
       hosts = new HostService(secrets, getSettings)
+      const indexerConfig = {
+        cacheDir: join(dataDir, "index-cache"),
+        // Copied next to the bundle by the build (electron.vite.config.ts).
+        grammarsDir: join(here, "grammars"),
+      }
+      indexer =
+        process.env.LEGIBLE_IN_PROCESS_INDEXER === "1"
+          ? inProcessIndexer(indexerConfig)
+          : new IndexerClient(spawnIndexer, indexerConfig)
       reviews = new ReviewService(
         store,
         hosts,
+        indexer,
         join(dataDir, "repos"),
         (reviewId, detail) =>
           send("review.changesAvailable", { reviewId, detail }),
@@ -636,6 +692,7 @@ if (!app.requestSingleInstanceLock()) {
       explanations = new ExplanationService(
         store,
         reviews,
+        indexer,
         agentHost,
         getSettings,
         (job: ExplanationJob) => send("job.updated", job),
@@ -666,6 +723,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on("will-quit", () => {
     agentHost?.dispose()
+    indexer?.dispose()
     reviews?.dispose()
     void store?.close()
   })

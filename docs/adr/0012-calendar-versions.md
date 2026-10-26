@@ -7,5 +7,6 @@ The obvious `YYYY.MM.DD-N` doesn't work. electron-updater orders versions by sem
 ## Consequences
 
 - Releases come from the Release workflow's "Run workflow" button on `main`. It picks the version with `apps/desktop/scripts/version.mjs` from the existing `v*` tags, tags the commit, builds, signs and notarizes, and uploads to a draft GitHub Release. If the build fails, it removes the tag. Publishing the draft is what makes auto-update offer it.
+- Prerelease builds of a branch (the Prerelease build workflow, run by hand) are `YYYY.MDD.N-g<sha7>`: the next release's version as a semver prerelease, so it sorts before that release. The `g` keeps the identifier valid when the hash is all digits with a leading zero. `CFBundleVersion` gets the numeric part. Prerelease builds skip auto-update, so one is never replaced by a release.
 - Nobody bumps a version by hand. `apps/desktop/package.json` stays at `0.0.0`, so a local build is older than any release.
 - A Windows `.msi` would cap the first part at 255. The Windows target is NSIS, which doesn't; an MSI would need `YY.MDD.N`.

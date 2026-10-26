@@ -1,0 +1,178 @@
+{
+  "$comment": "Grammars per language id (languageForPath). Files are <package>/<path>, or <package>><nested package>/<path> for a package's own copy of a dependency. Highlight files concatenate in order, base language first. When two patterns capture the same node, the more specific one wins, and order breaks ties (highlight.ts). `legible` lists Legible's own tags queries under ../queries. The parse cache key includes a hash of each language's query text, so changing a query needs no version bump. A string value aliases another language.",
+  "languages": {
+    "typescript": {
+      "wasm": "tree-sitter-typescript/tree-sitter-typescript.wasm",
+      "highlights": [
+        "tree-sitter-typescript>tree-sitter-javascript/queries/highlights.scm",
+        "tree-sitter-typescript/queries/highlights.scm"
+      ],
+      "tags": [
+        "tree-sitter-typescript/queries/tags.scm",
+        "tree-sitter-typescript>tree-sitter-javascript/queries/tags.scm"
+      ],
+      "legible": ["typescript/tags.scm"]
+    },
+    "tsx": {
+      "wasm": "tree-sitter-typescript/tree-sitter-tsx.wasm",
+      "highlights": [
+        "tree-sitter-typescript>tree-sitter-javascript/queries/highlights-jsx.scm",
+        "tree-sitter-typescript>tree-sitter-javascript/queries/highlights.scm",
+        "tree-sitter-typescript/queries/highlights.scm"
+      ],
+      "tags": [
+        "tree-sitter-typescript/queries/tags.scm",
+        "tree-sitter-typescript>tree-sitter-javascript/queries/tags.scm"
+      ],
+      "legible": ["typescript/tags.scm", "jsx/tags.scm"]
+    },
+    "javascript": {
+      "wasm": "tree-sitter-javascript/tree-sitter-javascript.wasm",
+      "highlights": [
+        "tree-sitter-javascript/queries/highlights.scm",
+        "tree-sitter-javascript/queries/highlights-jsx.scm",
+        "tree-sitter-javascript/queries/highlights-params.scm"
+      ],
+      "tags": ["tree-sitter-javascript/queries/tags.scm"],
+      "legible": ["javascript/tags.scm", "jsx/tags.scm"]
+    },
+    "jsx": "javascript",
+    "python": {
+      "wasm": "tree-sitter-python/tree-sitter-python.wasm",
+      "highlights": ["tree-sitter-python/queries/highlights.scm"],
+      "tags": ["tree-sitter-python/queries/tags.scm"],
+      "legible": ["python/tags.scm"]
+    },
+    "go": {
+      "wasm": "tree-sitter-go/tree-sitter-go.wasm",
+      "highlights": ["tree-sitter-go/queries/highlights.scm"],
+      "tags": ["tree-sitter-go/queries/tags.scm"],
+      "legible": ["go/tags.scm"]
+    },
+    "rust": {
+      "wasm": "tree-sitter-rust/tree-sitter-rust.wasm",
+      "highlights": ["tree-sitter-rust/queries/highlights.scm"],
+      "tags": ["tree-sitter-rust/queries/tags.scm"],
+      "legible": ["rust/tags.scm"]
+    },
+    "java": {
+      "wasm": "tree-sitter-java/tree-sitter-java.wasm",
+      "highlights": ["tree-sitter-java/queries/highlights.scm"],
+      "tags": ["tree-sitter-java/queries/tags.scm"],
+      "legible": ["java/tags.scm"]
+    },
+    "c": {
+      "wasm": "tree-sitter-c/tree-sitter-c.wasm",
+      "highlights": ["tree-sitter-c/queries/highlights.scm"],
+      "tags": ["tree-sitter-c/queries/tags.scm"],
+      "legible": ["c/tags.scm"]
+    },
+    "cpp": {
+      "wasm": "tree-sitter-cpp/tree-sitter-cpp.wasm",
+      "highlights": [
+        "tree-sitter-cpp>tree-sitter-c/queries/highlights.scm",
+        "tree-sitter-cpp/queries/highlights.scm"
+      ],
+      "tags": ["tree-sitter-cpp/queries/tags.scm"],
+      "legible": ["c/tags.scm", "cpp/tags.scm"]
+    },
+    "csharp": {
+      "wasm": "tree-sitter-c-sharp/tree-sitter-c_sharp.wasm",
+      "highlights": ["tree-sitter-c-sharp/queries/highlights.scm"],
+      "tags": ["tree-sitter-c-sharp/queries/tags.scm"],
+      "legible": []
+    },
+    "ruby": {
+      "wasm": "tree-sitter-ruby/tree-sitter-ruby.wasm",
+      "highlights": ["tree-sitter-ruby/queries/highlights.scm"],
+      "tags": ["tree-sitter-ruby/queries/tags.scm"],
+      "legible": []
+    },
+    "php": {
+      "wasm": "tree-sitter-php/tree-sitter-php.wasm",
+      "highlights": ["tree-sitter-php/queries/highlights.scm"],
+      "tags": ["tree-sitter-php/queries/tags.scm"],
+      "legible": []
+    },
+    "scala": {
+      "wasm": "tree-sitter-scala/tree-sitter-scala.wasm",
+      "highlights": ["tree-sitter-scala/queries/highlights.scm"],
+      "tags": ["tree-sitter-scala/queries/tags.scm"],
+      "legible": []
+    },
+    "lua": {
+      "wasm": "@tree-sitter-grammars/tree-sitter-lua/tree-sitter-lua.wasm",
+      "highlights": [
+        "@tree-sitter-grammars/tree-sitter-lua/queries/highlights.scm"
+      ],
+      "tags": ["@tree-sitter-grammars/tree-sitter-lua/queries/tags.scm"],
+      "legible": []
+    },
+    "elixir": {
+      "wasm": "tree-sitter-elixir/tree-sitter-elixir.wasm",
+      "highlights": ["tree-sitter-elixir/queries/highlights.scm"],
+      "tags": ["tree-sitter-elixir/queries/tags.scm"],
+      "legible": []
+    },
+    "ocaml": {
+      "wasm": "tree-sitter-ocaml/tree-sitter-ocaml.wasm",
+      "highlights": ["tree-sitter-ocaml/queries/highlights.scm"],
+      "tags": ["tree-sitter-ocaml/queries/tags.scm"],
+      "legible": []
+    },
+    "json": {
+      "wasm": "tree-sitter-json/tree-sitter-json.wasm",
+      "highlights": ["tree-sitter-json/queries/highlights.scm"],
+      "tags": [],
+      "legible": []
+    },
+    "shell": {
+      "wasm": "tree-sitter-bash/tree-sitter-bash.wasm",
+      "highlights": ["tree-sitter-bash/queries/highlights.scm"],
+      "tags": [],
+      "legible": ["shell/tags.scm"]
+    },
+    "css": {
+      "wasm": "tree-sitter-css/tree-sitter-css.wasm",
+      "highlights": ["tree-sitter-css/queries/highlights.scm"],
+      "tags": [],
+      "legible": ["css/tags.scm"]
+    },
+    "html": {
+      "wasm": "tree-sitter-html/tree-sitter-html.wasm",
+      "highlights": ["tree-sitter-html/queries/highlights.scm"],
+      "tags": [],
+      "legible": []
+    },
+    "yaml": {
+      "wasm": "@tree-sitter-grammars/tree-sitter-yaml/tree-sitter-yaml.wasm",
+      "highlights": [
+        "@tree-sitter-grammars/tree-sitter-yaml/queries/highlights.scm"
+      ],
+      "tags": [],
+      "legible": ["yaml/tags.scm"]
+    },
+    "toml": {
+      "wasm": "@tree-sitter-grammars/tree-sitter-toml/tree-sitter-toml.wasm",
+      "highlights": [
+        "@tree-sitter-grammars/tree-sitter-toml/queries/highlights.scm"
+      ],
+      "tags": [],
+      "legible": ["toml/tags.scm"]
+    },
+    "hcl": {
+      "wasm": "@tree-sitter-grammars/tree-sitter-hcl/tree-sitter-hcl.wasm",
+      "highlights": [],
+      "tags": [],
+      "legible": ["hcl/tags.scm"]
+    },
+    "zig": {
+      "wasm": "@tree-sitter-grammars/tree-sitter-zig/tree-sitter-zig.wasm",
+      "highlights": [
+        "@tree-sitter-grammars/tree-sitter-zig/queries/highlights.scm"
+      ],
+      "tags": [],
+      "legible": ["zig/tags.scm"]
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { Store } from "@legible/store"
 import { expect, it } from "vitest"
 
+import { inProcessIndexer } from "../src/main/indexerClient"
 import { ReviewService } from "../src/main/reviews"
 
 it("opens a GitLab merge request into a blobless cache clone", async () => {
@@ -15,6 +16,7 @@ it("opens a GitLab merge request into a blobless cache clone", async () => {
   const reviews = new ReviewService(
     store,
     hosts,
+    inProcessIndexer({ cacheDir: null, grammarsDir: null }),
     join(dir, "repos"),
     () => undefined,
   )

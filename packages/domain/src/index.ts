@@ -132,6 +132,7 @@ export interface FileChange {
   baseOid: string | null
   headOid: string | null
   language: string | null
+  tier: LanguageTier
   additions: number
   deletions: number
   binary: boolean
@@ -213,6 +214,10 @@ export interface FileDiff {
   ignoreWhitespace: boolean
 }
 
+/** How much Legible understands a language: Full (Symbols and Connections), Structural (Symbols only), or Text (lines only). */
+export const LanguageTier = z.enum(["full", "structural", "text"])
+export type LanguageTier = z.infer<typeof LanguageTier>
+
 /** Highlight scopes. The renderer maps ids to CSS classes. */
 export const TOKEN_SCOPES = [
   "keyword",
@@ -284,7 +289,157 @@ export interface RuntimeStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Symbols and Connections
+
+export const SymbolKind = z.enum([
+  "function",
+  "method",
+  "class",
+  "interface",
+  "type",
+  "enum",
+  "module",
+  "constant",
+  "variable",
+  "field",
+  "macro",
+  "other",
+])
+export type SymbolKind = z.infer<typeof SymbolKind>
+
+/** How a Symbol differs between Base and Head. */
+export type SymbolChange =
+  | "added"
+  | "removed"
+  | "modified"
+  | "renamed"
+  | "unchanged"
+
+/**
+ * A Symbol (CONTEXT.md): a named definition on Base or Head. Called
+ * CodeSymbol in code so it doesn't shadow JavaScript's own Symbol.
+ */
+export interface CodeSymbol {
+  /** Stable: derived from side, path, kind and qualified name, so it survives Iterations where the Symbol didn't move. */
+  id: string
+  side: Side
+  path: string
+  language: string
+  kind: SymbolKind
+  name: string
+  /** Container names and the name, joined with "." (e.g. "RefundService.refund"). */
+  qualifiedName: string
+  /** 1-based, inclusive. */
+  startLine: number
+  endLine: number
+  /** Where the name is: 1-based line, 0-based columns. */
+  nameLine: number
+  nameCol: number
+  nameEndCol: number
+  /** The declaration up to its body, on one line. */
+  signature: string
+  parentId: string | null
+  change: SymbolChange
+  /** The matched Symbol on the other side. */
+  counterpartId: string | null
+}
+
+export const ConnectionKind = z.enum([
+  "calls",
+  "references",
+  "imports",
+  "implements",
+])
+export type ConnectionKind = z.infer<typeof ConnectionKind>
+
+/**
+ * resolved: by a deterministic rule (same file, an import, the receiver's
+ * class). likely: the only definition by that name in the indexed code.
+ * ambiguous: several candidates (an Ambiguous Connection). external: no
+ * definition in the indexed code, e.g. a library.
+ */
+export type ConnectionStatus = "resolved" | "likely" | "ambiguous" | "external"
+
+/** Where a Connection is made. Line is 1-based, columns 0-based. */
+export interface ConnectionSite {
+  side: Side
+  path: string
+  line: number
+  col: number
+  endCol: number
+}
+
+export interface Connection {
+  /** Stable across Base and Head for the same source, target and kind. */
+  id: string
+  kind: ConnectionKind
+  fromId: string
+  /** The target when resolved or likely; null when ambiguous or external. */
+  toId: string | null
+  /** The name as written where it's used. */
+  name: string
+  status: ConnectionStatus
+  /** For an Ambiguous Connection, every candidate's Symbol id, most likely first. */
+  candidates: string[]
+  /** The module an external name comes from, when an import says so. */
+  module: string | null
+  sites: ConnectionSite[]
+  /** A Connection change: made only on Head (added) or only on Base (removed). */
+  change: "added" | "removed" | null
+}
+
+export interface SymbolConnections {
+  symbol: CodeSymbol
+  counterpart: CodeSymbol | null
+  /** Outgoing: what this Symbol calls, references, imports or implements. */
+  uses: Connection[]
+  /** Incoming. */
+  usedBy: Connection[]
+  /** Every Symbol these Connections name, by id. */
+  symbols: Record<string, CodeSymbol>
+  /** "Used by" covers only the files indexed so far. */
+  scope: IndexScope
+}
+
+export interface IndexScope {
+  /** Files parsed beyond the Change Set's own. */
+  neighborFiles: number
+  /** False when the search for neighbors was cut short (a blobless clone, a very common name). */
+  complete: boolean
+  detail: string | null
+}
+
+export interface IndexStatus {
+  state: "indexing" | "ready" | "error"
+  files: number
+  symbols: number
+  durationMs: number | null
+  error: string | null
+  scope: IndexScope
+}
+
+/** What's at a position in the diff: the Symbol around it and, on a use, what the use refers to. */
+export interface PositionInfo {
+  symbol: CodeSymbol | null
+  /** The use under the position, when there is one. */
+  connection: Connection | null
+  /** Resolved target, or the candidates of an Ambiguous Connection. */
+  targets: CodeSymbol[]
+}
+
+/** A Symbol's code, for previewing definitions outside the Change Set. */
+export interface SymbolSource {
+  symbol: CodeSymbol
+  /** 1-based number of the first line in `lines`. */
+  firstLine: number
+  lines: string[]
+  tokens: LineTokens[] | null
+}
+
+// ---------------------------------------------------------------------------
 // Explanations
+
+const LineRange = z.tuple([z.number().int(), z.number().int()]).nullable()
 
 export const ExplanationTarget = z.discriminatedUnion("kind", [
   z.object({
@@ -293,14 +448,43 @@ export const ExplanationTarget = z.discriminatedUnion("kind", [
     path: z.string(),
     oldPath: z.string().nullable(),
     /** 1-based inclusive. Null when the selection has no lines on that side. */
-    baseRange: z.tuple([z.number().int(), z.number().int()]).nullable(),
-    headRange: z.tuple([z.number().int(), z.number().int()]).nullable(),
+    baseRange: LineRange,
+    headRange: LineRange,
   }),
   z.object({
     kind: z.literal("file"),
     fileId: z.string(),
     path: z.string(),
     oldPath: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal("symbol"),
+    symbolId: z.string(),
+    /** Null when the Symbol is in a file the Change Set doesn't touch. */
+    fileId: z.string().nullable(),
+    path: z.string(),
+    oldPath: z.string().nullable(),
+    qualifiedName: z.string(),
+    symbolKind: SymbolKind,
+    /** The Symbol's lines on each side, 1-based inclusive. */
+    baseRange: LineRange,
+    headRange: LineRange,
+  }),
+  z.object({
+    kind: z.literal("connection"),
+    connectionId: z.string(),
+    connectionKind: ConnectionKind,
+    fromSymbolId: z.string(),
+    /** The target Symbol, when the Connection resolves to one. */
+    toSymbolId: z.string().nullable(),
+    fromName: z.string(),
+    toName: z.string(),
+    /** Where the source Symbol is; the ranges are its lines. */
+    fileId: z.string().nullable(),
+    path: z.string(),
+    oldPath: z.string().nullable(),
+    baseRange: LineRange,
+    headRange: LineRange,
   }),
 ])
 export type ExplanationTarget = z.infer<typeof ExplanationTarget>
@@ -455,8 +639,27 @@ export function isRangeTarget(
   return t.kind === "range"
 }
 
+/** How a Connection reads from its source: "`refundOrder` calls `auditLog`". One wording for labels, prompts and the panel. */
+export const CONNECTION_VERB: Record<ConnectionKind, string> = {
+  calls: "calls",
+  references: "uses",
+  imports: "imports",
+  implements: "extends",
+}
+
+/** How a Connection reads from its target: "`auditLog` is called by `refundOrder`". */
+export const CONNECTION_VERB_IN: Record<ConnectionKind, string> = {
+  calls: "called by",
+  references: "used by",
+  imports: "imported by",
+  implements: "extended by",
+}
+
 export function targetLabel(t: ExplanationTarget): string {
   if (t.kind === "file") return `${t.path} · whole file`
+  if (t.kind === "symbol") return `${t.qualifiedName} · ${t.symbolKind}`
+  if (t.kind === "connection")
+    return `${t.fromName} ${CONNECTION_VERB[t.connectionKind]} ${t.toName}`
   const r = t.headRange ?? t.baseRange
   if (!r) return t.path
   const side = t.headRange ? "" : " (removed)"

@@ -4,3 +4,32 @@ packages:
 onlyBuiltDependencies:
   - electron
   - esbuild
+# Install scripts we skip on purpose. The tree-sitter grammars build native
+# Node bindings with node-gyp; the indexer loads their prebuilt .wasm instead
+# (ADR 0014). electron-winstaller copies a 7-Zip binary for Squirrel.Windows
+# installers; Windows builds use NSIS.
+ignoredBuiltDependencies:
+  - "@tree-sitter-grammars/tree-sitter-hcl"
+  - "@tree-sitter-grammars/tree-sitter-lua"
+  - "@tree-sitter-grammars/tree-sitter-toml"
+  - "@tree-sitter-grammars/tree-sitter-yaml"
+  - "@tree-sitter-grammars/tree-sitter-zig"
+  - electron-winstaller
+  - tree-sitter-bash
+  - tree-sitter-c
+  - tree-sitter-c-sharp
+  - tree-sitter-cpp
+  - tree-sitter-css
+  - tree-sitter-elixir
+  - tree-sitter-go
+  - tree-sitter-html
+  - tree-sitter-java
+  - tree-sitter-javascript
+  - tree-sitter-json
+  - tree-sitter-ocaml
+  - tree-sitter-php
+  - tree-sitter-python
+  - tree-sitter-ruby
+  - tree-sitter-rust
+  - tree-sitter-scala
+  - tree-sitter-typescript

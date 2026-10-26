@@ -3,14 +3,13 @@ export {
   type FileDiffInput,
   hash,
   isTrivialLine,
-  normalizeLine,
-  proveStructural,
 } from "./analyze"
 export {
   type ClassifyInput,
   collapseReason,
   INDENTATION_SENSITIVE,
   LARGE_FILE_BYTES,
+  extensionsFor,
   languageForPath,
   looksBinary,
 } from "./classify"

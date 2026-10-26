@@ -195,56 +195,7 @@ function file(language: string, base: string, head: string) {
   })
 }
 
-describe("Structural proofs", () => {
-  it("proves re-indentation in TypeScript is whitespace-only", () => {
-    const d = file(
-      "typescript",
-      "function f() {\nreturn 1;\n}\n",
-      "function f() {\n  return 1;\n}\n",
-    )
-    expect(d.fragments).toHaveLength(1)
-    expect(d.fragments[0]?.kind).toBe("structural")
-    expect(d.fragments[0]?.proof).toBe("whitespace")
-  })
-
-  it("does not prove re-indentation in Python", () => {
-    const d = file(
-      "python",
-      "if a:\n    x()\ny()\n",
-      "if a:\n    x()\n    y()\n",
-    )
-    expect(d.fragments[0]?.kind).toBe("behavioral")
-  })
-
-  it("does not prove whitespace changes inside a template literal", () => {
-    const d = file(
-      "typescript",
-      "const s = `\n  a\n`;\n",
-      "const s = `\n    a\n`;\n",
-    )
-    expect(d.fragments[0]?.kind).toBe("behavioral")
-  })
-
-  it("does not prove whitespace changes inside a string", () => {
-    const d = file("typescript", 'const s = "a  b";\n', 'const s = "a b";\n')
-    expect(d.fragments[0]?.kind).toBe("behavioral")
-  })
-
-  it("proves operator spacing in TypeScript is formatting", () => {
-    const d = file("typescript", "const x = a+b;\n", "const x = a + b;\n")
-    expect(d.fragments[0]?.proof).toBe("formatting")
-  })
-
-  it("keeps operator merges behavioral", () => {
-    const d = file("typescript", "const x = a - -b;\n", "const x = a--b;\n")
-    expect(d.fragments[0]?.kind).toBe("behavioral")
-  })
-
-  it("never proves spacing changes in shell", () => {
-    const d = file("shell", "a = b\n", "a=b\n")
-    expect(d.fragments[0]?.kind).toBe("behavioral")
-  })
-
+describe("Fragments", () => {
   it("treats real changes as behavioral", () => {
     const d = file("typescript", "const days = 30;\n", "const days = 60;\n")
     expect(d.fragments[0]?.kind).toBe("behavioral")
@@ -371,7 +322,7 @@ describe("highlightLines", () => {
 })
 
 describe("line endings", () => {
-  it("shows a CRLF → LF change as a change, proven whitespace-only for code", () => {
+  it("shows a CRLF → LF change as a change", () => {
     const d = buildFileDiff({
       fileId: "f",
       path: "a.ts",
@@ -388,6 +339,5 @@ describe("line endings", () => {
       ),
     })
     expect(d.fragments).toHaveLength(1)
-    expect(d.fragments[0]?.proof).toBe("whitespace")
   })
 })

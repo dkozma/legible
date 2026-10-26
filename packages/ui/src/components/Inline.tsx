@@ -1,18 +1,35 @@
-import { Fragment } from "react"
+import { Fragment, type ReactNode } from "react"
 
-/** Renders `code` spans from model text. No HTML, no Markdown beyond backticks. */
-export function Inline({ text }: { text: string }) {
-  const parts = text.split(/(`[^`\n]+`)/g)
+const CODE_SPAN = /(`[^`\n]+`)/g
+
+/** The text inside each `code` span, in order. */
+export function codeSpans(text: string): string[] {
+  return [...text.matchAll(CODE_SPAN)].map((m) => (m[1] as string).slice(1, -1))
+}
+
+/**
+ * Renders `code` spans from model text. No HTML, no Markdown beyond
+ * backticks. `code` can render a span itself, e.g. as a link to a Symbol.
+ */
+export function Inline({
+  text,
+  code,
+}: {
+  text: string
+  code?: (text: string) => ReactNode
+}) {
+  const parts = text.split(CODE_SPAN)
   return (
     <>
       {parts.map((p, i) =>
         p.startsWith("`") && p.endsWith("`") && p.length > 2 ? (
-          <code
-            key={i}
-            className="rounded-[4px] bg-muted px-[5px] py-px font-mono text-[0.92em]"
-          >
-            {p.slice(1, -1)}
-          </code>
+          <Fragment key={i}>
+            {code?.(p.slice(1, -1)) ?? (
+              <code className="rounded-[4px] bg-muted px-[5px] py-px font-mono text-[0.92em]">
+                {p.slice(1, -1)}
+              </code>
+            )}
+          </Fragment>
         ) : (
           <Fragment key={i}>{p}</Fragment>
         ),

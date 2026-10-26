@@ -6,7 +6,9 @@ import { join, resolve } from "node:path"
 import { Store } from "@legible/store"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
-import { compareFiles } from "../src/main/changeSet"
+import { compareFiles } from "@legible/indexer"
+
+import { inProcessIndexer } from "../src/main/indexerClient"
 import { ReviewService } from "../src/main/reviews"
 
 let dir: string
@@ -25,6 +27,7 @@ beforeAll(() => {
   reviews = new ReviewService(
     store,
     { token: async () => null } as never,
+    inProcessIndexer({ cacheDir: null, grammarsDir: null }),
     join(dir, "repos"),
     () => undefined,
   )

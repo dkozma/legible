@@ -424,3 +424,27 @@ export function chunkRanges(
   }
   return { baseRange: base, headRange: head }
 }
+
+/**
+ * The row showing a 0-based line of one side of a file, or -1 when that line
+ * isn't drawn (hidden in an unchanged gap, or the file is collapsed).
+ */
+export function rowForLine(
+  model: RowModel,
+  fileId: string,
+  side: "base" | "head",
+  line: number,
+): number {
+  const start = model.files.find((f) => f.fileId === fileId)?.row ?? -1
+  if (start < 0) return -1
+  for (let i = start + 1; i < model.rows.length; i++) {
+    const r = model.rows[i] as Row
+    if (r.k === "file" || r.k === "end") break
+    if (r.k === "line") {
+      if ((side === "head" ? r.head : r.base) === line) return i
+    } else if (r.k === "pair") {
+      if ((side === "head" ? r.r : r.l) === line) return i
+    }
+  }
+  return -1
+}

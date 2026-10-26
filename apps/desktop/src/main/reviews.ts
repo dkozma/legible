@@ -24,10 +24,11 @@ import {
   type PullRequestInfo,
   parsePullRequestUrl,
 } from "@legible/hosts"
+import type { BuiltChangeSet } from "@legible/indexer"
 import type { Store } from "@legible/store"
 
-import { type BuiltChangeSet, buildChangeSet } from "./changeSet"
 import type { HostService } from "./hosts"
+import type { Indexer, IndexKey } from "./indexerCore"
 
 export class UserError extends Error {
   constructor(
@@ -59,6 +60,7 @@ export class ReviewService {
   constructor(
     private readonly store: Store,
     private readonly hosts: HostService,
+    private readonly indexer: Indexer,
     private readonly cacheRoot: string,
     private readonly onChangesAvailable: (
       reviewId: string,
@@ -544,20 +546,14 @@ export class ReviewService {
     ignoreWhitespace: boolean,
   ): Promise<BuiltChangeSet> {
     const review = await this.requireReview(reviewId)
-    const it = iterationId
-      ? await this.store.getIteration(iterationId)
-      : review.latestIteration
-    if (!it || it.reviewId !== reviewId)
-      throw new UserError("That Iteration is not part of this Review.")
+    const it = await this.iteration(review, iterationId)
     const key = `${it.id}:${ignoreWhitespace ? "w" : "-"}`
     let p = this.changeSets.get(key)
     if (!p) {
-      const { repo, cached } = await this.repoFor(review)
-      p = buildChangeSet(
-        repo,
+      const { cached } = await this.repoFor(review)
+      p = this.indexer.buildChangeSet(
+        await this.indexKey(reviewId, it.id),
         { reviewId, iterationId: it.id },
-        it.baseSha,
-        it.headSha,
         { ignoreWhitespace, prefetch: cached },
       )
       this.changeSets.set(key, p)
@@ -567,6 +563,34 @@ export class ReviewService {
         this.changeSets.delete(this.changeSets.keys().next().value as string)
     }
     return p
+  }
+
+  private async iteration(
+    review: ReviewSummary,
+    iterationId: string | null,
+  ): Promise<Iteration> {
+    const it = iterationId
+      ? await this.store.getIteration(iterationId)
+      : review.latestIteration
+    if (!it || it.reviewId !== review.id)
+      throw new UserError("That Iteration is not part of this Review.")
+    return it
+  }
+
+  /** What the indexer needs to find (or rebuild) an Iteration's code index. */
+  async indexKey(reviewId: string, iterationId: string): Promise<IndexKey> {
+    const review = await this.requireReview(reviewId)
+    const it = await this.iteration(review, iterationId)
+    const { repo } = await this.repoFor(review)
+    return {
+      repo: {
+        gitDir: repo.gitDir,
+        workTree: repo.workTree,
+        env: (repo.env as Record<string, string> | undefined) ?? null,
+      },
+      baseSha: it.baseSha,
+      headSha: it.headSha,
+    }
   }
 
   async repoFor(review: ReviewSummary): Promise<RepoHandle> {

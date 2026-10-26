@@ -3,7 +3,9 @@
 
 import { randomUUID } from "node:crypto"
 
+import { languageForPath, splitLines } from "@legible/diff"
 import type {
+  DiffChunk,
   Explanation,
   ExplanationJob,
   ExplanationTarget,
@@ -11,6 +13,7 @@ import type {
 } from "@legible/domain"
 import { targetLabel } from "@legible/domain"
 import {
+  describeConnections,
   EXPLANATION_PROMPT_VERSION,
   explanationCacheKey,
   toExplanationBody,
@@ -20,6 +23,7 @@ import type { AgentRunRecord, Store } from "@legible/store"
 import { type AgentHostClient, AgentRunError } from "./agentHostClient"
 import type { ExplanationRunInput } from "./agentHostCore"
 import { reportError } from "./errorReporting"
+import type { Indexer } from "./indexerCore"
 import { type ReviewService, UserError } from "./reviews"
 
 /** Failures that describe the user's setup, not a bug. Still reported, at a lower level. */
@@ -52,11 +56,11 @@ function reportExplanationFailure(
       baseLineCount: input.baseLines.length,
       headLineCount: input.headLines.length,
       selectedBaseLines:
-        target.kind === "range" && target.baseRange
+        target.kind !== "file" && target.baseRange
           ? target.baseRange[1] - target.baseRange[0] + 1
           : null,
       selectedHeadLines:
-        target.kind === "range" && target.headRange
+        target.kind !== "file" && target.headRange
           ? target.headRange[1] - target.headRange[0] + 1
           : null,
       hasIntent: input.intent !== null,
@@ -82,6 +86,7 @@ export class ExplanationService {
   constructor(
     private readonly store: Store,
     private readonly reviews: ReviewService,
+    private readonly indexer: Indexer,
     private readonly host: AgentHostClient,
     private readonly getSettings: () => Promise<Settings>,
     private readonly emit: (job: ExplanationJob) => void,
@@ -95,27 +100,14 @@ export class ExplanationService {
   ): Promise<ExplanationJob> {
     const review = await this.reviews.summary(reviewId)
     const built = await this.reviews.built(reviewId, iterationId, false)
-    const file = built.summary.files.find((f) => f.id === target.fileId)
-    const diff = built.diffs.get(target.fileId)
-    if (!file || !diff)
-      throw new UserError("That file is not part of this Change Set.")
-    if (file.binary) throw new UserError("Binary files can't be explained.")
-
     const settings = await this.getSettings()
     const tier = settings.tiers.fast
     const intent = review.intentText ? splitIntent(review.intentText) : null
     const base = {
       target,
-      file: {
-        path: file.path,
-        oldPath: file.oldPath,
-        status: file.status,
-        language: file.language,
-      },
-      baseLines: diff.baseLines,
-      headLines: diff.headLines,
-      chunks: diff.chunks,
+      ...(await this.code(review, built, target)),
       intent,
+      ...(await this.connectionContext(reviewId, iterationId, target)),
     }
     const cacheKey = explanationCacheKey(base, tier.provider, tier.model)
     const label = targetLabel(target)
@@ -272,6 +264,86 @@ export class ExplanationService {
         if (!cancelled) reportExplanationFailure(err, input, tier, started)
       })
     return strip(job)
+  }
+
+  /** The lines an Explanation is about: the file's diff, or an unchanged file's text at Head. */
+  private async code(
+    review: Awaited<ReturnType<ReviewService["summary"]>>,
+    built: Awaited<ReturnType<ReviewService["built"]>>,
+    target: ExplanationTarget,
+  ): Promise<
+    Pick<ExplanationRunInput, "file" | "baseLines" | "headLines" | "chunks">
+  > {
+    if (target.fileId) {
+      const file = built.summary.files.find((f) => f.id === target.fileId)
+      const diff = built.diffs.get(target.fileId)
+      if (!file || !diff)
+        throw new UserError("That file is not part of this Change Set.")
+      if (file.binary) throw new UserError("Binary files can't be explained.")
+      return {
+        file: {
+          path: file.path,
+          oldPath: file.oldPath,
+          status: file.status,
+          language: file.language,
+        },
+        baseLines: diff.baseLines,
+        headLines: diff.headLines,
+        chunks: diff.chunks,
+      }
+    }
+    // A Symbol outside the Change Set: the same on both sides.
+    const { repo } = await this.reviews.repoFor(review)
+    const buf = await repo.blobs().readPath(built.summary.headSha, target.path)
+    if (!buf) throw new UserError(`Can't read ${target.path} at Head.`)
+    const lines = splitLines(buf.toString("utf8"))
+    const all: DiffChunk = {
+      kind: "equal",
+      baseStart: 0,
+      baseEnd: lines.length,
+      headStart: 0,
+      headEnd: lines.length,
+    }
+    return {
+      file: {
+        path: target.path,
+        oldPath: null,
+        status: "unchanged",
+        language: languageForPath(target.path),
+      },
+      baseLines: lines,
+      headLines: lines,
+      chunks: [all],
+    }
+  }
+
+  /** For Symbols and Connections: their Connection changes, and a Connection's target code. */
+  private async connectionContext(
+    reviewId: string,
+    iterationId: string,
+    target: ExplanationTarget,
+  ): Promise<Pick<ExplanationRunInput, "connections" | "related">> {
+    if (target.kind !== "symbol" && target.kind !== "connection") return {}
+    const key = await this.reviews.indexKey(reviewId, iterationId)
+    const id = target.kind === "symbol" ? target.symbolId : target.fromSymbolId
+    const all = await this.indexer.connections(key, id)
+    if (!all) throw new UserError("That Symbol isn't in the index any more.")
+    const connections = describeConnections(
+      all,
+      target.kind === "connection" ? target.connectionId : null,
+    )
+    if (target.kind !== "connection" || !target.toSymbolId)
+      return { connections, related: null }
+    const src = await this.indexer.source(key, target.toSymbolId)
+    return {
+      connections,
+      related: src
+        ? {
+            label: `\`${src.symbol.qualifiedName}\` (${src.symbol.path}:${src.firstLine})`,
+            lines: src.lines,
+          }
+        : null,
+    }
   }
 
   cancel(jobId: string) {
