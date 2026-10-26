@@ -1,0 +1,53 @@
+{
+  "name": "@legible/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Understand code changes, mainly ones written by AI agents.",
+  "homepage": "https://github.com/dkozma/legible",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Dave Kozma",
+    "email": "dave@davekozma.com"
+  },
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev --",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "test:e2e": "electron-vite build && playwright test",
+    "dist:dir": "electron-vite build && electron-builder --dir"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.310",
+    "@sentry/electron": "8.3.0",
+    "electron-updater": "^6.8.11",
+    "kysely": "^0.29.7",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@legible/agent-runtime": "workspace:*",
+    "@legible/diff": "workspace:*",
+    "@legible/domain": "workspace:*",
+    "@legible/git": "workspace:*",
+    "@legible/hosts": "workspace:*",
+    "@legible/ipc": "workspace:*",
+    "@legible/pipelines": "workspace:*",
+    "@legible/store": "workspace:*",
+    "@legible/ui": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "44.9.3",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5"
+  },
+  "productName": "Legible"
+}

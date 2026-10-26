@@ -1,0 +1,67 @@
+name: Release
+
+# Run from the Actions tab ("Run workflow") on main. It picks the next
+# YYYY.MDD.N version (ADR 0012), tags the commit, then builds, signs and
+# notarizes the macOS app and attaches it to a draft GitHub Release.
+# Publishing the draft is what makes auto-update offer it.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Two runs at once could pick the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  mac:
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      - name: Choose the version
+        id: version
+        run: |
+          version=$(git tag -l 'v*' | node apps/desktop/scripts/version.mjs)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version"
+      - name: Set the version for this build
+        working-directory: apps/desktop
+        run: npm pkg set version=${{ steps.version.outputs.version }}
+      - name: Tag the commit
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - run: pnpm --filter @legible/desktop exec electron-vite build
+        env:
+          # Opt-in error reports (ADR 0013): built in, sent only once the user turns them on.
+          MAIN_VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      - name: Package, sign and notarize
+        run: pnpm --filter @legible/desktop exec electron-builder --mac --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Developer ID certificate (base64 .p12) and its password.
+          CSC_LINK: ${{ secrets.MAC_CERTS }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          # Notarization.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Remove the tag if the build failed
+        if: failure() && steps.version.outputs.version != ''
+        run: git push --delete origin "v${{ steps.version.outputs.version }}" || true

@@ -1,0 +1,38 @@
+#!/bin/sh
+# Opens a Review in Legible from a terminal:
+#
+#   legible                 the working tree of the repository you're in
+#   legible ~/code/app      another repository's working tree
+#   legible <PR or MR URL>  a GitHub pull request or GitLab merge request
+#
+# If Legible is already running, the Review opens in the running window.
+# Set LEGIBLE_APP to point at a different build of the app.
+
+set -e
+target="${1:-.}"
+case "$target" in
+  http://* | https://*) ;;
+  *) target="$(cd "$target" && (git rev-parse --show-toplevel 2>/dev/null || pwd))" ;;
+esac
+
+app="${LEGIBLE_APP:-}"
+if [ -z "$app" ]; then
+  case "$(uname -s)" in
+    Darwin)
+      for candidate in "/Applications/Legible.app" "$HOME/Applications/Legible.app"; do
+        [ -d "$candidate" ] && app="$candidate/Contents/MacOS/Legible" && break
+      done
+      ;;
+    Linux)
+      app="$(command -v legible-desktop || true)"
+      [ -z "$app" ] && [ -x /opt/Legible/legible ] && app=/opt/Legible/legible
+      ;;
+  esac
+fi
+if [ -z "$app" ] || [ ! -x "$app" ]; then
+  echo "legible: can't find the Legible app. Install it, or set LEGIBLE_APP to its executable." >&2
+  exit 1
+fi
+
+# Launching from the shell also gives Legible your PATH (git, claude).
+nohup "$app" "$target" >/dev/null 2>&1 &
