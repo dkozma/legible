@@ -379,3 +379,45 @@ test("lists the Review on the home screen", async () => {
   await expect(row).toContainText("Iteration 2")
   await shot("07-home")
 })
+
+test("resizes the side panels and remembers their widths", async () => {
+  await page.getByRole("button", { name: /^feature\/partial-refunds/ }).click()
+  const sidebar = page.getByRole("complementary", {
+    name: "Walkthrough and files",
+  })
+  const context = page.getByTestId("context-panel")
+  const width = async (l: typeof sidebar) => (await l.boundingBox())?.width ?? 0
+  await expect(sidebar).toBeVisible()
+  expect(await width(sidebar)).toBeCloseTo(296, -1)
+
+  // Drag the sidebar's edge to the right.
+  const handle = page.getByTestId("resize-left-panel")
+  const box = await handle.boundingBox()
+  if (!box) throw new Error("no handle")
+  await page.mouse.move(box.x + box.width / 2, box.y + 200)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + 200, { steps: 4 })
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + 200, {
+    steps: 4,
+  })
+  await page.mouse.up()
+  expect(await width(sidebar)).toBeCloseTo(416, -1)
+
+  // The context panel from the keyboard: ← widens a panel on the right.
+  const contextHandle = page.getByTestId("resize-right-panel")
+  await contextHandle.focus()
+  await page.keyboard.press("Shift+ArrowLeft")
+  expect(await width(context)).toBeCloseTo(424, -1)
+  await shot("11-resized")
+
+  // Both come back after a reload.
+  await page.reload()
+  await page.getByRole("button", { name: /^feature\/partial-refunds/ }).click()
+  await expect(sidebar).toBeVisible()
+  expect(await width(sidebar)).toBeCloseTo(416, -1)
+  expect(await width(context)).toBeCloseTo(424, -1)
+
+  // Double-click restores the default.
+  await page.getByTestId("resize-left-panel").dblclick()
+  expect(await width(sidebar)).toBeCloseTo(296, -1)
+})

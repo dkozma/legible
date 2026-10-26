@@ -43,6 +43,7 @@ import {
   Tabs,
   Titlebar,
 } from "../components/ui"
+import { ResizeHandle } from "../components/ResizeHandle"
 import { useClient } from "../context"
 import { type DiffActions, DiffLoading, DiffView } from "../diff/DiffView"
 import {
@@ -59,6 +60,7 @@ import { FileTree } from "../review/FileTree"
 import { StepHeader } from "../review/StepHeader"
 import { stepAt, stepFocus } from "../review/steps"
 import { WalkthroughList, WalkthroughProgress } from "../review/WalkthroughList"
+import { CENTER_MIN, clampPanel, PANEL_LIMITS } from "../panels"
 import { useUI } from "../state"
 
 const HEAD_ROOM = 64
@@ -70,6 +72,17 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   const qc = useQueryClient()
   const ui = useUI()
   const scrollRef = useRef<HTMLDivElement>(null)
+  // The panels' remembered widths, shown smaller when the window can't fit them with the diff.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [bodyWidth, setBodyWidth] = useState(Number.POSITIVE_INFINITY)
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setBodyWidth(el.clientWidth))
+    ro.observe(el)
+    setBodyWidth(el.clientWidth)
+    return () => ro.disconnect()
+  }, [])
   const scrollTop = useRef(0)
   const [topFile, setTopFile] = useState<string | null>(null)
 
@@ -1183,6 +1196,20 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       .catch(() => undefined)
   }, [client, reviewId])
 
+  // Each panel can grow until the diff would get narrower than CENTER_MIN.
+  const leftMax = clampPanel(
+    "left",
+    PANEL_LIMITS.left.max,
+    bodyWidth - ui.panels.right - CENTER_MIN,
+  )
+  const leftWidth = clampPanel("left", ui.panels.left, leftMax)
+  const rightMax = clampPanel(
+    "right",
+    PANEL_LIMITS.right.max,
+    bodyWidth - leftWidth - CENTER_MIN,
+  )
+  const rightWidth = clampPanel("right", ui.panels.right, rightMax)
+
   const job = ui.activeJobId ? (ui.jobs[ui.activeJobId] ?? null) : null
   const viewedCount = files.filter((f) => viewed.has(f.id)).length
   const changes = ui.changesAvailable[reviewId]
@@ -1352,11 +1379,22 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-auto">
+      <div ref={bodyRef} className="flex min-h-0 flex-auto">
         <aside
           aria-label="Walkthrough and files"
-          className="flex min-h-0 w-[296px] shrink-0 flex-col border-r bg-sidebar"
+          className="relative flex min-h-0 shrink-0 flex-col border-r bg-sidebar"
+          style={{ width: leftWidth }}
         >
+          <ResizeHandle
+            label="Resize sidebar"
+            edge="right"
+            value={leftWidth}
+            min={PANEL_LIMITS.left.min}
+            max={leftMax}
+            defaultValue={PANEL_LIMITS.left.default}
+            onResize={(px) => ui.setPanel("left", px)}
+            onCommit={(px) => ui.setPanel("left", px, true)}
+          />
           <div
             role="tablist"
             className="flex shrink-0 items-stretch gap-0.5 border-b px-2"
@@ -1570,9 +1608,20 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
 
         <aside
           aria-label="Context"
-          className="flex min-h-0 w-[360px] shrink-0 flex-col border-l bg-panel"
+          className="relative flex min-h-0 shrink-0 flex-col border-l bg-panel"
+          style={{ width: rightWidth }}
           data-testid="context-panel"
         >
+          <ResizeHandle
+            label="Resize context panel"
+            edge="left"
+            value={rightWidth}
+            min={PANEL_LIMITS.right.min}
+            max={rightMax}
+            defaultValue={PANEL_LIMITS.right.default}
+            onResize={(px) => ui.setPanel("right", px)}
+            onCommit={(px) => ui.setPanel("right", px, true)}
+          />
           {runtime.data && !runtime.data.ready && (
             <Callout tone="elevated" className="mx-3 mt-3 px-2.5 py-2 text-sm">
               {runtime.data.detail}.{" "}

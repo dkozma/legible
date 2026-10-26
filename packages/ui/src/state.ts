@@ -2,6 +2,14 @@ import type { Explanation, ExplanationJob } from "@legible/domain"
 import { create } from "zustand"
 
 import type { Command } from "./commands"
+import {
+  clampPanel,
+  loadPanels,
+  type PanelKey,
+  panelStorage,
+  type Panels,
+  savePanels,
+} from "./panels"
 
 export type View =
   | { name: "home" }
@@ -73,6 +81,8 @@ export interface UIState {
   paletteSource: PaletteSource | null
   /** The Review whose view state (selection, expansions, Trail) is loaded. */
   lastReviewId: string | null
+  /** Side panel widths, remembered across Reviews and restarts. */
+  panels: Panels
 
   go(view: View): void
   set(patch: Partial<UIState>): void
@@ -87,6 +97,8 @@ export interface UIState {
   dismissToast(id: number): void
   scroll(px: number): void
   resetReviewView(): void
+  /** Resizes a panel; `persist` remembers it (when a drag or key press ends). */
+  setPanel(key: PanelKey, px: number, persist?: boolean): void
 }
 
 let toastId = 0
@@ -121,6 +133,7 @@ export const useUI = create<UIState>((set, get) => ({
   scrollTo: null,
   paletteSource: null,
   lastReviewId: null,
+  panels: loadPanels(panelStorage()),
 
   go(view) {
     const cur = get().view
@@ -157,6 +170,11 @@ export const useUI = create<UIState>((set, get) => ({
   },
   dismissToast(id) {
     set({ toasts: get().toasts.filter((t) => t.id !== id) })
+  },
+  setPanel(key, px, persist = false) {
+    const panels = { ...get().panels, [key]: clampPanel(key, px) }
+    set({ panels })
+    if (persist) savePanels(panelStorage(), panels)
   },
   scroll(px) {
     set({ scrollTo: { px: Math.max(0, px), nonce: ++nonce } })

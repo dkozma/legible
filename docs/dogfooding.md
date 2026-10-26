@@ -131,6 +131,8 @@ Public repositories open without an account. For private ones, add the host in S
 | `⌘,` | Settings |
 | `?` | All shortcuts |
 
+Drag the edge of the sidebar or the context panel to resize it, or focus the edge and use ← → (⇧ for bigger steps). Double-click an edge to restore its width. Legible remembers the widths on this machine.
+
 Click a line number to select a line. Shift-click or drag to extend the selection. `esc` clears it. Click code to show its Symbol in the Connections panel.
 
 ## Where things live
