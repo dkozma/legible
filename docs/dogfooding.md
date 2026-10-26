@@ -19,7 +19,32 @@ M1 is the first build meant for daily use. It reads agent-written changes in a v
 - **Explanations of Symbols and Connections**: **Explain method** on the panel's Symbol, or "how does A use B?" on a Connection. The fast tier gets the Symbol's Base and Head code and its Connection changes. For a Connection it also gets the target's code.
 - **Code links in Explanations.** Names in code font that match a Symbol are underlined. Hover one to preview its code; click it to go there. The Explanation stays open when the diff shows that code. Otherwise the Connections tab shows it. Names that don't match (locals, strings, library calls) stay plain.
 
-Not yet: the Walkthrough, Change Brief and Intent (M3), Notes, Asks and Revisions (M4), and Agent Review (M5). The Pull Request description is shown as the Intent line above the diff, and Explanations use it as Intent.
+## What M3 adds
+
+- **The Change Brief.** Every Review opens on it (`b` comes back to it). It shows:
+  - the **Intent** and its sources;
+  - the **Domain Changes**, each linked to its Steps and marked "In" or "Not in PR description";
+  - a **Description Gap** with suggested wording to copy;
+  - the **Unrequested** Steps;
+  - **Risk** hotspots;
+  - the touched files by **Layer**;
+  - the **Sittings** ahead with time estimates;
+  - how to test.
+- **Intent.** It comes from the Pull Request description and the issues it links. For local repositories it also comes from your **Agent Transcripts**: the Claude Code and Codex sessions run in the repository's folder while it changed, with their prompts, plans and your corrections. With none of those, Legible infers it from the code and asks you to confirm or correct it. **Edit** writes your own Intent. Legible never regenerates yours.
+- **The Walkthrough** is the left sidebar's first tab. Steps cover every changed line exactly once, in dependency order: definitions come before uses, then Layer order. Tests sit with the code they test, and Steps are grouped into Sittings of about 45 minutes. Chapters appear when a Change Set holds several independent features.
+  - Scope is a shape: a dot for Requested, a ring for Supporting, a violet diamond for Unrequested. Risk is signal bars.
+  - Scope appears once the Intent has a source or you confirm it. "Likely" means the judgment was unsure.
+- **Steps.** **Start Sitting** (or `↵` on the Brief) opens the first unread Step. The diff then shows only that Step's changes; other Steps' changes in the same files fold into "Step N · …" rows you can open.
+  - The header shows Scope, Risk, the requirement the Step fulfills, its narrative, and "You'll need to know" when you skipped what it builds on.
+  - `v` marks the Step viewed and moves on. `n`/`p` move between Steps, `⇧N` to the next Chapter. **All changes** shows the whole Change Set.
+  - **Edit** renames, merges with the next Step, splits before a change, or moves a Step up or down. Legible refuses a move that would put a Step before what it builds on. Edits are kept, and Steps whose code didn't change carry over to the next Iteration with their viewed marks.
+- **OpenAI**, as a second provider. Choose a model per tier from either provider, or a model for one kind of work (Settings → Model tiers → Advanced). OpenAI models are marked experimental until Legible's evals pass them.
+- **Judgment models.** Turn on TypeSafe Jev or OpenAI Decisions for Scope, Risk and Description Gap judgments (Settings → Judgment models). Without them, the fast tier judges. Judgments see Step names and narratives, file paths, changed Symbol names, the Intent and the Pull Request text, never code.
+- **Explanations** now read the code against the Intent and the narrative of its Step.
+
+Building the Intent, Walkthrough and Brief for a 1,000-line Change Set takes a few model calls: Intent and Walkthrough on the mid tier, Domain Changes on the strong tier, and a judgment batch and wording on the fast tier. They share one spend cap per Iteration (Settings → Spend, $2 by default). Turn off **Build automatically** (Settings → Walkthrough & Brief) to build them only from the Brief.
+
+Not yet: Notes, Asks, Revisions and updating the Pull Request description (M4), and Agent Review (M5).
 
 ## Run it
 
@@ -68,6 +93,10 @@ Usage-based alternatives are under the same card. API keys go to the macOS Keych
 
 Agents in Legible can only read code at Base and Head through Legible's own tools. They get no shell, can't edit files or use the network, and never load the reviewed repository's `.claude` settings, hooks or MCP servers ([ADR 0004](./adr/0004-agents-ignore-repo-claude-settings.md), [ADR 0008](./adr/0008-m1-agents-read-git-objects.md)).
 
+## Connect OpenAI
+
+Settings → Providers → OpenAI. Turn it on and paste an OpenAI API key; it goes to the Keychain. Then pick OpenAI models under Model tiers. "Use OpenAI for every tier" switches all three if you turn Claude off. **Continue with ChatGPT** needs a client id OpenAI registers for Legible. Until a build has one, it says so and offers only the API key. Runs on OpenAI send no traces anywhere.
+
 ## Connect hosts
 
 Public repositories open without an account. For private ones, add the host in Settings → Hosts & accounts. **Reuse gh CLI login** asks `gh auth token` each time and never copies the credentials. A pasted personal access token is stored in the Keychain and needs read access only. GitHub Enterprise and self-managed GitLab work the same way: enter the hostname.
@@ -84,11 +113,14 @@ Public repositories open without an account. For private ones, add the host in S
 
 | Keys | Action |
 |---|---|
+| `b` | The Change Brief |
+| `↵` | Start the next Sitting (on the Brief) |
 | `j` / `k` | Next / previous hunk |
-| `n` / `p` | Next / previous file |
+| `n` / `p` | Next / previous Step (in a Step), else file |
+| `⇧N` | Next Chapter |
 | `e` | Explain the selection, or the hunk at the top of the view |
 | `⇧E` | Explain the current file |
-| `v` | Mark the current file viewed |
+| `v` | Mark the Step viewed and go to the next one (in a Step), else the current file |
 | `⌥S` | Split / unified |
 | `w` | Hide whitespace-only changes |
 | `o` | Open the current line in your editor |
@@ -105,7 +137,7 @@ Click a line number to select a line. Shift-click or drag to extend the selectio
 
 Everything is local, in `~/Library/Application Support/Legible/` on macOS:
 
-- `legible.db`: Reviews, Iterations, viewed state, cached Explanations, and a record of every agent run with its cost.
+- `legible.db`: Reviews, Iterations, Intents, Walkthroughs and Change Briefs, viewed files and Steps, cached Explanations and plans, and a record of every agent run with its cost.
 - `index-cache/`: parse results (highlighting, Symbols, references) per file version, up to 256 MB. Safe to delete.
 - `secrets.json`: API keys and tokens, encrypted with the Keychain.
 - `repos/`: blobless cache clones for Pull Requests.
@@ -122,13 +154,18 @@ npx vitest run --config vitest.live.config.ts  # live checks: a real Claude Expl
 node fixtures/make-refund-repo.mjs /tmp/refunds  # the M0 design fixture as a real repository
 ```
 
-`LEGIBLE_FAKE_AGENT=1` answers every Explanation with canned text, `LEGIBLE_FAKE_AGENT=fail` fails every one, and `LEGIBLE_USER_DATA=<dir>` uses a throwaway data folder.
+`LEGIBLE_FAKE_AGENT=1` answers every Explanation, Intent, Walkthrough, judgment and Domain Change with canned output that fits the Change Set. `LEGIBLE_FAKE_AGENT=fail` fails every one, and `LEGIBLE_USER_DATA=<dir>` uses a throwaway data folder.
+
+```sh
+pnpm evals                                   # labeled Change Sets through the real pipelines (evals/README.md)
+EVAL_RUNTIME=claude pnpm evals               # …on Claude; EVAL_RUNTIME=openai for OpenAI
+```
 
 ### Error reports
 
 Errors and crashes can go to Sentry ([ADR 0013](./adr/0013-opt-in-error-reports.md)). For development builds, copy `apps/desktop/.env.example` to `apps/desktop/.env` and set `MAIN_VITE_SENTRY_DSN`. `pnpm dev` then sends reports. A local packaged build gets the DSN too, but like a release it waits for the setting. `LEGIBLE_SENTRY_DSN=<dsn>` turns reports on for one run of any build. Release builds get the DSN from the `SENTRY_DSN` repository secret, and send nothing until you turn on Settings → Privacy → **Send error reports**.
 
-Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `indexer`, `hosts`, `agent-runtime` and `pipelines`. Grammars are npm dependencies of `packages/indexer`, listed in `packages/indexer/grammars/manifest.json`. The parse cache key includes a hash of each language's query text, so editing a query needs no version bump. The UI is React with Tailwind CSS v4, themed with the M0 tokens ([ADR 0010](./adr/0010-tailwind-css.md)). The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents and the indexer each run in their own utility process (`LEGIBLE_IN_PROCESS_INDEXER=1` runs the indexer in main, for debugging).
+Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `indexer`, `hosts`, `agent-runtime`, `judge` and `pipelines`, and `evals/` holds the labeled cases and their harness. Grammars are npm dependencies of `packages/indexer`, listed in `packages/indexer/grammars/manifest.json`. The parse cache key includes a hash of each language's query text, so editing a query needs no version bump. The UI is React with Tailwind CSS v4, themed with the M0 tokens ([ADR 0010](./adr/0010-tailwind-css.md)). The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents and the indexer each run in their own utility process (`LEGIBLE_IN_PROCESS_INDEXER=1` runs the indexer in main, for debugging).
 
 ## Known rough edges
 
@@ -138,4 +175,7 @@ Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout)
 - Connections come from syntax, not a type checker. A method called on an object of unknown type (`order.total()`) resolves only when one definition in the indexed code has that name. TypeScript `paths` aliases aren't followed yet.
 - For Pull Requests (blobless clones), "Used by" searches only the changed files' directories, and the panel says so.
 
-File issues as you hit them. They're the M2–M3 backlog.
+- Risk comes from what a Step touches (paths, names and changed lines) and how far its changes reach. The detectors are broad on purpose, and a judgment confirms them. On a codebase that is all about payments, expect many elevated Steps.
+- Agent Transcripts are found only for local repositories, not Pull Requests opened by URL.
+
+File issues as you hit them. They're the M3–M4 backlog.

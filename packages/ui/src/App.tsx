@@ -61,13 +61,19 @@ export function App() {
         }
       }),
       client.on("understanding.updated", (status) => {
-        qc.setQueryData(
-          ["understanding", status.reviewId, status.iterationId],
-          status,
-        )
-        // Each finished stage has something new to show.
-        for (const key of ["intent", "walkthrough", "brief"] as const)
-          void qc.invalidateQueries({ queryKey: [key, status.reviewId] })
+        const key = ["understanding", status.reviewId, status.iterationId]
+        const before = qc.getQueryData<typeof status>(key)
+        qc.setQueryData(key, status)
+        // Progress lines change often; only a stage finishing has something new to show.
+        const changed =
+          !before ||
+          before.state !== status.state ||
+          (Object.keys(status.stages) as (keyof typeof status.stages)[]).some(
+            (s) => before.stages[s].state !== status.stages[s].state,
+          )
+        if (!changed) return
+        for (const k of ["intent", "walkthrough", "brief"] as const)
+          void qc.invalidateQueries({ queryKey: [k, status.reviewId] })
         void qc.invalidateQueries({ queryKey: ["spend"] })
       }),
       client.on("review.changesAvailable", ({ reviewId, detail }) => {
