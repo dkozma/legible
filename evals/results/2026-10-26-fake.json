@@ -1,0 +1,159 @@
+{
+  "label": "fake",
+  "date": "2026-10-26T13:20:48.371Z",
+  "cases": [
+    {
+      "name": "discounts-java",
+      "changedLines": 24,
+      "scores": {
+        "fragments": 6,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 2,
+        "grouping": 1,
+        "layerAccuracy": 0.6666666666666666,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 0,
+        "domainChangePrecision": null,
+        "chaptersRight": true
+      },
+      "costUsd": 0.003,
+      "durationMs": 237,
+      "model": "claude-sonnet-5-5",
+      "judgeBackend": "fast:claude-haiku-5-5",
+      "error": null
+    },
+    {
+      "name": "inventory-py",
+      "changedLines": 15,
+      "scores": {
+        "fragments": 7,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 4,
+        "grouping": 1,
+        "layerAccuracy": 0.6666666666666666,
+        "unrequestedRecall": 0,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 0,
+        "domainChangePrecision": null,
+        "chaptersRight": true
+      },
+      "costUsd": 0.003,
+      "durationMs": 132,
+      "model": "claude-sonnet-5-5",
+      "judgeBackend": "fast:claude-haiku-5-5",
+      "error": null
+    },
+    {
+      "name": "ports-rs",
+      "changedLines": 36,
+      "scores": {
+        "fragments": 9,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 2,
+        "grouping": 1,
+        "layerAccuracy": 1,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 0,
+        "domainChangePrecision": null,
+        "chaptersRight": true
+      },
+      "costUsd": 0.003,
+      "durationMs": 159,
+      "model": "claude-sonnet-5-5",
+      "judgeBackend": "fast:claude-haiku-5-5",
+      "error": null
+    },
+    {
+      "name": "ratelimit-go",
+      "changedLines": 68,
+      "scores": {
+        "fragments": 13,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 2,
+        "grouping": 1,
+        "layerAccuracy": 0.25,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 0,
+        "domainChangePrecision": null,
+        "chaptersRight": true
+      },
+      "costUsd": 0.003,
+      "durationMs": 128,
+      "model": "claude-sonnet-5-5",
+      "judgeBackend": "fast:claude-haiku-5-5",
+      "error": null
+    },
+    {
+      "name": "refunds-ts",
+      "changedLines": 137,
+      "scores": {
+        "fragments": 36,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 13,
+        "grouping": 0.8,
+        "layerAccuracy": 1,
+        "unrequestedRecall": 0,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 0,
+        "domainChangePrecision": null,
+        "chaptersRight": true
+      },
+      "costUsd": 0.003,
+      "durationMs": 469,
+      "model": "claude-sonnet-5-5",
+      "judgeBackend": "fast:claude-haiku-5-5",
+      "error": null
+    },
+    {
+      "name": "two-features-ts",
+      "changedLines": 55,
+      "scores": {
+        "fragments": 15,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 6,
+        "grouping": 0.761904761904762,
+        "layerAccuracy": 0.4666666666666667,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 0,
+        "domainChangePrecision": null,
+        "chaptersRight": false
+      },
+      "costUsd": 0.003,
+      "durationMs": 368,
+      "model": "claude-sonnet-5-5",
+      "judgeBackend": "fast:claude-haiku-5-5",
+      "error": null
+    }
+  ],
+  "averages": {
+    "coverage": 1,
+    "dependencyViolations": 0,
+    "grouping": 0.9269841269841269,
+    "layerAccuracy": 0.6749999999999999,
+    "unrequestedRecall": 0,
+    "unrequestedPrecision": null,
+    "domainChangeRecall": 0,
+    "domainChangePrecision": null,
+    "costPer1kLines": 0.05373134328358209
+  },
+  "exitCriteria": {
+    "coverage": true,
+    "dependencyOrder": true
+  }
+}

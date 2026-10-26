@@ -1,0 +1,28 @@
+{
+  "description": "Rust: port ranges in config parsing, with a new error variant and its use in main. Unrequested: ports above 65535 are clamped instead of rejected.",
+  "intent": {
+    "goal": "Accept port ranges like 8000-8010 in the configuration.",
+    "requirements": [
+      "A port can be given as a range like 8000-8010",
+      "An invalid port or range is rejected with a clear error"
+    ]
+  },
+  "pullRequest": {
+    "title": "Port ranges",
+    "body": "`port = \"8000-8010\"` now works; the server binds to the first free port in the range."
+  },
+  "labels": {
+    "steps": [["src/config.rs"], ["src/main.rs"]],
+    "layers": {
+      "src/config.rs": "backend",
+      "src/main.rs": "backend"
+    },
+    "unrequested": [],
+    "domainChanges": [
+      "Ports can be configured as a range like 8000-8010",
+      "Ports above 65535 are clamped to 65535 instead of rejected",
+      "The server binds to the first free port in the range"
+    ],
+    "chapters": 1
+  }
+}

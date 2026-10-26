@@ -27,6 +27,9 @@
     "apps/*/test/**/*",
     "apps/*/*.config.ts",
     "fixtures/**/*.ts",
+    "evals/*.ts",
+    "evals/src/**/*",
+    "evals/test/**/*",
     "vitest.config.ts"
   ]
 }

@@ -1,0 +1,17 @@
+{
+  "name": "@legible/evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evals": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@legible/agent-runtime": "workspace:*",
+    "@legible/domain": "workspace:*",
+    "@legible/git": "workspace:*",
+    "@legible/indexer": "workspace:*",
+    "@legible/judge": "workspace:*",
+    "@legible/pipelines": "workspace:*"
+  }
+}

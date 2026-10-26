@@ -6,6 +6,8 @@
   "ignorePatterns": [
     "**/*.md",
     "docs/design/**",
+    "evals/cases/**",
+    "evals/results/**",
     "fixtures/.generated/**",
     "pnpm-lock.yaml"
   ]

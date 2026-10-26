@@ -1,0 +1,31 @@
+{
+  "description": "Go: token-bucket bursts and per-API-key limits in middleware, configured in config. The request timeout default also drops from 30s to 10s, in the same lines as the new burst setting, so it shows up only as a Domain Change.",
+  "intent": {
+    "goal": "Let clients burst briefly above the rate limit, and limit API-key requests per key.",
+    "requirements": [
+      "Clients can burst up to a configurable number of requests above the per-minute rate",
+      "Requests with an API key are limited per key; others per IP"
+    ]
+  },
+  "pullRequest": {
+    "title": "Rate limiter: bursts and per-key limits",
+    "body": "Switches the limiter to a token bucket with a configurable burst (default 10), and keys limits by X-API-Key when present."
+  },
+  "labels": {
+    "steps": [
+      ["config/config.go"],
+      ["middleware/ratelimit.go", "middleware/ratelimit_test.go"]
+    ],
+    "layers": {
+      "config/config.go": "chores",
+      "middleware/ratelimit.go": "api"
+    },
+    "unrequested": [],
+    "domainChanges": [
+      "Clients can burst up to 10 requests above the per-minute rate",
+      "Requests with an API key are rate limited per key instead of per IP",
+      "The default request timeout is 10 seconds, was 30"
+    ],
+    "chapters": 1
+  }
+}

@@ -115,6 +115,27 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@24.19.2)(jiti@2.7.0)
 
+  evals:
+    dependencies:
+      '@legible/agent-runtime':
+        specifier: workspace:*
+        version: link:../packages/agent-runtime
+      '@legible/domain':
+        specifier: workspace:*
+        version: link:../packages/domain
+      '@legible/git':
+        specifier: workspace:*
+        version: link:../packages/git
+      '@legible/indexer':
+        specifier: workspace:*
+        version: link:../packages/indexer
+      '@legible/judge':
+        specifier: workspace:*
+        version: link:../packages/judge
+      '@legible/pipelines':
+        specifier: workspace:*
+        version: link:../packages/pipelines
+
   packages/agent-runtime:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
