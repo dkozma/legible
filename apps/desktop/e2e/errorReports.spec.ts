@@ -80,6 +80,9 @@ test.beforeAll(async () => {
   })
   page = await app.firstWindow()
   await page.setViewportSize({ width: 1440, height: 900 })
+  // The whole Change Set by file, not the Brief it opens on.
+  await page.getByRole("tab", { name: /Files/ }).click({ timeout: 30_000 })
+  await page.getByRole("tab", { name: "Changes" }).click()
   await expect(page.getByTestId("diff")).toContainText("REFUND_WINDOW_DAYS", {
     timeout: 30_000,
   })

@@ -60,6 +60,16 @@ export function App() {
           void qc.invalidateQueries({ queryKey: ["history", job.reviewId] })
         }
       }),
+      client.on("understanding.updated", (status) => {
+        qc.setQueryData(
+          ["understanding", status.reviewId, status.iterationId],
+          status,
+        )
+        // Each finished stage has something new to show.
+        for (const key of ["intent", "walkthrough", "brief"] as const)
+          void qc.invalidateQueries({ queryKey: [key, status.reviewId] })
+        void qc.invalidateQueries({ queryKey: ["spend"] })
+      }),
       client.on("review.changesAvailable", ({ reviewId, detail }) => {
         const s = useUI.getState()
         s.set({

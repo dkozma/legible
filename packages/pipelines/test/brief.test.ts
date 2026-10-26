@@ -117,6 +117,31 @@ describe("Risk", () => {
     expect(detectRiskAreas(field, byId, text)).toEqual([])
   })
 
+  it("counts a public API change only when an exported declaration changes", () => {
+    const added = frag(9, { path: "src/audit/Subscriber.ts" })
+    const changed = frag(10, { path: "src/api/handler.ts" })
+    const local = new Map([
+      [added.fragmentId, added],
+      [changed.fragmentId, changed],
+    ])
+    const lines = new Map([
+      ["f9", { removed: [], added: ["export function subscribe() {}"] }],
+      [
+        "f10",
+        {
+          removed: ["export function handle(a) {"],
+          added: ["export function handle(a, b) {"],
+        },
+      ],
+    ])
+    const step = (f: PlannerFragment): Step => ({
+      ...field,
+      fragments: [{ ...f, collapsed: false }],
+    })
+    expect(detectRiskAreas(step(added), local, lines)).toEqual([])
+    expect(detectRiskAreas(step(changed), local, lines)).toEqual(["public_api"])
+  })
+
   it("raises the level with more areas and wider reach", () => {
     expect(riskFor([], { callers: 0, blastRadius: 0 }).level).toBe("low")
     expect(riskFor(["payments"], { callers: 0, blastRadius: 0 })).toEqual({

@@ -44,6 +44,8 @@ export interface DiffActions {
     follow: boolean,
   ): void
   canOpenInEditor: boolean
+  /** Opens another Step of the Walkthrough. */
+  openStep?(stepId: string): void
 }
 
 /** The text column under a point inside a line's code element, or null. */
@@ -578,6 +580,27 @@ const RowView = memo(function RowView({
         >
           <ChevronsUpDown className="size-3" />
           {row.count} unchanged {row.count === 1 ? "line" : "lines"}
+        </button>
+      )
+    case "elsewhere":
+      return (
+        <button
+          type="button"
+          className={cn(
+            "flex h-7 w-full items-center gap-2 border-y pr-3 pl-[25px] text-left font-sans text-sm text-muted-foreground hover:text-foreground",
+            row.unrequested
+              ? "border-unrequested-border bg-unrequested-bg"
+              : "bg-frag",
+          )}
+          onClick={() => row.stepId && actions.openStep?.(row.stepId)}
+          data-testid="elsewhere"
+        >
+          <ChevronsUpDown className="size-3" />
+          <span className="truncate">{row.label}</span>
+          <span className="grow" />
+          <span className="shrink-0 text-xs">
+            {row.lines} {row.lines === 1 ? "line" : "lines"} · open that Step
+          </span>
         </button>
       )
     case "frag":

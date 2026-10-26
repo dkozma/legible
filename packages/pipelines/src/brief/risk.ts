@@ -55,8 +55,9 @@ export const RISK_AREAS = {
     label: "public API",
     question: "a public API other code or clients depend on",
     weight: 1,
+    // Routes anywhere; exported declarations only where one was removed or changed (below).
     pattern:
-      /^\s*(export\s|pub\s|public\s)|\b(router\.|app\.(get|post|put|delete|patch)|@(Get|Post|Put|Delete)Mapping)/,
+      /\b(router\.|app\.(get|post|put|delete|patch)|@(Get|Post|Put|Delete)Mapping)/,
   },
 } as const
 
@@ -70,9 +71,13 @@ export function detectRiskAreas(
   fragments: Map<string, PlannerFragment>,
   text: Map<string, FragmentText>,
 ): RiskArea[] {
-  // Tests and formatting don't change behavior.
+  // Tests, formatting and prose don't change behavior.
   const behavioral = step.fragments.filter(
-    (f) => f.kind === "behavioral" && !f.test && !f.collapsed,
+    (f) =>
+      f.kind === "behavioral" &&
+      !f.test &&
+      !f.collapsed &&
+      !/\.(md|mdx|txt|rst|adoc)$/i.test(f.path),
   )
   if (!behavioral.length) return []
   const found = new Set<RiskArea>()
@@ -90,6 +95,11 @@ export function detectRiskAreas(
       const re = RISK_AREAS[area].pattern
       if (area === "migrations" && /(^|\/)migrations?\//i.test(f.path))
         found.add(area)
+      else if (
+        area === "public_api" &&
+        (t?.removed ?? []).some((l) => /^\s*(export|pub|public)\s/.test(l))
+      )
+        found.add(area)
       else if (haystack.some((line) => re.test(line))) found.add(area)
     }
   }
@@ -102,8 +112,8 @@ const VERY_WIDE = { callers: 15, blastRadius: 60 }
 
 /**
  * The level from the confirmed areas and the reach: a weight-2 area is
- * elevated; a second area, or wide reach, raises it; very wide reach alone is
- * elevated.
+ * elevated; a second weight-2 area, or wide reach, makes it critical; very
+ * wide reach alone is elevated.
  */
 export function riskFor(
   areas: RiskArea[],
@@ -111,7 +121,7 @@ export function riskFor(
 ): Risk {
   const reasons: string[] = areas.map((a) => RISK_AREAS[a].label)
   let score = Math.max(0, ...areas.map((a) => RISK_AREAS[a].weight))
-  if (areas.length >= 2) score += 1
+  if (areas.filter((a) => RISK_AREAS[a].weight >= 2).length >= 2) score += 1
   const wide =
     reach.callers >= WIDE.callers || reach.blastRadius >= WIDE.blastRadius
   const veryWide =

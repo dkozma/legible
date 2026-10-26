@@ -18,6 +18,8 @@ export interface Selection {
 export interface Location {
   reviewId: string
   px: number
+  /** The Step the diff showed. */
+  stepId?: string | null
   symbolId?: string | null
   /** Breadcrumb text: the Symbol's name. */
   label?: string | null
@@ -54,6 +56,12 @@ export interface UIState {
   shownExplanation: Explanation | null
   /** The right panel's tab. */
   panel: "connections" | "explain"
+  /** The Review's center: its Change Brief, or the diff. */
+  page: "brief" | "diff"
+  /** The left sidebar's tab. */
+  sidebar: "walkthrough" | "files"
+  /** The Step the diff shows; null shows the whole Change Set. */
+  stepId: string | null
   /** The Symbol the Connections panel shows. */
   focusSymbol: { symbolId: string; label: string } | null
   palette: boolean
@@ -101,6 +109,9 @@ export const useUI = create<UIState>((set, get) => ({
   activeJobId: null,
   shownExplanation: null,
   panel: "connections",
+  page: "brief",
+  sidebar: "walkthrough",
+  stepId: null,
   focusSymbol: null,
   palette: false,
   shortcuts: false,
@@ -164,6 +175,8 @@ export const useUI = create<UIState>((set, get) => ({
       shownExplanation: null,
       focusSymbol: null,
       trail: { back: [], forward: [] },
+      page: "brief",
+      stepId: null,
     })
   },
 }))

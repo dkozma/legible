@@ -144,6 +144,12 @@ export class UnderstandingService {
     private readonly hosts: HostService,
     private readonly getSettings: () => Promise<Settings>,
     private readonly emit: (s: UnderstandingStatus) => void,
+    /** Opt-in error reports (ADR 0013): the stage and error code, never content. */
+    private readonly report: (
+      e: Error,
+      stage: UnderstandingStage,
+      code: string,
+    ) => void = () => undefined,
   ) {}
 
   private key = (reviewId: string, iterationId: string) =>
@@ -383,9 +389,10 @@ export class UnderstandingService {
     const { reviewId, iterationId } = job.status
     const fail = (s: UnderstandingStage, e: unknown) => {
       if (job.abort.signal.aborted) return
-      const message = e instanceof Error ? e.message : String(e)
-      this.stage(job, s, "error", message)
+      const err = e instanceof Error ? e : new Error(String(e))
+      this.stage(job, s, "error", err.message)
       job.status.state = "error"
+      this.report(err, s, err instanceof AgentRunError ? err.code : "internal")
     }
     try {
       const review = await this.reviews.summary(reviewId)

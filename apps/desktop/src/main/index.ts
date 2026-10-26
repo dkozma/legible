@@ -798,6 +798,19 @@ if (!app.requestSingleInstanceLock()) {
         hosts,
         getSettings,
         (status) => send("understanding.updated", status),
+        (err, stage, code) =>
+          reportError(err, {
+            level: ["auth", "not_installed", "budget"].includes(code)
+              ? "warning"
+              : "error",
+            tags: { task: "understanding", stage, "agent.code": code },
+            fingerprint: [
+              "understanding",
+              stage,
+              code,
+              err.message.replace(/\d+/g, "N").slice(0, 120),
+            ],
+          }),
       )
       explanations = new ExplanationService(
         store,

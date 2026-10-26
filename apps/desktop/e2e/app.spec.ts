@@ -52,6 +52,57 @@ test.afterAll(async () => {
   rmSync(dataDir, { recursive: true, force: true })
 })
 
+test("opens on the Change Brief and plans a Walkthrough", async () => {
+  await expect(
+    page.getByRole("navigation", { name: "Location" }),
+  ).toContainText("feature/partial-refunds", { timeout: 30_000 })
+  const brief = page.getByTestId("change-brief")
+  await expect(brief).toBeVisible()
+  // No Pull Request: the Intent is inferred, for the user to confirm.
+  await expect(page.getByTestId("intent-goal")).toContainText(
+    "refund part of an order",
+    { timeout: 30_000 },
+  )
+  await expect(brief).toContainText("Inferred from the code")
+  await expect(page.getByTestId("domain-changes")).toContainText(
+    "60 days after purchase",
+    { timeout: 30_000 },
+  )
+  await expect(brief).toContainText("Risk hotspots")
+  const steps = page.getByTestId("step-row")
+  await expect(steps.first()).toBeVisible()
+  await shot("00-brief")
+
+  // Confirming the Intent tags Scope, including the Unrequested Step.
+  await brief.getByRole("button", { name: "Confirm" }).click()
+  await expect(brief).toContainText("Unrequested ·", { timeout: 30_000 })
+
+  // Start Sitting 1: the first Step, its header, and only its changes.
+  await page.getByTestId("start-sitting").click()
+  const header = page.getByTestId("step-header")
+  await expect(header).toContainText("Step 1 of")
+  await expect(steps.first()).toHaveAttribute("aria-current", "step")
+  await shot("00b-step")
+  // v marks the Step viewed and moves on.
+  await page.getByTestId("diff").click({ position: { x: 600, y: 200 } })
+  await page.keyboard.press("v")
+  await expect(header).toContainText("Step 2 of")
+  await expect(page.getByText("1 of", { exact: false }).first()).toBeVisible()
+
+  // Rename a Step.
+  await header.getByRole("button", { name: "Edit" }).click()
+  await header.getByRole("button", { name: "Rename" }).first().click()
+  const name = header.getByRole("textbox", { name: "Step name" })
+  await name.fill("Partial refunds")
+  await name.press("Enter")
+  await expect(header.getByRole("heading")).toHaveText("Partial refunds")
+
+  // The rest of these tests read the whole Change Set by file.
+  await page.getByRole("tab", { name: /Files/ }).click()
+  await page.getByRole("button", { name: "All changes" }).click()
+  await shot("00c-all-changes")
+})
+
 test("opens the working tree passed on the command line as a Review", async () => {
   await expect(
     page.getByRole("navigation", { name: "Location" }),
