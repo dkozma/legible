@@ -658,6 +658,8 @@ export interface Intent {
   howToTest: string[]
   provider: Provider | null
   model: string | null
+  /** Hash of the sources it was made from; a change means it's out of date. Null once the user edits it. */
+  sourceKey: string | null
   updatedAt: string
 }
 
@@ -955,6 +957,10 @@ export const Settings = z.object({
     /** Read local Claude Code and Codex sessions to find the Change Set's Agent Transcript. */
     readTranscripts: z.boolean(),
   }),
+  understanding: z.object({
+    /** Build the Intent, Walkthrough and Change Brief when a Review opens. */
+    auto: z.boolean(),
+  }),
   spend: z.object({
     /** Hard cap per Explanation run. */
     explanationCapUsd: z.number().positive(),
@@ -1008,6 +1014,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   verification: { crossCheck: false },
   intent: { readTranscripts: true },
+  understanding: { auto: true },
   spend: {
     explanationCapUsd: 0.5,
     understandingCapUsd: 2,

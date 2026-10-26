@@ -115,11 +115,11 @@ interface DB {
     created_at: string
   }
   viewed_steps: { review_id: string; step_id: string; viewed_at: string }
-  judgments: {
+  agent_outputs: {
     cache_key: string
-    backend: string
+    kind: string
     model: string
-    answers_json: string
+    body_json: string
     created_at: string
   }
 }
@@ -130,9 +130,12 @@ export interface AgentRunRecord {
   id: string
   reviewId: string | null
   taskKind: string
-  provider: Provider
+  /** "typesafe" for Jev judgments. */
+  provider: Provider | "typesafe"
+
   model: string
-  tier: ModelTier
+  /** Null for work no Model Tier ran (an external judgment). */
+  tier: ModelTier | null
   startedAt: string
   endedAt: string | null
   costUsd: number | null
@@ -722,38 +725,39 @@ export class Store {
     }
   }
 
-  // ---- Judgments ----------------------------------------------------------------
+  // ---- Cached agent outputs ------------------------------------------------------
 
-  async getJudgment(
+  /** A Walkthrough plan, Intent or judgment answered before for the same input, model and prompt version. */
+  async getCachedOutput(
     cacheKey: string,
-  ): Promise<{ backend: string; model: string; answers: unknown } | null> {
+  ): Promise<{ kind: string; model: string; body: unknown } | null> {
     const row = await this.db
-      .selectFrom("judgments")
+      .selectFrom("agent_outputs")
       .selectAll()
       .where("cache_key", "=", cacheKey)
       .executeTakeFirst()
     return row
       ? {
-          backend: row.backend,
+          kind: row.kind,
           model: row.model,
-          answers: JSON.parse(row.answers_json) as unknown,
+          body: JSON.parse(row.body_json) as unknown,
         }
       : null
   }
 
-  async saveJudgment(
+  async saveCachedOutput(
     cacheKey: string,
-    backend: string,
+    kind: string,
     model: string,
-    answers: unknown,
+    body: unknown,
   ) {
     await this.db
-      .insertInto("judgments")
+      .insertInto("agent_outputs")
       .values({
         cache_key: cacheKey,
-        backend,
+        kind,
         model,
-        answers_json: JSON.stringify(answers),
+        body_json: JSON.stringify(body),
         created_at: now(),
       })
       .onConflict((oc) => oc.column("cache_key").doNothing())
@@ -769,7 +773,7 @@ export class Store {
       task_kind: r.taskKind,
       provider: r.provider,
       model: r.model,
-      tier: r.tier,
+      tier: r.tier ?? "none",
       started_at: r.startedAt,
       ended_at: r.endedAt,
       cost_usd: r.costUsd,
@@ -808,7 +812,8 @@ export class Store {
     const byProvider: Record<Provider, number> = { anthropic: 0, openai: 0 }
     let runs = 0
     for (const m of month) {
-      byProvider[m.provider as Provider] = m.total
+      if (m.provider === "anthropic" || m.provider === "openai")
+        byProvider[m.provider] = m.total
       runs += m.runs
     }
     return {

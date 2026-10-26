@@ -16,6 +16,7 @@ import {
   describeConnections,
   EXPLANATION_PROMPT_VERSION,
   explanationCacheKey,
+  type ExplanationOutput,
   toExplanationBody,
 } from "@legible/pipelines"
 import type { AgentRunRecord, Store } from "@legible/store"
@@ -101,8 +102,8 @@ export class ExplanationService {
     const review = await this.reviews.summary(reviewId)
     const built = await this.reviews.built(reviewId, iterationId, false)
     const settings = await this.getSettings()
-    const tier = settings.tiers.fast
-    const intent = review.intentText ? splitIntent(review.intentText) : null
+    const tier = settings.tasks.explanation ?? settings.tiers.fast
+    const intent = await this.intentFor(review, iterationId, target)
     const base = {
       target,
       ...(await this.code(review, built, target)),
@@ -214,10 +215,10 @@ export class ExplanationService {
           cacheKey,
           target,
           label,
-          body: toExplanationBody(r.output),
+          body: toExplanationBody(r.output as ExplanationOutput),
           provider: r.provider as Explanation["provider"],
           model: r.model,
-          tier: "fast",
+          tier: r.tier ?? "fast",
           promptVersion: EXPLANATION_PROMPT_VERSION,
           costUsd: r.costUsd,
           durationMs: r.durationMs,
@@ -264,6 +265,47 @@ export class ExplanationService {
         if (!cancelled) reportExplanationFailure(err, input, tier, started)
       })
     return strip(job)
+  }
+
+  /**
+   * The Intent an Explanation is read against (engineering plan §9.4): the
+   * Review's Intent, else the Pull Request description, plus the narrative of
+   * the Step the code belongs to.
+   */
+  private async intentFor(
+    review: Awaited<ReturnType<ReviewService["summary"]>>,
+    iterationId: string,
+    target: ExplanationTarget,
+  ): Promise<{ title: string; body: string } | null> {
+    const stored = await this.store.getIntent(review.id)
+    const base = stored
+      ? {
+          title: stored.goal,
+          body: stored.requirements
+            .map((r) => `${r.id}: ${r.statement}`)
+            .join("\n"),
+        }
+      : review.intentText
+        ? splitIntent(review.intentText)
+        : null
+    const w = await this.store.getWalkthrough(review.id, iterationId)
+    const range =
+      target.kind === "file" ? null : (target.headRange ?? target.baseRange)
+    const step = w?.steps.find((s) =>
+      s.fragments.some(
+        (f) =>
+          f.fileId === target.fileId &&
+          (!range ||
+            [f.headRange, f.baseRange].some(
+              (r) => r && r[0] <= range[1] && range[0] <= r[1],
+            )),
+      ),
+    )
+    if (!step) return base
+    const note = `This code is part of the Step "${step.name}"${step.narrative ? `: ${step.narrative}` : "."}`
+    return base
+      ? { title: base.title, body: `${base.body}\n\n${note}`.trim() }
+      : { title: step.name, body: note }
   }
 
   /** The lines an Explanation is about: the file's diff, or an unchanged file's text at Head. */

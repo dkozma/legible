@@ -180,7 +180,7 @@ describe("Store", () => {
     expect(spend.monthByProvider.anthropic).toBeCloseTo(0.02)
     expect(spend.runsThisMonth).toBe(1)
   })
-  it("keeps Intents, Walkthroughs, Briefs, viewed Steps and judgments", async () => {
+  it("keeps Intents, Walkthroughs, Briefs, viewed Steps and agent outputs", async () => {
     const repo = await store.upsertRepo({
       displayName: "r",
       gitDir: "/w/.git",
@@ -225,6 +225,7 @@ describe("Store", () => {
       howToTest: [],
       provider: null,
       model: null,
+      sourceKey: null,
       updatedAt: new Date().toISOString(),
     }
     await store.saveIntent(intent)
@@ -274,7 +275,7 @@ describe("Store", () => {
     await store.setStepsViewed(review.id, ["s1"], false)
     expect(await store.viewedSteps(review.id)).toEqual(["s2"])
 
-    await store.saveJudgment("j1", "fast", "m", [{ p: 0.9 }])
-    expect((await store.getJudgment("j1"))?.answers).toEqual([{ p: 0.9 }])
+    await store.saveCachedOutput("j1", "judgment", "m", [{ p: 0.9 }])
+    expect((await store.getCachedOutput("j1"))?.body).toEqual([{ p: 0.9 }])
   })
 })

@@ -32,6 +32,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.3.310
         version: 0.3.310(@anthropic-ai/sdk@1.3.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))(zod@4.6.7)
+      '@openai/agents':
+        specifier: 0.20.0
+        version: 0.20.0(undici@7.30.1)(ws@8.22.0)(zod@4.6.7)
       '@sentry/electron':
         specifier: 8.3.0
         version: 8.3.0(@babel/core@7.29.7)
@@ -41,6 +44,9 @@ importers:
       kysely:
         specifier: ^0.29.7
         version: 0.29.7
+      openai:
+        specifier: 7.32.0
+        version: 7.32.0(undici@7.30.1)(ws@8.22.0)(zod@4.6.7)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -66,6 +72,9 @@ importers:
       '@legible/ipc':
         specifier: workspace:*
         version: link:../../packages/ipc
+      '@legible/judge':
+        specifier: workspace:*
+        version: link:../../packages/judge
       '@legible/pipelines':
         specifier: workspace:*
         version: link:../../packages/pipelines

@@ -93,7 +93,7 @@ export const MIGRATIONS: string[] = [
     state_json TEXT NOT NULL
   );
   `,
-  // 2 — M3: Intent, Walkthrough, Change Brief, Judge cache
+  // 2 — M3: Intent, Walkthrough, Change Brief, and a cache of agent outputs
   `
   CREATE TABLE intents (
     review_id TEXT PRIMARY KEY REFERENCES reviews(id) ON DELETE CASCADE,
@@ -131,11 +131,11 @@ export const MIGRATIONS: string[] = [
     PRIMARY KEY (review_id, step_id)
   );
 
-  CREATE TABLE judgments (
+  CREATE TABLE agent_outputs (
     cache_key TEXT PRIMARY KEY,
-    backend TEXT NOT NULL,
+    kind TEXT NOT NULL,
     model TEXT NOT NULL,
-    answers_json TEXT NOT NULL,
+    body_json TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
   `,

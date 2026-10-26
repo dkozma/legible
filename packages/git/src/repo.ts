@@ -599,6 +599,41 @@ export class GitRepo {
       })
   }
 
+  /** When the commits between two revisions were made: the earliest and latest committer dates. */
+  async commitTimes(
+    base: string,
+    head: string,
+  ): Promise<{ first: Date | null; last: Date | null }> {
+    const out = await this.text([
+      "log",
+      "--format=%ct",
+      `${base}..${head}`,
+      "--",
+    ])
+    const times = out
+      .split("\n")
+      .filter(Boolean)
+      .map((t) => Number(t) * 1000)
+      .filter((t) => Number.isFinite(t))
+    if (!times.length) return { first: null, last: null }
+    return {
+      first: new Date(Math.min(...times)),
+      last: new Date(Math.max(...times)),
+    }
+  }
+
+  /** Paths of this repository's working trees, the main one first. */
+  async worktreePaths(): Promise<string[]> {
+    const r = await this.git(["worktree", "list", "--porcelain"], {
+      allowFailure: true,
+    })
+    return r.stdout
+      .toString("utf8")
+      .split("\n")
+      .filter((l) => l.startsWith("worktree "))
+      .map((l) => l.slice("worktree ".length))
+  }
+
   async blame(rev: string, path: string, start: number, end: number) {
     if (await this.isPartialClone()) {
       // Blame reads the file at every commit that touched it. A long history falls back to lazy fetches.
