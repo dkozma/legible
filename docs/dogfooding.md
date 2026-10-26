@@ -32,7 +32,7 @@ Without signing credentials the build is unsigned. The first time, open it with 
 
 ### Releases
 
-Signed, notarized builds come from the Release workflow. In the repository's Actions tab, choose **Release → Run workflow** on `main`. It picks the next version (`YYYY.MDD.N`, [ADR 0012](./adr/0012-calendar-versions.md)), tags the commit, and uploads the DMG to a draft GitHub Release. Publish the draft to make it downloadable and to offer it to installed copies. They check at launch, download in the background, and install when you quit. It needs the `MAC_CERTS`, `MAC_CERTS_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` secrets. Builds are Apple Silicon only for now.
+Signed, notarized builds come from the Release workflow. In the repository's Actions tab, choose **Release → Run workflow** on `main`. It picks the next version (`YYYY.MDD.N`, [ADR 0012](./adr/0012-calendar-versions.md)), tags the commit, and uploads the DMG to a draft GitHub Release. Publish the draft to make it downloadable and to offer it to installed copies. They check at launch, download in the background, and install when you quit. It needs the `MAC_CERTS`, `MAC_CERTS_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` secrets, and `SENTRY_DSN` for error reports. Builds are Apple Silicon only for now.
 
 ### From the terminal
 
@@ -107,7 +107,11 @@ npx vitest run --config vitest.live.config.ts  # live checks: a real Claude Expl
 node fixtures/make-refund-repo.mjs /tmp/refunds  # the M0 design fixture as a real repository
 ```
 
-`LEGIBLE_FAKE_AGENT=1` answers every Explanation with canned text, and `LEGIBLE_USER_DATA=<dir>` uses a throwaway data folder.
+`LEGIBLE_FAKE_AGENT=1` answers every Explanation with canned text, `LEGIBLE_FAKE_AGENT=fail` fails every one, and `LEGIBLE_USER_DATA=<dir>` uses a throwaway data folder.
+
+### Error reports
+
+Errors and crashes can go to Sentry ([ADR 0013](./adr/0013-opt-in-error-reports.md)). For development builds, copy `apps/desktop/.env.example` to `apps/desktop/.env` and set `MAIN_VITE_SENTRY_DSN`. `pnpm dev` then sends reports. A local packaged build gets the DSN too, but like a release it waits for the setting. `LEGIBLE_SENTRY_DSN=<dsn>` turns reports on for one run of any build. Release builds get the DSN from the `SENTRY_DSN` repository secret, and send nothing until you turn on Settings → Privacy → **Send error reports**.
 
 Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `hosts`, `agent-runtime` and `pipelines`. The UI is React with Tailwind CSS v4, themed with the M0 tokens ([ADR 0010](./adr/0010-tailwind-css.md)). The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents run in a separate utility process.
 

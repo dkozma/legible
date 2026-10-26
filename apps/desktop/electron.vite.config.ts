@@ -17,7 +17,8 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    // A sandboxed preload can't require packages, so Sentry's bridge is bundled in.
+    plugins: [externalizeDepsPlugin({ exclude: ["@sentry/electron"] })],
     build: {
       rollupOptions: {
         // Sandboxed preloads must be CommonJS.

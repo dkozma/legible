@@ -9,5 +9,8 @@ coverage/
 test-results/
 playwright-report/
 fixtures/.generated/
+.env
+.env.*
+!.env.example
 apps/desktop/release/
 apps/desktop/test-results/

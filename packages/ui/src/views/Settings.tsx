@@ -226,28 +226,80 @@ export function SettingsView({
                   </div>
                 </Card>
               </Section>
-              <Callout
-                id="privacy"
-                className="flex flex-col gap-2 px-[18px] py-4"
-                aria-labelledby="priv-h"
-              >
-                <h2 className="text-base font-semibold" id="priv-h">
-                  Where your code goes
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Only to your git host (to fetch Pull Requests) and to Claude
-                  when you ask for an Explanation. Legible collects no telemetry
-                  and sends no crash reports. Explanations only read code
-                  through Legible's own read-only tools: agents get no shell, no
-                  file edits, no network, and never load the reviewed
-                  repository's Claude settings, hooks or MCP servers.
-                </p>
-              </Callout>
+              <Privacy settings={settings.data} update={update} />
             </div>
           )}
         </main>
       </div>
     </>
+  )
+}
+
+function Privacy({
+  settings,
+  update,
+}: {
+  settings: Settings
+  update: (f: (s: Settings) => Settings) => void
+}) {
+  const client = useClient()
+  const info = useQuery({
+    queryKey: ["appInfo"],
+    queryFn: () => client.call("app.info", {}),
+  })
+  const reporting = info.data?.errorReporting
+  return (
+    <Callout
+      id="privacy"
+      className="flex flex-col gap-3 px-[18px] py-4"
+      aria-labelledby="priv-h"
+    >
+      <h2 className="text-base font-semibold" id="priv-h">
+        Where your code goes
+      </h2>
+      <p className="text-sm text-muted-foreground">
+        Only to your git host (to fetch Pull Requests) and to Claude when you
+        ask for an Explanation. Legible collects no telemetry. Explanations only
+        read code through Legible's own read-only tools: agents get no shell, no
+        file edits, no network, and never load the reviewed repository's Claude
+        settings, hooks or MCP servers.
+      </p>
+      {reporting?.available && (
+        <div className="flex flex-col gap-1.5 border-t pt-3">
+          <div className="flex items-center gap-3">
+            <span className="grow text-sm font-medium">Send error reports</span>
+            {reporting.forced ? (
+              <Badge tone="ok">On for this run</Badge>
+            ) : (
+              <Switch
+                checked={settings.privacy.crashReports}
+                label="Send error reports"
+                onChange={(v) =>
+                  update((s) => ({
+                    ...s,
+                    privacy: { ...s.privacy, crashReports: v },
+                  }))
+                }
+              />
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Sends errors and crashes to Sentry so they can be fixed: the error
+            message, where in Legible it happened, your OS and app version, and
+            for a crash, a memory dump that can include code that was open.
+            Never your code, diffs, prompts, Explanations, repository names or
+            tokens otherwise.
+            {reporting.forced &&
+              " This run has a Sentry DSN in its environment, which turns them on."}
+          </p>
+        </div>
+      )}
+      {reporting && !reporting.available && (
+        <p className="text-sm text-muted-foreground">
+          This build can't send error reports.
+        </p>
+      )}
+    </Callout>
   )
 }
 

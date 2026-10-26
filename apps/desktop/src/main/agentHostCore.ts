@@ -3,6 +3,7 @@
 // transport-independent core; agentHost.ts wires it to a utilityProcess.
 
 import {
+  AgentError,
   type AgentEvent,
   type AgentRuntime,
   type ClaudeRuntimeConfig,
@@ -27,8 +28,11 @@ export interface HostConfig {
   claude: ClaudeRuntimeConfig
   tiers: Record<ModelTier, TierAssignment>
   concurrency: number
-  /** Use canned answers instead of a real model (tests, demos). */
-  fake: boolean
+  /**
+   * Canned answers instead of a real model (tests, demos). "fail" answers
+   * every run with the structured-output error real runs can hit.
+   */
+  fake: false | "answer" | "fail"
 }
 
 export interface ExplanationRunInput {
@@ -89,6 +93,13 @@ export type FromHost =
     }
   | { type: "status"; reqId: string; status: RuntimeStatus }
 
+const fakeFailure = (): never => {
+  throw new AgentError(
+    "Claude's answer didn't match the expected shape: Output does not match required schema: root: must have required property 'whatChanged'",
+    "structured_output",
+  )
+}
+
 const fakeAnswer = (): ExplanationOutput => ({
   before:
     "Refunded the whole order total in one gateway call, then wrote an audit entry naming the operator.",
@@ -132,7 +143,10 @@ export function createAgentHost(post: (m: FromHost) => void) {
       case "configure": {
         config = m.config
         runtime = m.config.fake
-          ? new FakeRuntime(fakeAnswer, { delayMs: 600 })
+          ? new FakeRuntime(
+              m.config.fake === "fail" ? fakeFailure : fakeAnswer,
+              { delayMs: 600 },
+            )
           : new ClaudeSdkRuntime(m.config.claude)
         router = new Router({ anthropic: runtime }, m.config.tiers)
         scheduler.setConcurrency(m.config.concurrency)

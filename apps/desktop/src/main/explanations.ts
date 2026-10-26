@@ -19,7 +19,59 @@ import type { AgentRunRecord, Store } from "@legible/store"
 
 import { type AgentHostClient, AgentRunError } from "./agentHostClient"
 import type { ExplanationRunInput } from "./agentHostCore"
+import { reportError } from "./errorReporting"
 import { type ReviewService, UserError } from "./reviews"
+
+/** Failures that describe the user's setup, not a bug. Still reported, at a lower level. */
+const SETUP_CODES = new Set(["auth", "not_installed", "budget"])
+
+/**
+ * Reports a failed Explanation with what produced it: the model, the error
+ * code, and the shape of the input. Never the code, the diff or the prompt.
+ */
+function reportExplanationFailure(
+  err: Error,
+  input: ExplanationRunInput,
+  tier: { provider: string; model: string },
+  startedAt: string,
+) {
+  const code = err instanceof AgentRunError ? err.code : "internal"
+  const target = input.target
+  reportError(err, {
+    level: SETUP_CODES.has(code) ? "warning" : "error",
+    tags: {
+      task: "explanation",
+      "agent.code": code,
+      "agent.provider": tier.provider,
+      "agent.model": tier.model,
+      "file.language": input.file.language ?? "none",
+      "file.status": input.file.status,
+      "target.kind": target.kind,
+    },
+    extra: {
+      baseLineCount: input.baseLines.length,
+      headLineCount: input.headLines.length,
+      selectedBaseLines:
+        target.kind === "range" && target.baseRange
+          ? target.baseRange[1] - target.baseRange[0] + 1
+          : null,
+      selectedHeadLines:
+        target.kind === "range" && target.headRange
+          ? target.headRange[1] - target.headRange[0] + 1
+          : null,
+      hasIntent: input.intent !== null,
+      changedFileCount: input.changedFiles.length,
+      durationMs: Date.now() - Date.parse(startedAt),
+      costUsd: err instanceof AgentRunError ? err.costUsd : 0,
+    },
+    // The stack is the main process receiving the agent host's message; group by what failed.
+    fingerprint: [
+      "explanation",
+      code,
+      err.message.replace(/\d+/g, "N").slice(0, 120),
+    ],
+  })
+}
 
 export class ExplanationService {
   private jobs = new Map<
@@ -217,6 +269,7 @@ export class ExplanationService {
           progress: null,
         })
         this.emit(strip(job))
+        if (!cancelled) reportExplanationFailure(err, input, tier, started)
       })
     return strip(job)
   }

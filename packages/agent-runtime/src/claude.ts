@@ -504,6 +504,12 @@ function classifyError(e: Error, stderr: string, auth: string): AgentError {
       "auth",
     )
   }
+  if (/structured output|StructuredOutput|required schema/i.test(msg)) {
+    return new AgentError(
+      `Claude's answer didn't match the expected shape: ${e.message.split("\n")[0]?.slice(0, 300)}`,
+      "structured_output",
+    )
+  }
   return new AgentError(
     `Claude failed: ${e.message.split("\n")[0]?.slice(0, 300)}`,
     "execution",

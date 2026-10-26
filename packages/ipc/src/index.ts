@@ -33,6 +33,8 @@ export interface AppInfo {
   gitVersion: string
   gitOk: boolean
   dataDir: string
+  /** Whether this build can send error reports, and whether its environment turned them on (ADR 0013). */
+  errorReporting: { available: boolean; forced: boolean }
 }
 
 export interface RepoInspection {

@@ -3,6 +3,7 @@
 
 import type { LegibleBridge } from "@legible/ipc"
 import { CHANNELS, EVENTS } from "@legible/ipc/channels"
+import { hookupIpc } from "@sentry/electron/preload-namespaced"
 import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron"
 
 const channels = new Set<string>(CHANNELS)
@@ -28,3 +29,7 @@ const bridge: LegibleBridge = {
 }
 
 contextBridge.exposeInMainWorld("legible", bridge)
+
+// Lets the renderer's error-reporting SDK reach the main process. Inert unless
+// the main process started error reporting (ADR 0013).
+hookupIpc()

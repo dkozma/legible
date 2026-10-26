@@ -17,12 +17,22 @@ export {
   rowAt,
 } from "./diff/rows"
 
+export interface MountOptions {
+  /** Called with errors React caught while rendering, for error reports. */
+  onError?: (error: unknown, componentStack: string | undefined) => void
+}
+
 export function mountApp(
   el: HTMLElement,
   bridge: LegibleBridge | LegibleClient,
+  options: MountOptions = {},
 ) {
   const client = "call" in bridge ? bridge : createClient(bridge)
-  createRoot(el).render(
+  const report = (error: unknown, info: { componentStack?: string }) => {
+    console.error(error)
+    options.onError?.(error, info.componentStack)
+  }
+  createRoot(el, { onUncaughtError: report, onCaughtError: report }).render(
     <Providers client={client}>
       <App />
     </Providers>,

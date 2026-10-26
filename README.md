@@ -17,11 +17,12 @@ pnpm dev ~/code/your-repo
 
 ## Privacy
 
-Legible collects no telemetry. Your code leaves your machine only for three destinations:
+Legible collects no telemetry. Your code leaves your machine only for these destinations:
 
 - your git host (GitHub or GitLab)
 - the model providers you connect: Claude (Anthropic, the default) and/or OpenAI
 - TypeSafe, only if you turn on the optional Jev judgment backend
+- Sentry, only if you turn on **Send error reports** in Settings → Privacy (off by default). Reports carry error messages, stack traces in Legible's own code, and your OS and app version, with tokens and your home directory removed. A crash report also carries a memory dump, which can include code you had open. See [ADR 0013](docs/adr/0013-opt-in-error-reports.md).
 
 ## License
 

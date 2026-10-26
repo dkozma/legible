@@ -48,6 +48,9 @@ jobs:
           git push origin "v${{ steps.version.outputs.version }}"
 
       - run: pnpm --filter @legible/desktop exec electron-vite build
+        env:
+          # Opt-in error reports (ADR 0013): built in, sent only once the user turns them on.
+          MAIN_VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       - name: Package, sign and notarize
         run: pnpm --filter @legible/desktop exec electron-builder --mac --publish always
         env:

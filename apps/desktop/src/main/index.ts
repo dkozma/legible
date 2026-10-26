@@ -47,6 +47,14 @@ import {
 } from "./agentHostClient"
 import type { FromHost } from "./agentHostCore"
 import { openInEditor } from "./editor"
+import {
+  errorReportingActive,
+  errorReportingInfo,
+  initErrorReporting,
+  reportError,
+  setErrorReportingEnabled,
+} from "./errorReporting"
+import { ERROR_REPORTS_ARG } from "./errorReportingShared"
 import { ExplanationService } from "./explanations"
 import { HostService } from "./hosts"
 import { ReviewService, UserError } from "./reviews"
@@ -59,6 +67,8 @@ const requireHere = createRequire(import.meta.url)
 if (process.env.LEGIBLE_USER_DATA)
   app.setPath("userData", resolve(process.env.LEGIBLE_USER_DATA))
 app.setName("Legible")
+// Before anything else can fail, and before ready for native crashes.
+initErrorReporting()
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -166,12 +176,18 @@ function configureAgents(s: Settings) {
     claude: claudeConfig(s),
     tiers: { ...DEFAULT_TIERS, ...s.tiers },
     concurrency: s.agents.concurrency,
-    fake: process.env.LEGIBLE_FAKE_AGENT === "1",
+    fake:
+      process.env.LEGIBLE_FAKE_AGENT === "fail"
+        ? "fail"
+        : process.env.LEGIBLE_FAKE_AGENT === "1"
+          ? "answer"
+          : false,
   })
 }
 
 function spawnAgentHost(): Transport {
-  const child = utilityProcess.fork(join(here, "agentHost.js"), [], {
+  const args = errorReportingActive() ? [ERROR_REPORTS_ARG] : []
+  const child = utilityProcess.fork(join(here, "agentHost.js"), args, {
     serviceName: "Legible Agent Host",
     stdio: "inherit",
   })
@@ -199,6 +215,7 @@ const handlers: Handlers = {
       gitVersion: g.version,
       gitOk: g.ok,
       dataDir: app.getPath("userData"),
+      errorReporting: errorReportingInfo(),
     }
   },
   "settings.get": () => getSettings(),
@@ -206,6 +223,7 @@ const handlers: Handlers = {
     const saved = await store.saveSettings(settings)
     settingsCache = saved
     configureAgents(saved)
+    setErrorReportingEnabled(saved.privacy.crashReports)
     return saved
   },
   "secrets.status": async () => {
@@ -365,7 +383,11 @@ function registerIpc() {
         return { ok: true, value }
       } catch (e) {
         const err = e as Error & { code?: string }
-        if (!(e instanceof UserError)) console.error(`[ipc] ${channel}:`, e)
+        if (!(e instanceof UserError)) {
+          console.error(`[ipc] ${channel}:`, e)
+          // A UserError is an expected answer; anything else is a bug.
+          reportError(e, { tags: { ipc: channel } })
+        }
         return {
           ok: false,
           error: { message: err.message, code: err.code ?? null },
@@ -608,7 +630,9 @@ if (!app.requestSingleInstanceLock()) {
           ? inProcessTransport
           : spawnAgentHost,
       )
-      configureAgents(await getSettings().catch(() => DEFAULT_SETTINGS))
+      const initial = await getSettings().catch(() => DEFAULT_SETTINGS)
+      setErrorReportingEnabled(initial.privacy.crashReports)
+      configureAgents(initial)
       explanations = new ExplanationService(
         store,
         reviews,
