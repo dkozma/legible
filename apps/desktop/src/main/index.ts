@@ -51,7 +51,7 @@ import { ExplanationService } from "./explanations"
 import { HostService } from "./hosts"
 import { ReviewService, UserError } from "./reviews"
 import { SecretStore } from "./secrets"
-import { loadShellPath } from "./shellEnv"
+import { loadShellEnv } from "./shellEnv"
 
 const here = dirname(fileURLToPath(import.meta.url))
 const requireHere = createRequire(import.meta.url)
@@ -590,7 +590,7 @@ if (!app.requestSingleInstanceLock()) {
   app
     .whenReady()
     .then(async () => {
-      await loadShellPath().catch(() => undefined)
+      await loadShellEnv().catch(() => undefined)
       const dataDir = app.getPath("userData")
       mkdirSync(dataDir, { recursive: true })
       store = new Store(join(dataDir, "legible.db"))

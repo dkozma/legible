@@ -14,6 +14,8 @@ files:
   # Only the libc variant the platform uses.
   - "!node_modules/@anthropic-ai/claude-agent-sdk-*-musl/**"
 # The Agent SDK spawns its bundled native `claude`; binaries can't run from inside an asar archive.
+# Leave Electron's RunAsNode fuse on: shellEnv.ts runs the app binary as Node
+# inside a login shell to read the user's environment (it falls back to PATH only).
 asarUnpack:
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**
 mac:

@@ -438,17 +438,24 @@ export class ClaudeSdkRuntime implements AgentRuntime {
       timeoutMs: 10_000,
     })
     let loggedIn: boolean | null = null
+    let configDir: string | null = null
     try {
-      loggedIn = Boolean(
-        (JSON.parse(s.stdout) as { loggedIn?: boolean }).loggedIn,
-      )
+      const j = JSON.parse(s.stdout) as {
+        loggedIn?: unknown
+        configDirectory?: unknown
+      }
+      // Anything but an explicit true/false is unknown, not signed out.
+      if (typeof j.loggedIn === "boolean") loggedIn = j.loggedIn
+      if (typeof j.configDirectory === "string") configDir = j.configDirectory
     } catch {
       loggedIn = null
     }
     const ready = loggedIn !== false
+    // Say which `claude` ran and where it looked: a different install, or a
+    // CLAUDE_CONFIG_DIR the terminal sets, is the usual reason it disagrees with the terminal.
     const detail =
       loggedIn === false
-        ? "Claude Code is installed but not signed in. Run `claude` in a terminal to sign in."
+        ? `Claude Code at ${exe} isn't signed in${configDir ? ` (it looked in ${configDir})` : ""}. Run \`claude\` in a terminal to sign in, or set the path your terminal uses in Settings → Providers.`
         : `Claude Code${version ? ` ${version}` : ""}${loggedIn ? ", signed in" : ""}`
     return {
       provider: "anthropic",

@@ -49,7 +49,7 @@ If Legible is already running, the Review opens in the existing window. You can 
 
 ## Connect Claude
 
-Settings → Providers. The default is **Use my Claude Code**: Legible runs your installed, signed-in `claude` and never touches its credentials. If it says Claude Code isn't signed in, run `claude` once in a terminal and press Recheck. If Legible can't find `claude` (GUI apps on macOS don't see your shell's PATH), paste its path. `which claude` prints it.
+Settings → Providers. The default is **Use my Claude Code**: Legible runs your installed, signed-in `claude` and never touches its credentials. Legible reads your login shell's environment at startup, so variables your shell profile exports (`CLAUDE_CONFIG_DIR`, `CLAUDE_CODE_OAUTH_TOKEN`, proxies) apply even when you open it from the Dock. If it says Claude Code isn't signed in, the message names the `claude` it ran and the folder it looked in. Run `claude` once in a terminal and press Recheck, or set the path your terminal uses (`which claude`). If Legible can't find `claude` (GUI apps on macOS don't see your shell's PATH), paste its path. `which claude` prints it.
 
 Usage-based alternatives are under the same card. API keys go to the macOS Keychain and reach Claude only as environment variables.
 
