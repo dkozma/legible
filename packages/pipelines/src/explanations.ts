@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto"
 
 import type { AgentTask, ToolContext } from "@legible/agent-runtime"
-import { READ_TOOLS } from "@legible/agent-runtime"
+import { READ_TOOLS, untrusted } from "@legible/agent-runtime"
 import {
   CONNECTION_VERB,
   CONNECTION_VERB_IN,
@@ -209,11 +209,6 @@ export function renderTargetDiff(
     shown++
   }
   return { text: out.join("\n"), truncated }
-}
-
-function untrusted(label: string, text: string) {
-  // Neutralize any untrusted tag inside the data, in any case or spacing, so it can't end the block early.
-  return `<untrusted source="${label}">\n${text.replace(/<(\s*\/?\s*untrusted)/gi, "&lt;$1")}\n</untrusted>`
 }
 
 export function explanationPrompt(input: ExplanationInput): string {

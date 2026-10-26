@@ -18,6 +18,7 @@ export {
   runTask,
   Scheduler,
 } from "./router"
+export { UNTRUSTED_RULE, untrusted } from "./prompting"
 export { lintSchema, type SchemaProblem, toJsonSchema } from "./schemaLint"
 export {
   type AnyLegibleTool,

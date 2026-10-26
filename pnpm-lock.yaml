@@ -295,6 +295,22 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
+  packages/judge:
+    dependencies:
+      '@legible/agent-runtime':
+        specifier: workspace:*
+        version: link:../agent-runtime
+      '@legible/domain':
+        specifier: workspace:*
+        version: link:../domain
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@legible/git':
+        specifier: workspace:*
+        version: link:../git
+
   packages/pipelines:
     dependencies:
       '@legible/agent-runtime':
