@@ -108,7 +108,7 @@ const fakeAnswer = (): ExplanationOutput => ({
   before:
     "Refunded the whole order total in one gateway call, then wrote an audit entry naming the operator.",
   after:
-    "Refunds `amountCents`, defaulting to the remaining balance, and rejects anything larger. Shipping is included only on the final refund.",
+    "Refunds `amountCents`, defaulting to the remaining balance from `calculateRefundable()`, and rejects anything larger. Shipping is included only on the final refund.",
   whatChanged: [
     {
       kind: "behavior",

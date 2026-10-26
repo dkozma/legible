@@ -87,6 +87,50 @@ test("explains the current hunk with e", async () => {
   })
 })
 
+test("links code in Explanations to its Symbol, and the mouse's back button returns", async () => {
+  const explanation = page.getByTestId("explanation")
+  const link = explanation
+    .getByTestId("code-link")
+    .filter({ hasText: "calculateRefundable()" })
+  await expect(link).toBeVisible({ timeout: 15_000 })
+  const diff = page.getByTestId("diff")
+  const before = await diff.evaluate((el) => el.scrollTop)
+
+  await link.hover()
+  await expect(page.getByRole("tooltip")).toContainText(
+    "RefundService.calculateRefundable",
+  )
+  await shot("02b-code-link")
+  await link.click()
+  const definition = page
+    .locator("[data-code]")
+    .filter({ hasText: "async calculateRefundable(orderId: string)" })
+  await expect(definition).toBeInViewport()
+  // The code is in the diff, so the Explanation stays open beside it.
+  await expect(page.getByRole("tab", { name: "Explain" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  )
+
+  // Playwright can't press side buttons; send what Chromium sends for them.
+  const side = (button: number) =>
+    page.evaluate((b) => {
+      window.dispatchEvent(new MouseEvent("mousedown", { button: b }))
+      window.dispatchEvent(new MouseEvent("mouseup", { button: b }))
+    }, button)
+  await side(3)
+  await expect
+    .poll(() => diff.evaluate((el) => el.scrollTop))
+    .toBeCloseTo(before, -1)
+  await side(4)
+  await expect(definition).toBeInViewport()
+  // Leave the view where this test found it, for the tests that follow.
+  await side(3)
+  await expect
+    .poll(() => diff.evaluate((el) => el.scrollTop))
+    .toBeCloseTo(before, -1)
+})
+
 test("selects lines by dragging line numbers and explains them", async () => {
   // Head line numbers (the second number column) of added lines.
   const head = (i: number) =>

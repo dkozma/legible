@@ -994,6 +994,94 @@ export class CodeIndex {
       symbols: all.symbols,
     }
   }
+
+  /**
+   * The Symbols that code spans in prose (an Explanation's `backticked`
+   * names) most likely mean, best first; empty when a span isn't a Symbol
+   * name. `near` ranks the explained file and Symbols connected to the
+   * explained ones first.
+   */
+  lookup(
+    names: string[],
+    near: { path: string | null; symbolIds: string[] },
+  ): Record<string, CodeSymbol[]> {
+    const related = new Set<string>()
+    for (const id of near.symbolIds) {
+      const all = this.forSymbol(id)
+      if (!all) continue
+      for (const c of [...all.uses, ...all.usedBy]) {
+        if (c.toId) related.add(c.toId)
+        related.add(c.fromId)
+        for (const cand of c.candidates) related.add(cand)
+      }
+    }
+    const score = (s: CodeSymbol) =>
+      (near.path !== null && s.path === near.path ? 3 : 0) +
+      (related.has(s.id) ? 4 : 0) +
+      (this.symbolsById.get(s.id)?.entry.side === "both" ? 0 : 1) +
+      (s.side === "head" ? 0.5 : 0)
+    const out: Record<string, CodeSymbol[]> = {}
+    for (const raw of names) {
+      const found = this.candidatesFor(normalizeCodeSpan(raw))
+      out[raw] = found
+        .toSorted(
+          (a, b) =>
+            score(b) - score(a) ||
+            a.qualifiedName.localeCompare(b.qualifiedName),
+        )
+        .slice(0, 5)
+    }
+    return out
+  }
+
+  private candidatesFor(text: string | null): CodeSymbol[] {
+    if (!text) return []
+    const seen = new Map<string, CodeSymbol>()
+    const add = (s: CodeSymbol) => {
+      // One per Symbol: a matched Base Symbol is shown by its Head counterpart.
+      const shown =
+        s.side === "base" && s.counterpartId ? this.symbol(s.counterpartId) : s
+      if (shown) seen.set(shown.id, shown)
+    }
+    if (PATH_LIKE.test(text)) {
+      for (const e of this.entries)
+        if (e.path === text || e.path.endsWith(`/${text}`)) add(e.module)
+      return [...seen.values()]
+    }
+    if (text.includes(".")) {
+      for (const { symbol } of this.symbolsById.values())
+        if (
+          symbol.kind !== "module" &&
+          (symbol.qualifiedName === text ||
+            symbol.qualifiedName.endsWith(`.${text}`))
+        )
+          add(symbol)
+      return [...seen.values()]
+    }
+    for (const s of this.byName.head.get(text) ?? []) add(s)
+    for (const s of this.byName.base.get(text) ?? []) add(s)
+    return [...seen.values()]
+  }
+}
+
+const PATH_LIKE =
+  /\/|\.(?:[cm]?[jt]sx?|py|go|rs|java|c|cc|cpp|h|hpp|cs|rb|php|scala|lua|exs?|ml|json|ya?ml|toml|css|html|sh|zig|tf)$/
+
+/**
+ * The name a code span refers to: `foo()` → foo, `new Foo<T>(x)` → Foo,
+ * `this.bar` → bar, `println!` → println, `src/a.ts` stays a path. Null for
+ * anything that isn't a name or dotted name (`a + b`, `'refund.issued'`).
+ */
+export function normalizeCodeSpan(raw: string): string | null {
+  let t = raw.trim()
+  if (PATH_LIKE.test(t) && /^[\w./@-]+$/.test(t)) return t.replace(/^\.\//, "")
+  t = t.replace(/^new\s+/, "")
+  t = t.replace(/\(.*\)$/s, "")
+  t = t.replace(/<.*>$/s, "")
+  t = t.replace(/!$/, "")
+  t = t.replace(/^(?:this|self)\.|^@/, "")
+  t = t.replace(/::/g, ".")
+  return /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(t) ? t : null
 }
 
 function push(map: Map<string, Connection[]>, key: string, c: Connection) {

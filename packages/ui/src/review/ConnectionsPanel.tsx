@@ -10,7 +10,7 @@ import type {
 } from "@legible/domain"
 import { useQuery } from "@tanstack/react-query"
 import { BookOpen, ChevronRight, CircleHelp, Loader2 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { formatKey } from "../commands"
 import {
@@ -149,23 +149,7 @@ export function ConnectionsPanel({
     staleTime: Number.POSITIVE_INFINITY,
   })
 
-  const [hover, setHover] = useState<{ symbolId: string; top: number } | null>(
-    null,
-  )
-  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const startHover = (symbolId: string | null, el: HTMLElement) => {
-    if (hoverTimer.current) clearTimeout(hoverTimer.current)
-    if (!symbolId) return
-    hoverTimer.current = setTimeout(
-      () => setHover({ symbolId, top: el.getBoundingClientRect().top }),
-      350,
-    )
-  }
-  const endHover = () => {
-    if (hoverTimer.current) clearTimeout(hoverTimer.current)
-    setHover(null)
-  }
-  useEffect(() => endHover, [])
+  const { hover, startHover, endHover } = useHoverPreview()
 
   const all = symbol.data
   const crumbs = trail.filter((t) => t.label).slice(-3)
@@ -765,7 +749,7 @@ function SourceLines({
           <span className="w-9 shrink-0 pr-2 text-right text-dim">
             {src.firstLine + i}
           </span>
-          <span className="min-w-0 truncate">
+          <span className="min-w-0 overflow-hidden text-ellipsis whitespace-pre">
             <Code
               text={l}
               tokens={src.tokens?.[i]}
@@ -806,7 +790,30 @@ function SourcePreview({
   )
 }
 
-function HoverPreview({
+/** A code preview after hovering something that names a Symbol for a moment. */
+export function useHoverPreview() {
+  const [hover, setHover] = useState<{ symbolId: string; top: number } | null>(
+    null,
+  )
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startHover = useCallback((symbolId: string | null, el: HTMLElement) => {
+    if (timer.current) clearTimeout(timer.current)
+    if (!symbolId) return
+    timer.current = setTimeout(
+      () => setHover({ symbolId, top: el.getBoundingClientRect().top }),
+      350,
+    )
+  }, [])
+  const endHover = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current)
+    setHover(null)
+  }, [])
+  useEffect(() => endHover, [endHover])
+  return { hover, startHover, endHover }
+}
+
+/** The Symbol's code in a popover to the left of the right-hand panel. */
+export function HoverPreview({
   reviewId,
   iterationId,
   symbolId,

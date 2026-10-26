@@ -83,6 +83,9 @@ export class IndexerClient implements Indexer {
   source(...a: Parameters<Indexer["source"]>) {
     return this.call("source", a)
   }
+  lookup(...a: Parameters<Indexer["lookup"]>) {
+    return this.call("lookup", a)
+  }
 
   dispose() {
     this.transport?.kill()

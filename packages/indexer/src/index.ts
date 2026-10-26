@@ -36,7 +36,11 @@ export {
   compareFiles,
   type IndexedFile,
 } from "./changeSet"
-export { CodeIndex, type CodeIndexInput } from "./connections"
+export {
+  CodeIndex,
+  type CodeIndexInput,
+  normalizeCodeSpan,
+} from "./connections"
 export { splitAtSymbols } from "./fragments"
 export { AST_PROOF_LANGUAGES, proveChunks } from "./proofs"
 export { createResolver, familyOf } from "./resolve"

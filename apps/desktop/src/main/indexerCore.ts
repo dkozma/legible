@@ -65,6 +65,12 @@ export interface Indexer {
     col: number,
   ): Promise<PositionInfo>
   source(key: IndexKey, symbolId: string): Promise<SymbolSource | null>
+  /** The Symbols code spans in prose (Explanations) refer to, best first. */
+  lookup(
+    key: IndexKey,
+    names: string[],
+    near: { path: string | null; symbolIds: string[] },
+  ): Promise<Record<string, CodeSymbol[]>>
   dispose(): void
 }
 
@@ -183,6 +189,9 @@ export function createIndexer(config: IndexerConfig): Indexer {
     },
     async source(k, symbolId) {
       return (await ready(k)).source(symbolId)
+    },
+    async lookup(k, names, near) {
+      return (await ready(k)).lookup(names, near)
     },
     dispose() {
       for (const r of repos.values()) r.close()

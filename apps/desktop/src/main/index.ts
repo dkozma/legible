@@ -337,6 +337,8 @@ const handlers: Handlers = {
     ),
   "symbol.source": async ({ reviewId, iterationId, symbolId }) =>
     indexer.source(await reviews.indexKey(reviewId, iterationId), symbolId),
+  "connections.lookup": async ({ reviewId, iterationId, names, near }) =>
+    indexer.lookup(await reviews.indexKey(reviewId, iterationId), names, near),
   "spend.summary": async ({ reviewId }) => {
     const start = new Date()
     start.setDate(1)

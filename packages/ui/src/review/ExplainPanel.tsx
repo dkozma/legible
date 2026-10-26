@@ -1,9 +1,18 @@
-import type { Explanation, ExplanationJob } from "@legible/domain"
+import type {
+  CodeSymbol,
+  Explanation,
+  ExplanationJob,
+  ExplanationTarget,
+} from "@legible/domain"
+import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, BookOpen, Loader2, RefreshCw, X } from "lucide-react"
+import { useMemo } from "react"
 
 import { formatKey } from "../commands"
-import { Inline, usd } from "../components/Inline"
+import { codeSpans, Inline, usd } from "../components/Inline"
 import { Button, Callout, cn, Eyebrow, Kbd, Skeleton } from "../components/ui"
+import { useClient } from "../context"
+import { HoverPreview, useHoverPreview } from "./ConnectionsPanel"
 
 const MODEL_NAMES: Record<string, string> = {
   "claude-haiku-5-5": "Claude Haiku 5.5",
@@ -12,6 +21,10 @@ const MODEL_NAMES: Record<string, string> = {
 }
 
 interface Props {
+  reviewId: string
+  iterationId: string | null
+  /** Goes to a Symbol a code span names; joins the Trail. */
+  onGoSymbol(symbol: CodeSymbol): void
   job: ExplanationJob | null
   explanation: Explanation | null
   history: Explanation[]
@@ -22,6 +35,9 @@ interface Props {
 }
 
 export function ExplainPanel({
+  reviewId,
+  iterationId,
+  onGoSymbol,
   job,
   explanation,
   history,
@@ -84,6 +100,9 @@ export function ExplainPanel({
         {!running && shown && (
           <ExplanationCard
             e={shown}
+            reviewId={reviewId}
+            iterationId={iterationId}
+            onGoSymbol={onGoSymbol}
             onJump={() => onJump(shown)}
             onRefresh={() => onRetry(true)}
           />
@@ -164,16 +183,83 @@ function Section({
   )
 }
 
+/** What an Explanation's target says about where its code spans most likely point. */
+function nearOf(t: ExplanationTarget) {
+  const ids =
+    t.kind === "symbol"
+      ? [t.symbolId]
+      : t.kind === "connection"
+        ? [t.fromSymbolId, t.toSymbolId]
+        : []
+  return {
+    path: t.path,
+    symbolIds: ids.filter((x): x is string => x !== null),
+  }
+}
+
 function ExplanationCard({
   e,
+  reviewId,
+  iterationId,
+  onGoSymbol,
   onJump,
   onRefresh,
 }: {
   e: Explanation
+  reviewId: string
+  iterationId: string | null
+  onGoSymbol(symbol: CodeSymbol): void
   onJump(): void
   onRefresh(): void
 }) {
   const b = e.body
+  const client = useClient()
+  const spans = useMemo(
+    () => [
+      ...new Set(
+        [
+          b.before ?? "",
+          b.after,
+          ...b.whatChanged.map((w) => w.text),
+          ...b.watchOut,
+        ].flatMap(codeSpans),
+      ),
+    ],
+    [b],
+  )
+  const links = useQuery({
+    queryKey: ["connections.lookup", reviewId, iterationId, e.id],
+    queryFn: () =>
+      client.call("connections.lookup", {
+        reviewId,
+        iterationId: iterationId as string,
+        names: spans.slice(0, 50),
+        near: nearOf(e.target),
+      }),
+    enabled: Boolean(iterationId) && spans.length > 0,
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+  const { hover, startHover, endHover } = useHoverPreview()
+  const code = (text: string) => {
+    const [s, ...others] = links.data?.[text] ?? []
+    if (!s) return null
+    return (
+      <button
+        type="button"
+        data-testid="code-link"
+        className="cursor-pointer rounded-[4px] bg-muted px-[5px] py-px font-mono text-[0.92em] text-foreground underline decoration-muted-foreground/50 decoration-dotted underline-offset-2 hover:decoration-foreground hover:decoration-solid"
+        title={`${s.qualifiedName} · ${s.path}:${s.nameLine}${others.length ? ` (+${others.length} other ${others.length === 1 ? "match" : "matches"})` : ""}`}
+        onMouseEnter={(ev) => startHover(s.id, ev.currentTarget)}
+        onMouseLeave={endHover}
+        onClick={() => {
+          endHover()
+          onGoSymbol(s)
+        }}
+      >
+        {text}
+      </button>
+    )
+  }
   return (
     <article className="flex flex-col gap-3" data-testid="explanation">
       <header className="flex flex-col gap-1">
@@ -198,7 +284,7 @@ function ExplanationCard({
         <Section label="Before" first>
           {b.before ? (
             <p className="text-sm">
-              <Inline text={b.before} />
+              <Inline text={b.before} code={code} />
             </p>
           ) : (
             <p className="text-sm text-muted-foreground italic">
@@ -208,7 +294,7 @@ function ExplanationCard({
         </Section>
         <Section label="After">
           <p className="text-sm">
-            <Inline text={b.after} />
+            <Inline text={b.after} code={code} />
           </p>
         </Section>
         {b.whatChanged.length > 0 && (
@@ -224,7 +310,7 @@ function ExplanationCard({
                     title={w.kind}
                   />
                   <span>
-                    <Inline text={w.text} />
+                    <Inline text={w.text} code={code} />
                   </span>
                 </li>
               ))}
@@ -245,7 +331,7 @@ function ExplanationCard({
                   {i + 1}
                 </span>
                 <span>
-                  <Inline text={w} />
+                  <Inline text={w} code={code} />
                 </span>
               </li>
             ))}
@@ -269,6 +355,14 @@ function ExplanationCard({
         {!e.cached && <span>{usd(e.costUsd)}</span>}
         {e.cached && <span>Cached for this Head</span>}
       </footer>
+      {hover && (
+        <HoverPreview
+          reviewId={reviewId}
+          iterationId={iterationId}
+          symbolId={hover.symbolId}
+          top={hover.top}
+        />
+      )}
     </article>
   )
 }

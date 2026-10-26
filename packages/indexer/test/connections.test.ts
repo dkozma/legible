@@ -8,7 +8,7 @@ import { GitRepo } from "@legible/git"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { buildChangeSet } from "../src/changeSet"
-import { CodeIndex } from "../src/connections"
+import { CodeIndex, normalizeCodeSpan } from "../src/connections"
 import { Parsing } from "../src/parse"
 
 let dir: string
@@ -145,6 +145,67 @@ describe("Connections on the refund fixture (TypeScript)", () => {
       "async calculateRefundable(orderId: string)",
     )
     expect(src?.tokens?.[0]?.length).toBeGreaterThan(0)
+  })
+})
+
+describe("code spans in Explanations", () => {
+  it("normalizes names and leaves prose alone", () => {
+    expect(normalizeCodeSpan("calculateRefundable()")).toBe(
+      "calculateRefundable",
+    )
+    expect(normalizeCodeSpan("new RefundExceedsBalance(a, b)")).toBe(
+      "RefundExceedsBalance",
+    )
+    expect(normalizeCodeSpan("this.policy")).toBe("policy")
+    expect(normalizeCodeSpan("println!")).toBe("println")
+    expect(normalizeCodeSpan("crate::audit::log")).toBe("crate.audit.log")
+    expect(normalizeCodeSpan("./src/refunds/RefundPolicy.ts")).toBe(
+      "src/refunds/RefundPolicy.ts",
+    )
+    expect(normalizeCodeSpan("requested > balance")).toBeNull()
+    expect(normalizeCodeSpan("'refund.issued'")).toBeNull()
+  })
+
+  it("resolves names to Symbols, and nothing else", () => {
+    const refundOrder = find(
+      "src/refunds/RefundService.ts",
+      "RefundService.refundOrder",
+    )
+    const found = index.lookup(
+      [
+        "calculateRefundable()",
+        "RefundService.refundOrder",
+        "this.refunds.record",
+        "refund.issued",
+        "src/refunds/RefundPolicy.ts",
+        "amountCents",
+      ],
+      { path: refundOrder.path, symbolIds: [refundOrder.id] },
+    )
+    const names = (k: string) => found[k]!.map((s) => s.qualifiedName)
+    expect(names("calculateRefundable()")).toEqual([
+      "RefundService.calculateRefundable",
+    ])
+    expect(found["calculateRefundable()"]![0]!.side).toBe("head")
+    expect(names("RefundService.refundOrder")).toEqual([
+      "RefundService.refundOrder",
+    ])
+    expect(names("this.refunds.record")).toEqual([])
+    expect(names("refund.issued")).toEqual([])
+    expect(found["src/refunds/RefundPolicy.ts"]!.map((s) => s.kind)).toEqual([
+      "module",
+    ])
+    expect(names("amountCents")).toEqual([])
+  })
+
+  it("ranks the explained file first when names repeat", () => {
+    // `Operator` is defined in RefundService.ts; formatCents in refund-math.ts.
+    const policy = find("src/refunds/RefundPolicy.ts", "RefundPolicy")
+    const hits = index.lookup(["formatCents"], {
+      path: "src/refunds/refund-math.ts",
+      symbolIds: [policy.id],
+    })
+    expect(hits.formatCents![0]!.path).toBe("src/refunds/refund-math.ts")
   })
 })
 

@@ -33,6 +33,7 @@ export const CHANNELS = [
   "connections.symbol",
   "connections.at",
   "symbol.source",
+  "connections.lookup",
   "spend.summary",
   "editor.open",
   "hosts.list",

@@ -133,6 +133,16 @@ export const requests = {
     iterationId: id,
     symbolId: id,
   }),
+  "connections.lookup": z.object({
+    reviewId: id,
+    iterationId: id,
+    /** Code spans from an Explanation, as written. */
+    names: z.array(z.string().max(200)).max(50),
+    near: z.object({
+      path: z.string().max(4096).nullable(),
+      symbolIds: z.array(id).max(4),
+    }),
+  }),
   "spend.summary": z.object({ reviewId: id.nullable() }),
   "editor.open": z.object({
     reviewId: id,
@@ -184,6 +194,7 @@ export interface Responses {
   "connections.symbol": SymbolConnections | null
   "connections.at": PositionInfo
   "symbol.source": SymbolSource | null
+  "connections.lookup": Record<string, CodeSymbol[]>
   "spend.summary": SpendSummary
   "editor.open": { ok: boolean; error: string | null }
   "hosts.list": HostAccount[]

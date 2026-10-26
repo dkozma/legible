@@ -17,6 +17,7 @@ M1 is the first build meant for daily use. It reads agent-written changes in a v
 - **Connections panel** (right side, beside Explain). Click a line to see its Symbol: its **Connection changes** ("No longer calls `auditLog`"), what it **Uses →**, and what it's **← Used by**, including unchanged code one hop away. Hover a row to preview the code; the button at its end explains that Connection. Ambiguous Connections show every candidate with a "?" and are never guessed. "likely" means the only definition by that name in the indexed code.
 - **⌘-click** (Ctrl-click) any name to go to its definition. If the definition is outside the Change Set, the panel shows its code. Every jump joins the **Trail**: `⌘[` / `⌘]` go back and forward, and the panel's breadcrumbs show where you've been.
 - **Explanations of Symbols and Connections**: **Explain method** on the panel's Symbol, or "how does A use B?" on a Connection. The fast tier gets the Symbol's Base and Head code and its Connection changes. For a Connection it also gets the target's code.
+- **Code links in Explanations.** Names in code font that match a Symbol are underlined. Hover one to preview its code; click it to go there. The Explanation stays open when the diff shows that code. Otherwise the Connections tab shows it. Names that don't match (locals, strings, library calls) stay plain.
 
 Not yet: the Walkthrough, Change Brief and Intent (M3), Notes, Asks and Revisions (M4), and Agent Review (M5). The Pull Request description is shown as the Intent line above the diff, and Explanations use it as Intent.
 
@@ -93,7 +94,7 @@ Public repositories open without an account. For private ones, add the host in S
 | `o` | Open the current line in your editor |
 | `⇧R` | Refresh the Snapshot or fetch new commits |
 | `⌘`-click | Go to the definition of the name under the pointer |
-| `⌘[` / `⌘]` | Trail back / forward (jumps from ⌘-click, Connections, the palette, tree and Explanations) |
+| `⌘[` / `⌘]` | Trail back / forward (jumps from ⌘-click, Connections, the palette, tree and Explanations); the mouse's back and forward buttons do the same |
 | `⌘K` | Command palette: files and actions |
 | `⌘,` | Settings |
 | `?` | All shortcuts |

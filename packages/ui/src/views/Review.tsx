@@ -293,13 +293,15 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     ) ?? files.find((f) => f.path === path || f.oldPath === path)
 
   /** Shows a Symbol in the panel and scrolls to it when the diff draws its line. Joins the Trail. */
-  const goToSymbol = (sym: CodeSymbol) => {
+  const goToSymbol = (sym: CodeSymbol, opts: { keepPanel?: boolean } = {}) => {
     const f = fileOf(sym.side, sym.path)
     const row = f ? rowForLine(model, f.id, sym.side, sym.nameLine - 1) : -1
     pushTrail()
     useUI.getState().set({
       focusSymbol: { symbolId: sym.id, label: symbolLabel(sym) },
-      panel: "connections",
+      // From an Explanation, stay on it when the diff shows the code; otherwise the
+      // Connections panel shows the code instead.
+      ...(opts.keepPanel && row >= 0 ? {} : { panel: "connections" as const }),
     })
     if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
   }
@@ -795,6 +797,29 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   ]
   useKeyboard(commands, !ui.palette && !ui.shortcuts)
 
+  // The mouse's back and forward buttons walk the Trail, as in a browser.
+  const trailMoveRef = useRef(trailMove)
+  trailMoveRef.current = trailMove
+  useEffect(() => {
+    const side = (e: MouseEvent) => e.button === 3 || e.button === 4
+    const down = (e: MouseEvent) => {
+      if (side(e)) e.preventDefault()
+    }
+    const up = (e: MouseEvent) => {
+      if (!side(e)) return
+      e.preventDefault()
+      const s = useUI.getState()
+      if (s.palette || s.shortcuts) return
+      trailMoveRef.current(e.button === 3 ? "back" : "forward")
+    }
+    window.addEventListener("mousedown", down)
+    window.addEventListener("mouseup", up)
+    return () => {
+      window.removeEventListener("mousedown", down)
+      window.removeEventListener("mouseup", up)
+    }
+  }, [])
+
   // Expose commands and files to the palette.
   const commandsRef = useRef(commands)
   commandsRef.current = commands
@@ -1171,6 +1196,9 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
             />
           ) : (
             <ExplainPanel
+              reviewId={reviewId}
+              iterationId={iterationId}
+              onGoSymbol={(s) => goToSymbol(s, { keepPanel: true })}
               job={job}
               explanation={ui.shownExplanation}
               history={(history.data ?? []).filter(
