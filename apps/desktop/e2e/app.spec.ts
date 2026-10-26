@@ -76,6 +76,10 @@ test("opens on the Change Brief and plans a Walkthrough", async () => {
   // Confirming the Intent tags Scope, including the Unrequested Step.
   await brief.getByRole("button", { name: "Confirm" }).click()
   await expect(brief).toContainText("Unrequested ·", { timeout: 30_000 })
+  // The Brief is rebuilt for the confirmed Intent; Steps can be edited once it's done.
+  await expect(brief.getByRole("button", { name: "Rebuild" })).toBeVisible({
+    timeout: 30_000,
+  })
 
   // Start Sitting 1: the first Step, its header, and only its changes.
   await page.getByTestId("start-sitting").click()

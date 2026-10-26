@@ -362,6 +362,8 @@ export interface AssembleInput {
   model: string | null
   promptVersion: string
   costUsd: number
+  /** Planned by file because no model could plan. */
+  fallbackReason?: string | null
 }
 
 export function assembleWalkthrough(input: AssembleInput): Walkthrough {
@@ -431,7 +433,11 @@ export function assembleWalkthrough(input: AssembleInput): Walkthrough {
 
   // Fragments the model left out.
   const missing = input.fragments.filter((f) => !assigned.has(f.fragmentId))
-  const fallbackFeature = planned[0]?.feature ?? kept[0]?.feature ?? ""
+  // A blank feature name isn't a feature: Steps without one join the first named one.
+  const fallbackFeature =
+    planned.find((p) => p.feature.trim())?.feature ??
+    kept.find((k) => k.feature.trim())?.feature ??
+    ""
   if (missing.length) {
     const layers = missing.map((f) => f.layerHint)
     const layer = layers.toSorted(
@@ -480,6 +486,7 @@ export function assembleWalkthrough(input: AssembleInput): Walkthrough {
     model: input.model,
     promptVersion: input.promptVersion,
     costUsd: input.costUsd,
+    fallbackReason: input.fallbackReason ?? null,
   })
   w.validation.repairedMissing = missing.length
   w.validation.removedDuplicates = removedDuplicates
@@ -499,7 +506,7 @@ export function finishWalkthrough(
     | "model"
     | "promptVersion"
     | "costUsd"
-  >,
+  > & { fallbackReason?: string | null },
 ): Walkthrough {
   const live = drafts.filter((d) => d.fragments.length)
   const ordered = orderDrafts(live, edges)
@@ -514,7 +521,9 @@ export function finishWalkthrough(
         })
       : []
   const chapterFor = (d: Draft) =>
-    chapters.length ? chapterId(d.feature.trim()) : null
+    chapters.length
+      ? chapterId(d.feature.trim() || (chapters[0] as Chapter).name)
+      : null
 
   const owner = new Map<string, number>()
   ordered.drafts.forEach((d, i) =>
@@ -566,6 +575,7 @@ export function finishWalkthrough(
     sittings: packSittings(steps),
     edges: edges.map((e) => ({ from: e.from, to: e.to })),
     validation,
+    fallbackReason: meta.fallbackReason ?? null,
     createdAt: new Date().toISOString(),
   }
 }

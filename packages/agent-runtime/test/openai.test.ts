@@ -139,6 +139,21 @@ describe("OpenAIAgentsRuntime", () => {
     expect((err as AgentError & { costUsd: number }).costUsd).toBeCloseTo(15)
   })
 
+  it("meters a model the catalog doesn't price at the dearest catalog price", async () => {
+    const model = new ScriptedModel([
+      call("get_change_set_summary"),
+      say(JSON.stringify({ files: 1 })),
+    ])
+    const runtime = new OpenAIAgentsRuntime(config, provider(model))
+    const err = await runtime
+      .run(task(), "gpt-7-preview", {
+        signal: new AbortController().signal,
+        budgetUsd: 1,
+      })
+      .catch((e: unknown) => e)
+    expect((err as AgentError).code).toBe("budget")
+  })
+
   it("reports an answer of the wrong shape", async () => {
     const model = new ScriptedModel([say(JSON.stringify({ count: 1 }))])
     const runtime = new OpenAIAgentsRuntime(config, provider(model))

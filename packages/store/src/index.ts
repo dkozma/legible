@@ -117,6 +117,7 @@ interface DB {
   viewed_steps: { review_id: string; step_id: string; viewed_at: string }
   agent_outputs: {
     cache_key: string
+    review_id: string | null
     kind: string
     model: string
     body_json: string
@@ -745,8 +746,10 @@ export class Store {
       : null
   }
 
+  /** Kept with the Review it was made for, and deleted with it. */
   async saveCachedOutput(
     cacheKey: string,
+    reviewId: string | null,
     kind: string,
     model: string,
     body: unknown,
@@ -755,6 +758,7 @@ export class Store {
       .insertInto("agent_outputs")
       .values({
         cache_key: cacheKey,
+        review_id: reviewId,
         kind,
         model,
         body_json: JSON.stringify(body),

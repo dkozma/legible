@@ -151,6 +151,23 @@ describe("assembleWalkthrough", () => {
     expect(two.sittings).toHaveLength(2)
   })
 
+  it("puts Steps without a feature name into a Chapter", () => {
+    const fragments = [1, 2, 3].map((n) => frag(n))
+    const w = assembleWalkthrough({
+      ...base,
+      fragments,
+      planned: [
+        step(["F1"], { feature: "" }),
+        step(["F2"], { feature: "A" }),
+        step(["F3"], { feature: "B" }),
+      ],
+      edges: [],
+    })
+    const ids = new Set(w.chapters.map((c) => c.id))
+    expect(w.chapters).toHaveLength(2)
+    expect(w.steps.every((s) => s.chapterId && ids.has(s.chapterId))).toBe(true)
+  })
+
   it("merges Chapters that depend on each other", () => {
     const fragments = [1, 2].map((n) => frag(n))
     const w = assembleWalkthrough({
@@ -277,6 +294,36 @@ describe("editWalkthrough", () => {
     )
     // Same Fragments, same id: viewed state comes back.
     expect(back.steps[2]?.id).toBe(s3.id)
+  })
+
+  it("keeps Scope and Risk through merges and splits", () => {
+    const judged = {
+      ...w,
+      steps: w.steps.map((s, i) =>
+        i === 1
+          ? {
+              ...s,
+              scope: "unrequested" as const,
+              risk: { level: "critical" as const, reasons: ["payments"] },
+            }
+          : { ...s, scope: "requested" as const },
+      ),
+    }
+    const merged = editWalkthrough(judged, {
+      kind: "merge",
+      stepId: s1.id,
+      otherId: s2.id,
+    })
+    expect(merged.steps[0]).toMatchObject({
+      scope: "unrequested",
+      risk: { level: "critical" },
+    })
+    const split = editWalkthrough(merged, {
+      kind: "split",
+      stepId: merged.steps[0]?.id as string,
+      fragmentId: "f2",
+    })
+    expect(split.steps[1]?.risk.level).toBe("critical")
   })
 
   it("refuses a move that breaks a dependency", () => {

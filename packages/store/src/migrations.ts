@@ -133,6 +133,7 @@ export const MIGRATIONS: string[] = [
 
   CREATE TABLE agent_outputs (
     cache_key TEXT PRIMARY KEY,
+    review_id TEXT REFERENCES reviews(id) ON DELETE CASCADE,
     kind TEXT NOT NULL,
     model TEXT NOT NULL,
     body_json TEXT NOT NULL,

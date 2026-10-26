@@ -38,6 +38,7 @@ export function StepHeader({
   onToggleViewed,
   onOpen,
   onEdit,
+  busy = false,
 }: {
   walkthrough: Walkthrough
   step: Step
@@ -46,6 +47,8 @@ export function StepHeader({
   onToggleViewed: () => void
   onOpen: (stepId: string) => void
   onEdit: (edit: StepEdit) => void
+  /** The Walkthrough is being built; edits wait. */
+  busy?: boolean
 }) {
   const [renaming, setRenaming] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -151,6 +154,8 @@ export function StepHeader({
           size="xs"
           onClick={() => setEditing((v) => !v)}
           aria-expanded={editing}
+          disabled={busy}
+          title={busy ? "Edit the Walkthrough once it's built" : undefined}
         >
           <Pencil />
           Edit
@@ -189,7 +194,7 @@ export function StepHeader({
         </div>
       )}
 
-      {editing && (
+      {editing && !busy && (
         <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-inset px-2 py-1.5">
           <Button
             variant="ghost"

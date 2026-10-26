@@ -247,6 +247,7 @@ describe("Store", () => {
       chapters: [],
       sittings: [],
       edges: [],
+      fallbackReason: null,
       validation: {
         fragments: 0,
         repairedMissing: 0,
@@ -275,7 +276,10 @@ describe("Store", () => {
     await store.setStepsViewed(review.id, ["s1"], false)
     expect(await store.viewedSteps(review.id)).toEqual(["s2"])
 
-    await store.saveCachedOutput("j1", "judgment", "m", [{ p: 0.9 }])
+    await store.saveCachedOutput("j1", review.id, "judgment", "m", [{ p: 0.9 }])
     expect((await store.getCachedOutput("j1"))?.body).toEqual([{ p: 0.9 }])
+    // Gone with its Review.
+    await store.deleteReview(review.id)
+    expect(await store.getCachedOutput("j1")).toBeNull()
   })
 })

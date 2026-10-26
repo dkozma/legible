@@ -411,13 +411,37 @@ export function BriefPage({
                 variant="link"
                 size="none"
                 className="text-sm"
-                onClick={() => actions.rebuild("none")}
+                onClick={() =>
+                  actions.rebuild(
+                    status.stages.walkthrough.state === "error"
+                      ? "walkthrough"
+                      : status.stages.intent.state === "error"
+                        ? "intent"
+                        : "brief",
+                  )
+                }
               >
                 Try again
               </Button>
             </Callout>
           )}
         </header>
+
+        {w?.fallbackReason && status?.state !== "running" && (
+          <Callout
+            tone="elevated"
+            className="flex items-center gap-2 px-3 py-2 text-sm"
+          >
+            <span className="grow">{w.fallbackReason}</span>
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => actions.rebuild("walkthrough")}
+            >
+              Plan again
+            </Button>
+          </Callout>
+        )}
 
         <IntentCard
           intent={intent}
@@ -447,6 +471,19 @@ export function BriefPage({
               <Skeleton className="w-2/3" />
               <Skeleton className="w-1/2" />
             </div>
+          ) : brief.domainChangesError ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="grow">
+                Couldn't find Domain Changes: {brief.domainChangesError}
+              </span>
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => actions.rebuild("brief")}
+              >
+                Retry
+              </Button>
+            </p>
           ) : brief.domainChanges.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No change in business rules found.

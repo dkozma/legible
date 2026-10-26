@@ -89,6 +89,8 @@ function accountOf(idToken: string | null) {
 
 export class ChatGPTAuth {
   private refreshing: Promise<Tokens | null> | null = null
+  /** Bumped on sign-out, so a refresh already in flight can't sign back in. */
+  private generation = 0
 
   constructor(
     private readonly secrets: SecretStore,
@@ -123,6 +125,7 @@ export class ChatGPTAuth {
     previous: Tokens | null,
   ): Promise<Tokens> {
     const c = this.config as ChatGPTConfig
+    const generation = this.generation
     const res = await this.fetchImpl(`${c.issuer}/oauth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -144,6 +147,8 @@ export class ChatGPTAuth {
       idToken: j.id_token ?? previous?.idToken ?? null,
       expiresAt: Date.now() + (j.expires_in ?? 3600) * 1000,
     }
+    if (generation !== this.generation)
+      throw new Error("Signed out while signing in.")
     await this.secrets.set(SECRET, JSON.stringify(tokens))
     return tokens
   }
@@ -230,6 +235,7 @@ export class ChatGPTAuth {
   }
 
   async signOut() {
+    this.generation++
     await this.secrets.set(SECRET, null)
   }
 

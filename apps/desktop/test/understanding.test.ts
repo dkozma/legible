@@ -170,6 +170,62 @@ describe("UnderstandingService", () => {
     expect(again?.steps.map((s) => s.id)).toEqual(merged.steps.map((s) => s.id))
   })
 
+  it("says what failed instead of saving an empty Brief as done", async () => {
+    const failing = new AgentHostClient(inProcessTransport)
+    failing.configure({
+      claude: null,
+      openai: null,
+      tiers: DEFAULT_SETTINGS.tiers,
+      tasks: {},
+      concurrency: 4,
+      judge: [],
+      fake: "fail",
+    })
+    // Its own database, so nothing cached from the other tests answers for the model.
+    const db = new Store(join(dir, "failing.sqlite"))
+    const indexer = inProcessIndexer({ cacheDir: null, grammarsDir: null })
+    const hosts = { token: async () => null } as never
+    const revs = new ReviewService(
+      db,
+      hosts,
+      indexer,
+      join(dir, "repos2"),
+      () => undefined,
+    )
+    const svc = new UnderstandingService(
+      db,
+      revs,
+      indexer,
+      failing,
+      hosts,
+      async () => settings,
+      () => undefined,
+    )
+    const review = await revs.open({
+      kind: "working_tree",
+      repoPath: join(dir, "repo"),
+      baseRef: null,
+    })
+    const it0 = review.latestIteration as NonNullable<
+      typeof review.latestIteration
+    >
+    await svc.run(review.id, it0.id, "none")
+    let s = await svc.status(review.id, it0.id)
+    for (let i = 0; i < 200 && s.state === "running"; i++) {
+      await new Promise((r) => setTimeout(r, 50))
+      s = await svc.status(review.id, it0.id)
+    }
+    expect(s.state).toBe("error")
+    const w = await db.getWalkthrough(review.id, it0.id)
+    expect(w?.fallbackReason).toMatch(/Planned by file/)
+    expect(w?.steps.length).toBeGreaterThan(0)
+    const brief = await db.getBrief(review.id, it0.id)
+    expect(brief?.domainChangesError).toMatch(/expected shape/)
+    failing.dispose()
+    revs.dispose()
+    await db.close()
+  })
+
   it("asks no model for the Intent the user wrote", async () => {
     const [review] = await store.listReviews()
     const saved = await understanding.saveIntent(review?.id as string, {

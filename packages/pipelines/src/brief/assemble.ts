@@ -88,6 +88,7 @@ export interface BriefInput {
   uncoveredRequirementIds: string[]
   howToTestFromSource: string[]
   howToTestSuggested: string[]
+  domainChangesError?: string | null
   costUsd: number
 }
 
@@ -111,6 +112,7 @@ export function assembleBrief(input: BriefInput): ChangeBrief {
       fromSource: input.howToTestFromSource,
       suggested: input.howToTestSuggested,
     },
+    domainChangesError: input.domainChangesError ?? null,
     costUsd: input.costUsd,
     createdAt: new Date().toISOString(),
   }

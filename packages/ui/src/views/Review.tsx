@@ -289,6 +289,8 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     side: "base" | "head"
     line: number
   } | null>(null)
+  // Bumped with each queued scroll, for when switching pages leaves the rows as they were.
+  const [pendingTick, setPendingTick] = useState(0)
   useEffect(() => {
     const p = pending.current
     if (!p) return
@@ -297,7 +299,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     const row =
       p.line < 0 ? (f?.row ?? -1) : rowForLine(model, p.fileId, p.side, p.line)
     if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
-  }, [model])
+  }, [model, pendingTick])
 
   /** Shows a file's line (0-based; -1 for the file) in the diff, switching Steps when another holds it. */
   const reveal = useCallback(
@@ -315,6 +317,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       if (!file) return false
       const holder = w && line >= 0 ? stepAt(w, file, side, line + 1) : null
       pending.current = { fileId, side, line }
+      setPendingTick((t) => t + 1)
       s.set({ page: "diff", stepId: holder?.id ?? null })
       return true
     },
@@ -333,6 +336,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       }
       // From the Brief or a Step: the whole Change Set, at that file.
       pending.current = { fileId, side: "head", line: -1 }
+      setPendingTick((t) => t + 1)
       s.set({ page: "diff", stepId: null, sidebar: "files" })
     },
     [model.files, scrollToRow, pushTrail],
@@ -1456,6 +1460,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
                 onToggleViewed={() => toggleStepViewed(activeStep.id)}
                 onOpen={openStep}
                 onEdit={(edit) => editStep.mutate(edit)}
+                busy={understanding.data?.state === "running"}
               />
             )}
             <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b px-3.5 py-2">

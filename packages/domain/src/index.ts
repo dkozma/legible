@@ -797,6 +797,8 @@ export interface Walkthrough {
   /** Fragment dependencies (`to` uses what `from` changes), kept so edits can be re-validated. */
   edges: { from: string; to: string }[]
   validation: WalkthroughValidation
+  /** Set when no model could plan and Steps were made by file instead. */
+  fallbackReason: string | null
   provider: Provider | null
   model: string | null
   promptVersion: string
@@ -877,6 +879,8 @@ export interface ChangeBrief {
   /** Touched files by Layer, in Walkthrough order. */
   components: { layer: Layer; files: ComponentFile[] }[]
   howToTest: { fromSource: string[]; suggested: string[] }
+  /** Set when finding Domain Changes failed; the rest of the Brief still stands. */
+  domainChangesError: string | null
   costUsd: number
   createdAt: string
 }

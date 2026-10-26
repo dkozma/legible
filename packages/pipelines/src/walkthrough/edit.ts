@@ -2,11 +2,49 @@
 // move a Step. Edits keep the user's order unless a dependency forbids it; a
 // move that would put a Step before what it builds on is refused.
 
-import type { StepEdit, Walkthrough } from "@legible/domain"
+import type {
+  RiskLevel,
+  Scope,
+  Step,
+  StepEdit,
+  Walkthrough,
+} from "@legible/domain"
 
 import { type Draft, finishWalkthrough, toDrafts } from "./assemble"
 
 export class EditError extends Error {}
+
+const RISK: RiskLevel[] = ["low", "elevated", "critical"]
+const SCOPE: (Scope | null)[] = [null, "supporting", "requested", "unrequested"]
+
+/**
+ * Scope and Risk for Steps joined by an edit, until the next judgment: the
+ * riskier Risk, and the more notable Scope (Unrequested stays visible).
+ */
+function joined(a: Step | null, b: Step | null, scope = true): Step | null {
+  if (!a || !b) return a ?? b
+  const level =
+    RISK.indexOf(a.risk.level) >= RISK.indexOf(b.risk.level)
+      ? a.risk.level
+      : b.risk.level
+  const s = SCOPE.indexOf(a.scope) >= SCOPE.indexOf(b.scope) ? a : b
+  return {
+    ...a,
+    risk: {
+      level,
+      reasons: [...new Set([...a.risk.reasons, ...b.risk.reasons])],
+    },
+    ...(scope
+      ? {
+          scope: s.scope,
+          scopeLikely: s.scopeLikely,
+          requirementIds: [
+            ...new Set([...a.requirementIds, ...b.requirementIds]),
+          ],
+        }
+      : {}),
+  }
+}
 
 export function editWalkthrough(w: Walkthrough, edit: StepEdit): Walkthrough {
   const drafts = toDrafts(w)
@@ -33,6 +71,7 @@ export function editWalkthrough(w: Walkthrough, edit: StepEdit): Walkthrough {
       if (d === other) throw new EditError("Pick another Step to merge.")
       d.fragments = [...d.fragments, ...other.fragments]
       d.narrative = [d.narrative, other.narrative].filter(Boolean).join(" ")
+      d.kept = joined(d.kept, other.kept)
       other.fragments = []
       touch(d)
       break
@@ -48,7 +87,8 @@ export function editWalkthrough(w: Walkthrough, edit: StepEdit): Walkthrough {
         name: `${d.name} (continued)`,
         fragments: d.fragments.slice(k),
         priority: d.priority + 0.5,
-        kept: null,
+        // Both halves keep the Step's Scope and Risk until it's judged again.
+        kept: d.kept ? { ...d.kept, userEdited: true } : null,
         userEdited: true,
       }
       d.fragments = d.fragments.slice(0, k)
@@ -68,6 +108,8 @@ export function editWalkthrough(w: Walkthrough, edit: StepEdit): Walkthrough {
         (f) => f.fragmentId !== edit.fragmentId,
       )
       if (frag) to.fragments.push(frag)
+      // The moved code may be what made its Step risky.
+      to.kept = joined(to.kept, from.kept, false)
       touch(from)
       touch(to)
       break

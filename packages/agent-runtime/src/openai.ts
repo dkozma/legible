@@ -41,6 +41,10 @@ import {
 
 setTracingDisabled(true)
 
+const UNPRICED = MODEL_CATALOG.filter(
+  (m) => m.provider === "openai" && m.inputPrice !== null,
+).reduce((a, b) => ((b.inputPrice ?? 0) > (a.inputPrice ?? 0) ? b : a))
+
 /** Rough token count for a request, for projecting spend before it's sent. */
 function estimateTokens(request: ModelRequest): number {
   const text =
@@ -136,7 +140,9 @@ export class OpenAIAgentsRuntime implements AgentRuntime {
     if (task.access !== "read-only")
       throw new AgentError("Revision writes arrive in M4.", "execution")
     const started = Date.now()
-    const info = findModel("openai", model)
+    // A model the catalog doesn't price is metered at the dearest catalog price, so the cap still holds.
+    const known = findModel("openai", model)
+    const info = known?.inputPrice != null ? known : UNPRICED
     let inputTokens = 0
     let outputTokens = 0
     let turns = 0

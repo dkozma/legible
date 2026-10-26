@@ -179,6 +179,24 @@ describe("DecisionsBackend", () => {
     expect(r.answers[2]).toEqual({ kind: "refusal", name: "impact" })
   })
 
+  it("reads an answer without a probability as a refusal, not a confident no", async () => {
+    const { fetchImpl } = recordingFetch({
+      answers: [
+        { type: "choice", name: "scope", choice: "nope", confidence: 0.9 },
+        { type: "predicate", name: "payments" },
+        { type: "score", name: "impact", score: 1, confidence: "high" },
+      ],
+    })
+    const r = await new DecisionsBackend("sk", fetchImpl).judge(req, {
+      signal,
+    })
+    expect(r.answers.map((a) => a.kind)).toEqual([
+      "refusal",
+      "refusal",
+      "refusal",
+    ])
+  })
+
   it("names a rejected key", async () => {
     const { fetchImpl } = recordingFetch({ error: "nope" }, 401)
     await expect(

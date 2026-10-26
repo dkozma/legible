@@ -226,11 +226,16 @@ export function createAgentHost(post: (m: FromHost) => void) {
         ? new JevBackend(b.apiKey, b.model)
         : new DecisionsBackend(b.apiKey),
     )
-    const fast = new FastTierBackend(
-      <T>(task: AgentTask<T>) =>
-        runTask(router as Router, scheduler, task, { signal, budgetUsd }),
-      context,
-    )
+    // Batches share the request's budget.
+    let spent = 0
+    const fast = new FastTierBackend(async <T>(task: AgentTask<T>) => {
+      const r = await runTask(router as Router, scheduler, task, {
+        signal,
+        budgetUsd: Math.max(0.001, budgetUsd - spent),
+      })
+      spent += r.costUsd
+      return r
+    }, context)
     return new Judge(backends, fast)
   }
 

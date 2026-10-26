@@ -145,9 +145,14 @@ export class FastTierBackend implements JudgeBackend {
     let fallbackReason: string | null = null
     for (let i = 0; i < req.judgments.length; i += PER_RUN) {
       const batch = req.judgments.slice(i, i + PER_RUN)
+      // A later batch failing still owes what the earlier ones spent.
       const r = await this.run(
         judgeTask({ input: req.input, judgments: batch }, this.context),
-      )
+      ).catch((e: unknown) => {
+        throw Object.assign(e as Error, {
+          costUsd: costUsd + ((e as { costUsd?: number }).costUsd ?? 0),
+        })
+      })
       this.model = r.model
       fallbackReason ??= r.fallbackReason
       costUsd += r.costUsd

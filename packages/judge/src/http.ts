@@ -8,6 +8,7 @@ import {
   JudgeError,
   type JudgeRequest,
   type JudgeResult,
+  type Judgment,
 } from "./types"
 
 async function post(
@@ -47,8 +48,25 @@ async function post(
   return res.json()
 }
 
+/**
+ * An answer missing a number, or with one out of range, is a refusal: read as
+ * 0 it would be a confident "no".
+ */
+function sane(j: Judgment, a: JudgeAnswer): JudgeAnswer {
+  const p = (v: number) => Number.isFinite(v) && v >= 0 && v <= 1
+  const ok =
+    a.kind === "refusal" ||
+    (a.kind === "predicate" && p(a.probability)) ||
+    (a.kind === "choice" &&
+      j.kind === "choice" &&
+      j.options.some((o) => o.value === a.choice) &&
+      p(a.confidence)) ||
+    (a.kind === "score" && Number.isFinite(a.score) && p(a.confidence))
+  return ok ? a : { kind: "refusal", name: j.name }
+}
+
 const num = (v: unknown): number =>
-  typeof v === "number" && Number.isFinite(v) ? v : 0
+  typeof v === "number" && Number.isFinite(v) ? v : Number.NaN
 
 /** Rough token count, for choosing Jev's long-context mode. */
 const tokens = (s: string) => Math.ceil(s.length / 4)
@@ -135,12 +153,12 @@ export class JevBackend implements JudgeBackend {
       }
     })
     return {
-      answers,
+      answers: answers.map((a, i) => sane(req.judgments[i] as Judgment, a)),
       backend: this.name,
       model: raw.model ?? this.model,
       costUsd: null,
-      inputTokens: num(raw.usage?.input_tokens),
-      outputTokens: num(raw.usage?.output_tokens),
+      inputTokens: num(raw.usage?.input_tokens) || 0,
+      outputTokens: num(raw.usage?.output_tokens) || 0,
       fallbackReason: null,
     }
   }
@@ -210,8 +228,8 @@ export class DecisionsBackend implements JudgeBackend {
         answers?: Record<string, unknown>[]
         usage?: { input_tokens?: number; output_tokens?: number }
       }
-      inputTokens += num(raw.usage?.input_tokens)
-      outputTokens += num(raw.usage?.output_tokens)
+      inputTokens += num(raw.usage?.input_tokens) || 0
+      outputTokens += num(raw.usage?.output_tokens) || 0
       const byName = new Map((raw.answers ?? []).map((a) => [a.name, a]))
       for (const j of batch) {
         const a = byName.get(j.name)
@@ -229,7 +247,7 @@ export class DecisionsBackend implements JudgeBackend {
             value?: unknown
             probability?: unknown
           }[])
-            probabilities[String(p.value)] = num(p.probability)
+            probabilities[String(p.value)] = num(p.probability) || 0
           answers.push({
             kind: "choice",
             name: j.name,
@@ -248,7 +266,7 @@ export class DecisionsBackend implements JudgeBackend {
       }
     }
     return {
-      answers,
+      answers: answers.map((a, i) => sane(req.judgments[i] as Judgment, a)),
       backend: this.name,
       model: this.model,
       costUsd: (inputTokens * DECISIONS_INPUT_PRICE) / 1e6,

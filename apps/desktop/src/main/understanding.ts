@@ -101,6 +101,8 @@ interface Job {
   abort: AbortController
   runIds: Set<string>
   prep: Promise<Prep> | null
+  /** A stage failed; the build goes on, and ends in "error". */
+  failed: boolean
 }
 
 /** A copy of a job's status: stages are updated in place, and listeners keep what they're sent. */
@@ -170,18 +172,25 @@ export class UnderstandingService {
     ])
     const state = (built: boolean): "done" | "pending" =>
       built ? "done" : "pending"
+    // What failed last time is saved with what it left behind.
+    const planError = w?.fallbackReason ?? null
+    const briefError = brief?.domainChangesError ?? null
     return {
       reviewId,
       iterationId,
-      state: brief ? "done" : "idle",
+      state: brief ? (planError || briefError ? "error" : "done") : "idle",
       stages: {
         intent: { state: state(Boolean(intent)), detail: null },
-        walkthrough: { state: state(Boolean(w)), detail: null },
+        walkthrough: planError
+          ? { state: "error", detail: planError }
+          : { state: state(Boolean(w)), detail: null },
         scope: { state: state(Boolean(brief)), detail: null },
-        brief: { state: state(Boolean(brief)), detail: null },
+        brief: briefError
+          ? { state: "error", detail: briefError }
+          : { state: state(Boolean(brief)), detail: null },
       },
       progress: null,
-      error: null,
+      error: planError ?? briefError,
       costUsd: brief?.costUsd ?? 0,
     }
   }
@@ -211,14 +220,18 @@ export class UnderstandingService {
       abort: new AbortController(),
       runIds: new Set(),
       prep: null,
+      failed: false,
     }
     this.jobs.set(k, job)
     this.emit(snapshot(job))
     void this.build(job, rebuild).finally(() => {
-      if (job.status.state === "running") job.status.state = "done"
+      // A newer run (after a cancel) owns the status now.
+      if (this.jobs.get(k) !== job) return
+      if (job.status.state === "running")
+        job.status.state = job.failed ? "error" : "done"
       job.status.progress = null
       this.emit(snapshot(job))
-      if (this.jobs.get(k) === job) this.jobs.delete(k)
+      this.jobs.delete(k)
     })
     return snapshot(job)
   }
@@ -391,7 +404,7 @@ export class UnderstandingService {
       if (job.abort.signal.aborted) return
       const err = e instanceof Error ? e : new Error(String(e))
       this.stage(job, s, "error", err.message)
-      job.status.state = "error"
+      job.failed = true
       this.report(err, s, err instanceof AgentRunError ? err.code : "internal")
     }
     try {
@@ -420,14 +433,15 @@ export class UnderstandingService {
       if (!w || rebuild === "all" || rebuild === "walkthrough") {
         this.stage(job, "walkthrough", "running", "Planning the Walkthrough")
         w = await this.walkthroughStage(job, review, prep, intent)
+        if (job.abort.signal.aborted) return
         await this.store.saveWalkthrough(w)
         this.stage(
           job,
           "walkthrough",
-          w.model ? "done" : "error",
-          w.model ? null : (job.status.stages.walkthrough.detail ?? null),
+          w.fallbackReason ? "error" : "done",
+          w.fallbackReason,
         )
-        if (!w.model) job.status.state = "error"
+        if (w.fallbackReason) job.failed = true
       } else this.stage(job, "walkthrough", "done")
       if (job.abort.signal.aborted) return
 
@@ -459,6 +473,7 @@ export class UnderstandingService {
           : null
         uncovered = read?.uncovered ?? []
         w = applyJudged(w, read, detected, prep.byId)
+        if (job.abort.signal.aborted) return
         await this.store.saveWalkthrough(w)
         this.stage(
           job,
@@ -473,6 +488,7 @@ export class UnderstandingService {
       if (job.abort.signal.aborted) return
 
       this.stage(job, "brief", "running", "Finding Domain Changes")
+      let briefError: string | null = null
       const next = await this.briefStage(
         job,
         review,
@@ -482,9 +498,11 @@ export class UnderstandingService {
         uncovered,
       ).catch((e: unknown) => {
         fail("brief", e)
+        briefError = e instanceof Error ? e.message : String(e)
         return null
       })
-      // Even without Domain Changes, the Brief shows the map, Risk and Sittings.
+      if (job.abort.signal.aborted) return
+      // Even without Domain Changes, the Brief shows the map, Risk and Sittings, and says what failed.
       await this.store.saveBrief(
         next ??
           assembleBrief({
@@ -496,13 +514,14 @@ export class UnderstandingService {
             uncoveredRequirementIds: uncovered,
             howToTestFromSource: intent?.howToTest ?? [],
             howToTestSuggested: [],
+            domainChangesError: briefError,
             costUsd: job.status.costUsd,
           }),
       )
       if (next) this.stage(job, "brief", "done")
     } catch (e) {
       if (!job.abort.signal.aborted) {
-        job.status.state = "error"
+        job.failed = true
         job.status.error = e instanceof Error ? e.message : String(e)
       }
     }
@@ -529,7 +548,13 @@ export class UnderstandingService {
         label: `Pull Request #${review.prNumber ?? ""} description`.trim(),
         ref: review.prUrl,
       })
-    const issues = pr ? await this.linkedIssues(review, pr.body) : []
+    const linked = pr
+      ? await this.linkedIssues(review, pr.body)
+      : { issues: [], failed: false }
+    // An issue that couldn't be fetched this time isn't a change of sources.
+    if (linked.failed && existing && rebuild !== "all" && rebuild !== "intent")
+      return existing
+    const issues = linked.issues
     for (const i of issues)
       sources.push({ kind: "issue", label: i.title, ref: i.url })
     const found = await this.findSessions(review)
@@ -601,14 +626,15 @@ export class UnderstandingService {
   private async linkedIssues(
     review: ReviewSummary,
     body: string,
-  ): Promise<IntentInput["issues"]> {
+  ): Promise<{ issues: IntentInput["issues"]; failed: boolean }> {
     const ref = review.prUrl ? parsePullRequestUrl(review.prUrl) : null
-    if (!ref) return []
+    if (!ref) return { issues: [], failed: false }
     const token = await this.hosts.token(ref.hostname).catch(() => null)
-    const out: IntentInput["issues"] = []
+    const issues: IntentInput["issues"] = []
+    let failed = false
     for (const i of linkedIssues(body, ref.hostname)) {
       try {
-        out.push(
+        issues.push(
           await getIssue(
             { ...ref, project: i.project ?? ref.project },
             i.number,
@@ -617,9 +643,10 @@ export class UnderstandingService {
         )
       } catch {
         // A private or deleted issue: the Intent does without it.
+        failed = true
       }
     }
-    return out
+    return { issues, failed }
   }
 
   private async walkthroughStage(
@@ -680,10 +707,17 @@ export class UnderstandingService {
       model = r.model
       provider = r.provider as Walkthrough["provider"]
       if (r.provider === tier.provider && r.model === tier.model)
-        await this.store.saveCachedOutput(cacheKey, "walkthrough", r.model, out)
+        await this.store.saveCachedOutput(
+          cacheKey,
+          reviewId,
+          "walkthrough",
+          r.model,
+          out,
+        )
       return out.steps
     }
 
+    let fallbackReason: string | null = null
     if (remaining.length) {
       try {
         const clusters = clusterFragments(remaining, edges)
@@ -700,12 +734,8 @@ export class UnderstandingService {
           planned.push(...(await plan(missing, 0.5).catch(() => [])))
       } catch (e) {
         if (job.abort.signal.aborted) throw e
-        this.stage(
-          job,
-          "walkthrough",
-          "running",
-          `Planned by file, without a model: ${(e as Error).message}`,
-        )
+        fallbackReason = `Planned by file, without a model: ${(e as Error).message}`
+        this.stage(job, "walkthrough", "running", fallbackReason)
         planned = fallbackPlan(remaining)
         model = null
       }
@@ -726,6 +756,7 @@ export class UnderstandingService {
       model,
       promptVersion: WALKTHROUGH_PROMPT_VERSION,
       costUsd: job.status.costUsd - costBefore,
+      fallbackReason,
     })
   }
 
@@ -738,6 +769,19 @@ export class UnderstandingService {
     uncovered: string[],
   ): Promise<ChangeBrief> {
     const hasDescription = review.sourceKind === "pull_request"
+    // Nothing behavioral (formatting, renames, an empty Change Set): no business rule changed.
+    if (!w.steps.some((s) => s.fragments.some((f) => f.kind === "behavioral")))
+      return assembleBrief({
+        walkthrough: w,
+        files: prep.built.summary.files,
+        domainChanges: [],
+        gapSuggestion: null,
+        hasDescription,
+        uncoveredRequirementIds: uncovered,
+        howToTestFromSource: intent?.howToTest ?? [],
+        howToTestSuggested: [],
+        costUsd: job.status.costUsd,
+      })
     const r = await this.agent(job, "domain_changes", {
       ...prep.context,
       changes: {
@@ -760,11 +804,18 @@ export class UnderstandingService {
     if (hasDescription && domainChanges.length && review.intentText) {
       this.stage(job, "brief", "running", "Checking the description")
       const description = splitIntent(review.intentText)
+      // Domain Changes are paid for; a failed check leaves them unchecked rather than lost.
       const judged = await this.judge(
         job,
         prep.context,
         descriptionRequest(description, domainChanges),
-      )
+      ).catch(() => {
+        domainChanges = domainChanges.map((d) => ({
+          ...d,
+          inDescription: null,
+        }))
+        return null
+      })
       if (judged)
         domainChanges = readDescription(
           domainChanges,
@@ -926,6 +977,12 @@ export class UnderstandingService {
     iterationId: string,
     edit: StepEdit,
   ): Promise<Walkthrough> {
+    if (
+      this.jobs.get(this.key(reviewId, iterationId))?.status.state === "running"
+    )
+      throw new UserError(
+        "The Walkthrough is still being built. Edit it once it's done.",
+      )
     const w = await this.store.getWalkthrough(reviewId, iterationId)
     if (!w) throw new UserError("There's no Walkthrough to edit yet.")
     let next: Walkthrough
