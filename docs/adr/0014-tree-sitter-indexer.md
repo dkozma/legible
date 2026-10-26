@@ -14,6 +14,6 @@ M2 moves parsing into the indexer utility process (`packages/indexer`, run by `a
 
 ## Consequences
 
-- The parse cache stores results, not trees: tokens, Symbols, references and imports per blob OID, grammar version and query version, in memory and in `<userData>/index-cache` (v8-serialized, LRU, 256 MB).
+- The parse cache stores results, not trees: tokens, Symbols, references and imports per blob OID and grammar version (see below), in memory and in `<userData>/index-cache` (v8-serialized, LRU, 256 MB).
 - In blobless Pull Request clones, the neighbor search covers only the changed files' directories, and gives up past 500 blobs to download. The Connections panel says when Used by is incomplete.
-- Grammar upgrades are dependency bumps, checked by the grammar test. Bump a language's `queryVersion` in the manifest when its queries change.
+- Grammar upgrades are dependency bumps, checked by the grammar test. The parse cache key carries the grammar package's version and a hash of the language's query text, including queries from nested packages (TypeScript's JavaScript, C++'s C) and Legible's own. Upgrading a nested package or editing a query invalidates old entries on its own.

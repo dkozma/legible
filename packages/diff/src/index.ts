@@ -9,6 +9,7 @@ export {
   collapseReason,
   INDENTATION_SENSITIVE,
   LARGE_FILE_BYTES,
+  extensionsFor,
   languageForPath,
   looksBinary,
 } from "./classify"

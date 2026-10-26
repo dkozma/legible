@@ -1,12 +1,14 @@
 // The Connections panel: the focused Symbol, its Connection changes, what it
 // uses and what uses it, with Ambiguous Connections showing every candidate.
 
-import type {
-  CodeSymbol,
-  Connection,
-  ConnectionSite,
-  FileChange,
-  SymbolConnections,
+import {
+  type CodeSymbol,
+  type Connection,
+  CONNECTION_VERB,
+  CONNECTION_VERB_IN,
+  type ConnectionSite,
+  type FileChange,
+  type SymbolConnections,
 } from "@legible/domain"
 import { useQuery } from "@tanstack/react-query"
 import { BookOpen, ChevronRight, CircleHelp, Loader2 } from "lucide-react"
@@ -54,31 +56,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   zig: "Zig",
 }
 const TIER_NAMES = { full: "Full", structural: "Structural", text: "Text" }
-
-const USES: Record<Connection["kind"], string> = {
-  calls: "calls",
-  references: "uses",
-  imports: "imports",
-  implements: "extends",
-}
-const USED_BY: Record<Connection["kind"], string> = {
-  calls: "called by",
-  references: "used by",
-  imports: "imported by",
-  implements: "extended by",
-}
-const CHANGE_VERB: Record<Connection["kind"], [string, string]> = {
-  calls: ["Now calls", "No longer calls"],
-  references: ["Now uses", "No longer uses"],
-  imports: ["Now imports", "No longer imports"],
-  implements: ["Now extends", "No longer extends"],
-}
-const CHANGE_VERB_IN: Record<Connection["kind"], [string, string]> = {
-  calls: ["Now called by", "No longer called by"],
-  references: ["Now used by", "No longer used by"],
-  imports: ["Now imported by", "No longer imported by"],
-  implements: ["Now extended by", "No longer extended by"],
-}
 
 interface Props {
   reviewId: string
@@ -429,8 +406,10 @@ function ChangesSection({
   const inc = all.usedBy.filter((c) => c.change)
   if (out.length + inc.length === 0) return null
   const row = (c: Connection, direction: "uses" | "usedBy") => {
-    const verbs =
-      direction === "uses" ? CHANGE_VERB[c.kind] : CHANGE_VERB_IN[c.kind]
+    const verb =
+      direction === "uses"
+        ? CONNECTION_VERB[c.kind]
+        : CONNECTION_VERB_IN[c.kind]
     const removed = c.change === "removed"
     const target = targetOf(c, all, direction)
     return (
@@ -453,7 +432,7 @@ function ChangesSection({
             )}
           />
           <span className="shrink-0 text-sm text-muted-foreground">
-            {verbs[removed ? 1 : 0]}
+            {removed ? `No longer ${verb}` : `Now ${verb}`}
           </span>
           <Name
             c={c}
@@ -523,7 +502,10 @@ function ConnectionList({
         const target = targetOf(c, all, direction)
         const from = all.symbols[c.fromId] ?? null
         const ambiguous = c.status === "ambiguous" && direction === "uses"
-        const label = direction === "uses" ? USES[c.kind] : USED_BY[c.kind]
+        const label =
+          direction === "uses"
+            ? CONNECTION_VERB[c.kind]
+            : CONNECTION_VERB_IN[c.kind]
         return (
           <div
             key={c.id}
@@ -593,7 +575,7 @@ function ConnectionList({
               variant="muted"
               size="icon-xs"
               className="absolute top-0.5 right-1 opacity-0 group-hover/conn:opacity-100 focus-visible:opacity-100"
-              aria-label={`Explain how ${all.symbol.name} ${direction === "uses" ? USES[c.kind] : USED_BY[c.kind]} ${c.name}`}
+              aria-label={`Explain how ${all.symbol.name} ${direction === "uses" ? CONNECTION_VERB[c.kind] : CONNECTION_VERB_IN[c.kind]} ${c.name}`}
               title="Explain this Connection"
               onClick={() => onExplain(c)}
             >

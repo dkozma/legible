@@ -87,6 +87,14 @@ const NAME_LANG: Record<string, string> = {
   ".zshrc": "shell",
 }
 
+/** File extensions (without the dot) that languageForPath maps to one of `languages`. */
+export function extensionsFor(languages: Iterable<string>): string[] {
+  const want = new Set(languages)
+  return Object.entries(EXT_LANG)
+    .filter(([, lang]) => want.has(lang))
+    .map(([ext]) => ext)
+}
+
 export function languageForPath(path: string): string | null {
   const name = path.split("/").pop() ?? path
   if (NAME_LANG[name]) return NAME_LANG[name]

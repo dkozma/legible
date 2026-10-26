@@ -435,29 +435,38 @@ export class GitRepo {
   }
 
   /**
-   * Which files at `rev` contain each word (whole-word, fixed-string). In a
-   * blobless clone this downloads the blobs it searches, so callers narrow it
-   * with `pathspecs`; past `limit` blobs to download it searches nothing.
+   * Which files at `rev` contain each word (whole-word, fixed-string).
+   * `dirs` and `extensions` narrow the search: only files under one of the
+   * directories, with one of the extensions. In a blobless clone this
+   * downloads the blobs it searches; past `limit` of them it searches
+   * nothing and returns null. Pass `blobs` (treeBlobs of `rev`) when the
+   * caller already has it.
    */
   async grepWords(
     rev: string,
     words: string[],
-    opts: { pathspecs?: string[]; limit?: number } = {},
+    opts: {
+      dirs?: string[]
+      extensions?: string[]
+      limit?: number
+      blobs?: Map<string, string>
+    } = {},
   ): Promise<Map<string, Set<string>> | null> {
     const found = new Map<string, Set<string>>()
     if (words.length === 0) return found
+    const dirs = opts.dirs ?? []
+    const exts = (opts.extensions ?? []).map((e) => `.${e.toLowerCase()}`)
+    const inScope = (path: string) =>
+      (dirs.length === 0 ||
+        dirs.some((d) => path === d || path.startsWith(`${d}/`))) &&
+      (exts.length === 0 || exts.some((e) => path.toLowerCase().endsWith(e)))
+    let blobs = opts.blobs ?? null
+    const tree = async () => (blobs ??= await this.treeBlobs(rev))
     if (await this.isPartialClone()) {
       const missing = await this.missingBlobs([`${rev}^{tree}`])
       if (missing.size > 0) {
-        const specs = opts.pathspecs ?? []
-        const blobs = await this.treeBlobs(rev)
-        const need = [...blobs]
-          .filter(
-            ([path, oid]) =>
-              missing.has(oid) &&
-              (specs.length === 0 ||
-                specs.some((s) => path === s || path.startsWith(`${s}/`))),
-          )
+        const need = [...(await tree())]
+          .filter(([path, oid]) => missing.has(oid) && inScope(path))
           .map(([, oid]) => oid)
         if (need.length > (opts.limit ?? PREFETCH_LIMIT)) return null
         await this.fetchBlobs(need)
@@ -475,7 +484,11 @@ export class GitRepo {
       "--full-name",
     ]
     for (const w of words) args.push("-e", w)
-    args.push(rev, "--", ...(opts.pathspecs ?? []))
+    args.push(rev, "--")
+    // A pathspec's `*` matches across directories, so `src/*.ts` is every .ts file under src.
+    for (const d of dirs.length ? dirs : [""])
+      for (const e of exts.length ? exts : [""])
+        args.push(e ? `${d ? `${d}/` : ""}*${e}` : d || ".")
     const r = await this.git(args, { allowFailure: true })
     if (r.code !== 0 && r.code !== 1)
       throw new Error(r.stderr.trim() || "git grep failed")
@@ -485,11 +498,12 @@ export class GitRepo {
       .split("\0")
       .filter(Boolean)
       .map((l) => (l.startsWith(prefix) ? l.slice(prefix.length) : l))
+      .filter(inScope)
     if (paths.length === 0) return found
     const wanted = new Set(words)
-    const blobs = await this.treeBlobs(rev)
+    const oids = await tree()
     for (const path of paths) {
-      const oid = blobs.get(path)
+      const oid = oids.get(path)
       const buf = oid ? await this.blobs().read(oid) : null
       if (!buf) continue
       const seen = new Set<string>()

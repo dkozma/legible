@@ -4,7 +4,7 @@ import { diffLines, languageForPath, splitLines } from "@legible/diff"
 import { describe, expect, it } from "vitest"
 
 import { Parsing } from "../src/parse"
-import { proveChunks } from "../src/proofs"
+import { proveChunks, textEdit } from "../src/proofs"
 
 const parsing = new Parsing()
 
@@ -237,5 +237,32 @@ describe("real Structural proofs", () => {
     expect(await src("a.py", "x = f(a,b)\n", "x = f(a, b)\n")).toEqual([
       "formatting",
     ])
+  })
+})
+
+describe("incremental reparsing", () => {
+  it("describes the edit between two texts", () => {
+    const e = textEdit("a\nbc\nd", "a\nbXc\nd")
+    expect(e).toMatchObject({
+      startIndex: 3,
+      oldEndIndex: 3,
+      newEndIndex: 4,
+      startPosition: { row: 1, column: 1 },
+      oldEndPosition: { row: 1, column: 1 },
+      newEndPosition: { row: 1, column: 2 },
+    })
+  })
+
+  it("proves every chunk of a large re-indented file", async () => {
+    const base: string[] = []
+    for (let i = 0; i < 1500; i++)
+      base.push(`function f${i}(a, b) {`, `return a + b * ${i};`, "}")
+    // Re-indent every tenth function's body: 150 separate whitespace-only chunks.
+    const head = base.map((l, i) => (i % 30 === 1 ? `  ${l}` : l))
+    const t0 = performance.now()
+    const p = await proofs("big.js", base, head)
+    console.log(`150 proofs in ${Math.round(performance.now() - t0)} ms`)
+    expect(p).toHaveLength(150)
+    expect(p.every((x) => x === "whitespace")).toBe(true)
   })
 })

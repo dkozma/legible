@@ -639,11 +639,20 @@ export function isRangeTarget(
   return t.kind === "range"
 }
 
-const CONNECTION_VERB: Record<ConnectionKind, string> = {
+/** How a Connection reads from its source: "`refundOrder` calls `auditLog`". One wording for labels, prompts and the panel. */
+export const CONNECTION_VERB: Record<ConnectionKind, string> = {
   calls: "calls",
   references: "uses",
   imports: "imports",
   implements: "extends",
+}
+
+/** How a Connection reads from its target: "`auditLog` is called by `refundOrder`". */
+export const CONNECTION_VERB_IN: Record<ConnectionKind, string> = {
+  calls: "called by",
+  references: "used by",
+  imports: "imported by",
+  implements: "extended by",
 }
 
 export function targetLabel(t: ExplanationTarget): string {

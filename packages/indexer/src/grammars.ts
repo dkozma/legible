@@ -1,6 +1,7 @@
 // Loads web-tree-sitter, WASM grammars and their queries, from node_modules
 // (tests, scripts) or from a bundled grammars directory (the app).
 
+import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { createRequire } from "node:module"
@@ -24,8 +25,8 @@ export interface GrammarSource {
   readQuery(path: string): Promise<string | null>
   /** The web-tree-sitter runtime's WASM. */
   runtime(): Promise<Uint8Array>
-  /** A package's version, for cache keys. */
-  version(pkg: string): Promise<string>
+  /** A package's version, for cache keys; `via` as in GrammarFile. */
+  version(pkg: string, via?: string): Promise<string>
 }
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -52,10 +53,10 @@ export function nodeModulesSource(): GrammarSource {
     readQuery: (path) => readOptional(join(QUERIES_DIR, path)),
     runtime: () =>
       readFile(req.resolve("web-tree-sitter/web-tree-sitter.wasm")),
-    version: async (pkg) =>
+    version: async (pkg, via) =>
       (
         JSON.parse(
-          await readFile(join(dirOf(pkg), "package.json"), "utf8"),
+          await readFile(join(dirOf(pkg, via), "package.json"), "utf8"),
         ) as {
           version: string
         }
@@ -74,11 +75,11 @@ export function directorySource(dir: string): GrammarSource {
     read: (file) => readFile(join(dir, grammarFileKey(file))),
     readQuery: (path) => readOptional(join(dir, "queries", path)),
     runtime: () => readFile(join(dir, "web-tree-sitter.wasm")),
-    version: async (pkg) => {
+    version: async (pkg, via) => {
       versions ??= readFile(join(dir, "versions.json"), "utf8").then(
         (t) => JSON.parse(t) as Record<string, string>,
       )
-      return (await versions)[pkg] ?? "0"
+      return (await versions)[via ? `${via}>${pkg}` : pkg] ?? "0"
     },
   }
 }
@@ -98,7 +99,11 @@ export interface LoadedGrammar {
   highlightRank: number[]
   /** Upstream tags plus Legible's own definitions and references. */
   tags: Query | null
-  /** Changes whenever parse results for this language could: grammar package version + query version. */
+  /**
+   * Changes whenever parse results for this language could: the grammar
+   * package's version and a hash of every query's text (upstream, nested
+   * packages' and Legible's own).
+   */
   version: string
 }
 
@@ -194,7 +199,14 @@ export class Grammars {
       )
     ).join("\n")
     const highlightSource = await text(spec.highlights)
+    const tagsSource = `${await text(spec.tags)}\n${extraTags}`
     const highlights = query(highlightSource, "highlights")
+    const queries = createHash("sha1")
+      .update(highlightSource)
+      .update("\0")
+      .update(tagsSource)
+      .digest("hex")
+      .slice(0, 12)
     return {
       language,
       tsLanguage,
@@ -202,8 +214,8 @@ export class Grammars {
       highlightRank: highlights
         ? patternSpecificity(highlights, highlightSource)
         : [],
-      tags: query(`${await text(spec.tags)}\n${extraTags}`, "tags"),
-      version: `${spec.wasm.pkg}@${await src.version(spec.wasm.pkg)}+q${spec.queryVersion}`,
+      tags: query(tagsSource, "tags"),
+      version: `${spec.wasm.pkg}@${await src.version(spec.wasm.pkg, spec.wasm.via)}+q${queries}`,
     }
   }
 }

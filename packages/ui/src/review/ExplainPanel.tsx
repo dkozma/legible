@@ -4,6 +4,7 @@ import type {
   ExplanationJob,
   ExplanationTarget,
 } from "@legible/domain"
+import { LOOKUP_LIMITS } from "@legible/ipc/channels"
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, BookOpen, Loader2, RefreshCw, X } from "lucide-react"
 import { useMemo } from "react"
@@ -233,7 +234,10 @@ function ExplanationCard({
       client.call("connections.lookup", {
         reviewId,
         iterationId: iterationId as string,
-        names: spans.slice(0, 50),
+        // Long spans are expressions, not names; leaving them out keeps the request valid.
+        names: spans
+          .filter((s) => s.length <= LOOKUP_LIMITS.length)
+          .slice(0, LOOKUP_LIMITS.names),
         near: nearOf(e.target),
       }),
     enabled: Boolean(iterationId) && spans.length > 0,

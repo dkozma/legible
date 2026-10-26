@@ -591,8 +591,25 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   }
 
   const jumpToExplanation = (e: Explanation) => {
-    const f = model.files.find((x) => x.fileId === e.target.fileId)
-    if (!f) return
+    const t = e.target
+    // Symbols and Connections the diff doesn't show (outside the Change Set) open in the
+    // Connections panel, which shows their code.
+    const focus =
+      t.kind === "symbol"
+        ? { symbolId: t.symbolId, label: t.qualifiedName }
+        : t.kind === "connection"
+          ? { symbolId: t.fromSymbolId, label: t.fromName }
+          : null
+    const f = t.fileId
+      ? model.files.find((x) => x.fileId === t.fileId)
+      : undefined
+    if (!f) {
+      if (focus) {
+        pushTrail()
+        useUI.getState().set({ focusSymbol: focus, panel: "connections" })
+      }
+      return
+    }
     if (e.target.kind === "file") {
       scrollToRow(f.row, true)
       return

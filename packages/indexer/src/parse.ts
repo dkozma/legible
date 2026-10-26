@@ -111,21 +111,30 @@ export class Parsing {
     }
   }
 
-  /** A tree for callers that need the AST itself (proofs). The caller deletes it. */
+  /**
+   * A tree for callers that need the AST itself (proofs). With `previous`,
+   * an earlier tree already edited to match, tree-sitter reparses only what
+   * changed. The caller deletes the result.
+   */
   async parseTree(
     language: string | null,
     lines: string[],
+    previous?: Tree,
   ): Promise<Tree | null> {
     const grammar = await this.grammars.get(language)
     if (!grammar) return null
-    return this.tree(grammar, lines)
+    return this.tree(grammar, lines, previous)
   }
 
-  private tree(grammar: LoadedGrammar, lines: string[]): Tree | null {
+  private tree(
+    grammar: LoadedGrammar,
+    lines: string[],
+    previous?: Tree,
+  ): Tree | null {
     const text = lines.join("\n")
     if (text.length > MAX_HIGHLIGHT_CHARS) return null
     try {
-      return this.grammars.parser(grammar).parse(text)
+      return this.grammars.parser(grammar).parse(text, previous ?? null)
     } catch {
       return null
     }

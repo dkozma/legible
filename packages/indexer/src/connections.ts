@@ -11,7 +11,12 @@
 
 import { createHash } from "node:crypto"
 
-import { languageForPath, looksBinary, splitLines } from "@legible/diff"
+import {
+  extensionsFor,
+  languageForPath,
+  looksBinary,
+  splitLines,
+} from "@legible/diff"
 import type {
   CodeSymbol,
   Connection,
@@ -259,7 +264,8 @@ export class CodeIndex {
     }
     const words = [...names].filter((n) => /^[A-Za-z_$][\w$]{2,}$/.test(n))
     const partial = await repo.isPartialClone()
-    const pathspecs = partial
+    // In a blobless clone, search only the changed files' directories; everything else is downloads.
+    const dirs = partial
       ? [
           ...new Set(
             [...changed].map((p) =>
@@ -269,9 +275,15 @@ export class CodeIndex {
         ].filter(Boolean)
       : undefined
     const families = new Set(this.entries.map((e) => familyOf(e.language)))
+    // Only files in the changed code's language families can hold its neighbors.
+    const extensions = extensionsFor(
+      Object.keys(GRAMMARS).filter((l) => families.has(familyOf(l))),
+    )
     const hits = await repo.grepWords(headSha, words, {
-      pathspecs,
+      dirs,
+      extensions,
       limit: PARTIAL_CLONE_LIMIT,
+      blobs: headBlobs,
     })
     const scope: IndexScope = { neighborFiles: 0, complete: true, detail: null }
     if (!hits) {
@@ -326,7 +338,10 @@ export class CodeIndex {
         (p === "package.json" || p.endsWith("/package.json")) &&
         !p.includes("node_modules/"),
     )
-    for (const [path, oid] of manifests.slice(0, 300)) {
+    const read = manifests.slice(0, 300)
+    // One download in a blobless clone, instead of one round trip per package.json.
+    await this.input.repo.prefetchBlobs(read.map(([, oid]) => oid))
+    for (const [path, oid] of read) {
       try {
         const buf = await this.input.repo.blobs().read(oid)
         if (!buf) continue

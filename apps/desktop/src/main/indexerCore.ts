@@ -160,9 +160,10 @@ export function createIndexer(config: IndexerConfig): Indexer {
         k.headSha,
         opts,
       )
-      // Connections are indexed in the background, from the whitespace-sensitive build.
+      // Connections are indexed in the background. Symbols don't depend on the whitespace mode,
+      // so whichever build comes first serves.
       const key = keyOf(k)
-      if (!opts.ignoreWhitespace && !indexes.has(key) && !pending.has(key))
+      if (!indexes.has(key) && !pending.has(key))
         remember(
           key,
           new CodeIndex({
@@ -175,11 +176,12 @@ export function createIndexer(config: IndexerConfig): Indexer {
         )
       return { summary: built.summary, diffs: built.diffs }
     },
+    // Status answers while indexing; everything else waits for the index.
     async status(k) {
       return (await indexFor(k)).status
     },
     async fileSymbols(k, fileId) {
-      return (await indexFor(k)).fileSymbols(fileId)
+      return (await ready(k)).fileSymbols(fileId)
     },
     async connections(k, symbolId) {
       return (await ready(k)).forSymbol(symbolId)

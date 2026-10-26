@@ -6,7 +6,13 @@
 // trimmed. Anything unproven stays Behavioral.
 
 import type { DiffChunk, StructuralProof } from "@legible/domain"
-import type { Tree, TreeCursor } from "web-tree-sitter"
+import {
+  Edit,
+  type Node,
+  type Point,
+  type Tree,
+  type TreeCursor,
+} from "web-tree-sitter"
 
 import type { Parsing } from "./parse"
 
@@ -38,8 +44,8 @@ const MAX_CANDIDATES = 200
 const squash = (lines: string[]) => lines.join("").replace(/\s+/g, "")
 
 /** One node of a preorder walk: type plus, for leaves, normalized text. */
-function* events(tree: Tree): Generator<string> {
-  const c: TreeCursor = tree.walk()
+function* events(root: Node): Generator<string> {
+  const c: TreeCursor = root.walk()
   try {
     for (;;) {
       const type = c.nodeType
@@ -63,8 +69,7 @@ function* events(tree: Tree): Generator<string> {
   }
 }
 
-function sameTree(a: Tree, b: Tree): boolean {
-  if (a.rootNode.hasError || b.rootNode.hasError) return false
+function sameSubtree(a: Node, b: Node): boolean {
   const x = events(a)
   const y = events(b)
   for (;;) {
@@ -73,6 +78,81 @@ function sameTree(a: Tree, b: Tree): boolean {
     if (p.done || q.done) return Boolean(p.done && q.done)
     if (p.value !== q.value) return false
   }
+}
+
+/**
+ * Whether `next` (Base with one chunk applied, parsed incrementally from
+ * `previous`, Base's tree with the edit applied) has Base's syntax tree. Only
+ * the smallest subtree covering the edit and every range tree-sitter reports
+ * as structurally changed is compared; outside it the structure is unchanged
+ * and the text is Base's own.
+ */
+function sameAround(base: Tree, next: Tree, previous: Tree, e: Edit): boolean {
+  if (next.rootNode.hasError) return false
+  let lo = e.startIndex
+  let hi = e.newEndIndex
+  for (const r of next.getChangedRanges(previous)) {
+    lo = Math.min(lo, r.startIndex)
+    hi = Math.max(hi, r.endIndex)
+  }
+  const delta = e.newEndIndex - e.oldEndIndex
+  let b: Node | null = next.rootNode.descendantForIndex(
+    lo,
+    Math.max(lo, hi - 1),
+  )
+  // The same span in Base: offsets before the edit are unchanged, after it they shift by delta.
+  for (; b; b = b.parent) {
+    if (b.startIndex > e.startIndex || b.endIndex < e.newEndIndex) continue
+    const end = b.endIndex - delta
+    let a: Node | null = base.rootNode.descendantForIndex(
+      b.startIndex,
+      Math.max(b.startIndex, end - 1),
+    )
+    while (a && (a.startIndex > b.startIndex || a.endIndex < end)) a = a.parent
+    if (a && a.startIndex === b.startIndex && a.endIndex === end)
+      return sameSubtree(a, b)
+  }
+  return sameSubtree(base.rootNode, next.rootNode)
+}
+
+/** Row and column (UTF-16 units, as web-tree-sitter counts) of an offset. */
+function pointAt(text: string, index: number): Point {
+  let row = 0
+  let lineStart = 0
+  for (
+    let i = text.indexOf("\n");
+    i >= 0 && i < index;
+    i = text.indexOf("\n", i + 1)
+  ) {
+    row++
+    lineStart = i + 1
+  }
+  return { row, column: index - lineStart }
+}
+
+/** The edit that turns `before` into `after`: what lies between their common prefix and suffix. */
+export function textEdit(before: string, after: string): Edit {
+  let start = 0
+  const max = Math.min(before.length, after.length)
+  while (start < max && before.charCodeAt(start) === after.charCodeAt(start))
+    start++
+  let suffix = 0
+  while (
+    suffix < max - start &&
+    before.charCodeAt(before.length - 1 - suffix) ===
+      after.charCodeAt(after.length - 1 - suffix)
+  )
+    suffix++
+  const oldEnd = before.length - suffix
+  const newEnd = after.length - suffix
+  return new Edit({
+    startIndex: start,
+    oldEndIndex: oldEnd,
+    newEndIndex: newEnd,
+    startPosition: pointAt(before, start),
+    oldEndPosition: pointAt(before, oldEnd),
+    newEndPosition: pointAt(after, newEnd),
+  })
 }
 
 function offsetOfLine(lines: string[], line: number): number {
@@ -121,6 +201,7 @@ export async function proveChunks(
   })
   if (candidates.length === 0 || candidates.length > MAX_CANDIDATES) return out
 
+  const baseText = input.baseLines.join("\n")
   const base = await parsing.parseTree(lang, input.baseLines)
   if (!base) return out
   try {
@@ -135,12 +216,20 @@ export async function proveChunks(
         ...input.headLines.slice(c.headStart, c.headEnd),
         ...input.baseLines.slice(c.baseEnd),
       ]
-      const tree = await parsing.parseTree(lang, hybrid)
-      if (!tree) continue
+      // Incrementally: only the edited region is reparsed.
+      const e = textEdit(baseText, hybrid.join("\n"))
+      const previous = base.copy()
+      previous.edit(e)
+      const tree = await parsing.parseTree(lang, hybrid, previous)
+      if (!tree) {
+        previous.delete()
+        continue
+      }
       try {
-        if (!sameTree(base, tree)) continue
+        if (!sameAround(base, tree, previous, e)) continue
       } finally {
         tree.delete()
+        previous.delete()
       }
       const lines = (ls: string[]) => ls.map((l) => l.trim()).filter(Boolean)
       const del = lines(input.baseLines.slice(c.baseStart, c.baseEnd))

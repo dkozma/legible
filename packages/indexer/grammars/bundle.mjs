@@ -54,7 +54,8 @@ export function bundleFiles() {
       seen.add(key)
       const dir = packageDir(f.pkg, f.via)
       out.push({ fileName: key, source: readFileSync(join(dir, f.file)) })
-      versions[f.pkg] ??= JSON.parse(
+      // Keyed like GrammarSource.version: "via>pkg" for a package's own copy of a dependency.
+      versions[f.via ? `${f.via}>${f.pkg}` : f.pkg] ??= JSON.parse(
         readFileSync(join(dir, "package.json"), "utf8"),
       ).version
     }

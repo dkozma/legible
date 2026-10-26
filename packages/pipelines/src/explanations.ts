@@ -6,13 +6,15 @@ import { createHash } from "node:crypto"
 
 import type { AgentTask, ToolContext } from "@legible/agent-runtime"
 import { READ_TOOLS } from "@legible/agent-runtime"
-import type {
-  Connection,
-  DiffChunk,
-  ExplanationBody,
-  ExplanationTarget,
-  FileChange,
-  SymbolConnections,
+import {
+  CONNECTION_VERB,
+  CONNECTION_VERB_IN,
+  type Connection,
+  type DiffChunk,
+  type ExplanationBody,
+  type ExplanationTarget,
+  type FileChange,
+  type SymbolConnections,
 } from "@legible/domain"
 import { z } from "zod"
 
@@ -209,13 +211,6 @@ export function renderTargetDiff(
   return { text: out.join("\n"), truncated }
 }
 
-const CONNECTION_VERBS = {
-  calls: "calls",
-  references: "uses",
-  imports: "imports",
-  implements: "extends",
-} as const
-
 function untrusted(label: string, text: string) {
   // Neutralize any untrusted tag inside the data, in any case or spacing, so it can't end the block early.
   return `<untrusted source="${label}">\n${text.replace(/<(\s*\/?\s*untrusted)/gi, "&lt;$1")}\n</untrusted>`
@@ -235,7 +230,7 @@ export function explanationPrompt(input: ExplanationInput): string {
       : t.kind === "symbol"
         ? `the ${t.symbolKind} \`${t.qualifiedName}\` (its lines are marked ») in ${where} (${status})`
         : t.kind === "connection"
-          ? `how \`${t.fromName}\` ${CONNECTION_VERBS[t.connectionKind]} \`${t.toName}\`: what it relies on there, and what changed in that relationship. \`${t.fromName}\`'s lines are marked » in ${where} (${status})`
+          ? `how \`${t.fromName}\` ${CONNECTION_VERB[t.connectionKind]} \`${t.toName}\`: what it relies on there, and what changed in that relationship. \`${t.fromName}\`'s lines are marked » in ${where} (${status})`
           : `the selected lines (marked ») in ${where} (${status})`
   const parts = [
     `Explain ${what}.`,
@@ -337,7 +332,7 @@ export function describeConnections(
   const out: string[] = []
   const focus = [...all.uses, ...all.usedBy].find((c) => c.id === connectionId)
   if (focus) {
-    const verb = CONNECTION_VERBS[focus.kind]
+    const verb = CONNECTION_VERB[focus.kind]
     const change =
       focus.change === "added"
         ? ", new on Head"
@@ -351,27 +346,20 @@ export function describeConnections(
   const whole = all.symbol.change === "added" || all.symbol.change === "removed"
   for (const c of all.uses) {
     if (!c.change || whole || c.id === connectionId) continue
-    const verb = CONNECTION_VERBS[c.kind]
+    const verb = CONNECTION_VERB[c.kind]
     out.push(
       `${c.change === "added" ? "Now" : "No longer"} ${verb} ${name(c.toId, c.name)}${status(c)}`,
     )
   }
   for (const c of all.usedBy) {
     if (!c.change || c.id === connectionId) continue
-    const verb = CONNECTION_VERBS_IN[c.kind]
+    const verb = CONNECTION_VERB_IN[c.kind]
     out.push(
       `${c.change === "added" ? "Now" : "No longer"} ${verb} ${name(c.fromId, "?")}`,
     )
   }
   return out.slice(0, 40)
 }
-
-const CONNECTION_VERBS_IN = {
-  calls: "called by",
-  references: "used by",
-  imports: "imported by",
-  implements: "extended by",
-} as const
 
 export function toExplanationBody(o: ExplanationOutput): ExplanationBody {
   return {

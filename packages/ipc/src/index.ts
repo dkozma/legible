@@ -27,9 +27,15 @@ import {
 } from "@legible/domain"
 import { z } from "zod"
 
-import type { Channel, EventName } from "./channels"
+import { type Channel, type EventName, LOOKUP_LIMITS } from "./channels"
 
-export { CHANNELS, type Channel, EVENTS, type EventName } from "./channels"
+export {
+  CHANNELS,
+  type Channel,
+  EVENTS,
+  type EventName,
+  LOOKUP_LIMITS,
+} from "./channels"
 
 const id = z.string().min(1).max(200)
 
@@ -137,7 +143,9 @@ export const requests = {
     reviewId: id,
     iterationId: id,
     /** Code spans from an Explanation, as written. */
-    names: z.array(z.string().max(200)).max(50),
+    names: z
+      .array(z.string().max(LOOKUP_LIMITS.length))
+      .max(LOOKUP_LIMITS.names),
     near: z.object({
       path: z.string().max(4096).nullable(),
       symbolIds: z.array(id).max(4),

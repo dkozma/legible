@@ -147,20 +147,23 @@ export function matchSymbols(
   const baseById = new Map(base.map((s) => [s.id, s]))
   const parentOf = (s: CodeSymbol, side: Map<string, CodeSymbol>) =>
     s.parentId ? (side.get(s.parentId)?.counterpartId ?? null) : null
+  // Each unmatched Symbol's body (past its declaration line) and signature shape, once.
+  // A body is the evidence: two empty functions aren't a rename of each other.
+  const evidence = (lines: string[], list: CodeSymbol[]) =>
+    list
+      .filter((s) => !s.counterpartId)
+      .map((s) => ({ s, body: body(lines, s).slice(1), shape: shape(s) }))
+      .filter((x) => x.body.length >= MIN_RENAME_BODY)
+  const unmatchedHead = evidence(headLines, head)
   const candidates: { b: CodeSymbol; h: CodeSymbol; score: number }[] = []
-  for (const b of base) {
-    if (b.counterpartId) continue
-    const bParent = parentOf(b, baseById)
-    for (const h of head) {
-      if (h.counterpartId || h.kind !== b.kind) continue
-      if (h.parentId !== bParent) continue
-      // A body is the evidence: two empty functions aren't a rename of each other.
-      const bb = body(baseLines, b).slice(1)
-      const hb = body(headLines, h).slice(1)
-      if (bb.length < MIN_RENAME_BODY || hb.length < MIN_RENAME_BODY) continue
+  for (const b of evidence(baseLines, base)) {
+    const bParent = parentOf(b.s, baseById)
+    for (const h of unmatchedHead) {
+      if (h.s.kind !== b.s.kind || h.s.parentId !== bParent) continue
       const score =
-        0.4 * charSimilarity(shape(b), shape(h)) + 0.6 * lineSimilarity(bb, hb)
-      if (score >= RENAME_THRESHOLD) candidates.push({ b, h, score })
+        0.4 * charSimilarity(b.shape, h.shape) +
+        0.6 * lineSimilarity(b.body, h.body)
+      if (score >= RENAME_THRESHOLD) candidates.push({ b: b.s, h: h.s, score })
     }
   }
   candidates.sort((x, y) => y.score - x.score)
