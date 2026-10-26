@@ -29,6 +29,7 @@ function file(over: Partial<FileChange> = {}): FileChange {
     baseOid: "a",
     headOid: "b",
     language: "typescript",
+    tier: "full",
     additions: 1,
     deletions: 1,
     binary: false,

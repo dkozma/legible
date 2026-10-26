@@ -415,6 +415,91 @@ export class GitRepo {
     await this.fetchBlobs(need)
   }
 
+  // ---- Queries used by the indexer -------------------------------------------
+
+  /** Every blob in a commit's tree, by path, with its object id. */
+  async treeBlobs(rev: string): Promise<Map<string, string>> {
+    const out = await this.text([
+      "ls-tree",
+      "-r",
+      "-z",
+      "--format=%(objecttype) %(objectname) %(path)",
+      rev,
+    ])
+    const blobs = new Map<string, string>()
+    for (const entry of out.split("\0")) {
+      const m = entry.match(/^blob (\S+) (.*)$/s)
+      if (m) blobs.set(m[2] as string, m[1] as string)
+    }
+    return blobs
+  }
+
+  /**
+   * Which files at `rev` contain each word (whole-word, fixed-string). In a
+   * blobless clone this downloads the blobs it searches, so callers narrow it
+   * with `pathspecs`; past `limit` blobs to download it searches nothing.
+   */
+  async grepWords(
+    rev: string,
+    words: string[],
+    opts: { pathspecs?: string[]; limit?: number } = {},
+  ): Promise<Map<string, Set<string>> | null> {
+    const found = new Map<string, Set<string>>()
+    if (words.length === 0) return found
+    if (await this.isPartialClone()) {
+      const missing = await this.missingBlobs([`${rev}^{tree}`])
+      if (missing.size > 0) {
+        const specs = opts.pathspecs ?? []
+        const blobs = await this.treeBlobs(rev)
+        const need = [...blobs]
+          .filter(
+            ([path, oid]) =>
+              missing.has(oid) &&
+              (specs.length === 0 ||
+                specs.some((s) => path === s || path.startsWith(`${s}/`))),
+          )
+          .map(([, oid]) => oid)
+        if (need.length > (opts.limit ?? PREFETCH_LIMIT)) return null
+        await this.fetchBlobs(need)
+      }
+    }
+    const args = ["grep", "-I", "-o", "-w", "-F", "--no-color", "--full-name"]
+    for (const w of words) args.push("-e", w)
+    args.push(rev, "--", ...(opts.pathspecs ?? []))
+    const r = await this.git(args, { allowFailure: true })
+    if (r.code !== 0 && r.code !== 1)
+      throw new Error(r.stderr.trim() || "git grep failed")
+    const prefix = `${rev}:`
+    for (const line of r.stdout.toString("utf8").split("\n")) {
+      if (!line) continue
+      const l = line.startsWith(prefix) ? line.slice(prefix.length) : line
+      const sep = l.lastIndexOf(":")
+      if (sep <= 0) continue
+      const path = l.slice(0, sep)
+      const word = l.slice(sep + 1)
+      let set = found.get(word)
+      if (!set) found.set(word, (set = new Set()))
+      set.add(path)
+    }
+    return found
+  }
+
+  /** Downloads missing blobs in one request (blobless clones); a no-op otherwise. */
+  async prefetchBlobs(oids: string[]): Promise<void> {
+    if (oids.length === 0 || !(await this.isPartialClone())) return
+    const have = await this.git(["cat-file", "--batch-check"], {
+      input: `${oids.join("\n")}\n`,
+      env: { GIT_NO_LAZY_FETCH: "1" },
+      allowFailure: true,
+    })
+    const missing = have.stdout
+      .toString("utf8")
+      .split("\n")
+      .filter((l) => l.endsWith(" missing"))
+      .map((l) => l.split(" ")[0] as string)
+    await this.fetchBlobs(missing)
+  }
+
   // ---- Read-only queries used by agent tools --------------------------------
 
   async listFiles(rev: string, pathPrefix?: string): Promise<string[]> {

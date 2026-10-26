@@ -1,6 +1,8 @@
 // Builds a Change Set from two commits: pairs files (renames, copies), reads
-// blobs, diffs, classifies, detects moves, highlights, and proves Structural
-// Fragments. Results are cached per (Iteration, whitespace mode).
+// blobs, diffs, classifies, detects moves, parses both sides (highlighting,
+// Symbols), splits Fragments at Symbol boundaries, and proves Structural
+// Fragments from the AST. The main process caches results per (Iteration,
+// whitespace mode).
 
 import {
   buildFileDiff,
@@ -8,7 +10,6 @@ import {
   detectMoves,
   diffLines,
   hash,
-  highlightLines,
   LARGE_FILE_BYTES,
   languageForPath,
   looksBinary,
@@ -16,21 +17,37 @@ import {
 } from "@legible/diff"
 import type {
   ChangeSetSummary,
+  CodeSymbol,
   DiffChunk,
   FileChange,
   FileDiff,
-  LineTokens,
   MoveBlock,
 } from "@legible/domain"
 import type { GitRepo, RawChange } from "@legible/git"
 
+import { splitAtSymbols } from "./fragments"
+import type { Outline } from "./outline"
+import type { Parsing } from "./parse"
+import { proveChunks } from "./proofs"
+import { matchSymbols, toCodeSymbols } from "./symbols"
+
 const SUBMODULE = "160000"
-/** Files longer than this are diffed but not highlighted. */
-const MAX_HIGHLIGHT_LINES = 20_000
 
 export interface BuiltChangeSet {
   summary: ChangeSetSummary
   diffs: Map<string, FileDiff>
+}
+
+/** What the Connections index needs about each changed file; stays in the indexer. */
+export interface IndexedFile {
+  fileId: string
+  path: string
+  oldPath: string | null
+  language: string | null
+  baseOid: string | null
+  headOid: string | null
+  base: { lines: string[]; outline: Outline | null; symbols: CodeSymbol[] }
+  head: { lines: string[]; outline: Outline | null; symbols: CodeSymbol[] }
 }
 
 interface Loaded {
@@ -134,30 +151,14 @@ async function mapLimit<T, R>(
   return out
 }
 
-const tokenCache = new Map<string, LineTokens[] | null>()
-function tokensFor(
-  oid: string | null,
-  language: string | null,
-  lines: string[],
-): LineTokens[] | null {
-  if (!oid || lines.length === 0 || lines.length > MAX_HIGHLIGHT_LINES)
-    return null
-  const key = `${oid}:${language}`
-  if (tokenCache.has(key)) return tokenCache.get(key) ?? null
-  const t = highlightLines(language, lines)
-  tokenCache.set(key, t)
-  if (tokenCache.size > 2000)
-    tokenCache.delete(tokenCache.keys().next().value as string)
-  return t
-}
-
 export async function buildChangeSet(
   repo: GitRepo,
+  parsing: Parsing,
   ids: { reviewId: string; iterationId: string },
   baseSha: string,
   headSha: string,
   opts: { ignoreWhitespace: boolean; prefetch: boolean },
-): Promise<BuiltChangeSet> {
+): Promise<BuiltChangeSet & { indexed: IndexedFile[] }> {
   if (opts.prefetch) {
     // In blobless cache clones this fetches every needed blob in one batch
     // instead of one request per blob.
@@ -234,25 +235,67 @@ export async function buildChangeSet(
 
   const diffs = new Map<string, FileDiff>()
   const files: FileChange[] = []
+  const indexed: IndexedFile[] = []
   for (const f of loaded) {
     const reason = collapse.get(f.id) ?? null
     const highlight = !reason || reason === "generated" || reason === "vendored"
-    const baseTokens = highlight
-      ? tokensFor(f.raw.oldOid, f.language, f.base)
-      : null
-    const headTokens = highlight
-      ? tokensFor(f.raw.newOid, f.language, f.head)
-      : null
+    const parse = !f.binary && reason !== "lockfile" && reason !== "large"
+    const [baseParsed, headParsed] = parse
+      ? await Promise.all([
+          parsing.parse({
+            oid: f.raw.oldOid,
+            language: f.language,
+            lines: f.base,
+            tokens: highlight,
+          }),
+          parsing.parse({
+            oid: f.raw.newOid,
+            language: f.language,
+            lines: f.head,
+            tokens: highlight,
+          }),
+        ])
+      : [null, null]
+    const lang = f.language ?? "text"
+    const baseSymbols = baseParsed?.outline
+      ? toCodeSymbols(
+          "base",
+          f.raw.oldPath ?? f.path,
+          lang,
+          baseParsed.outline.symbols,
+        )
+      : []
+    const headSymbols = headParsed?.outline
+      ? toCodeSymbols("head", f.path, lang, headParsed.outline.symbols)
+      : []
+    matchSymbols(baseSymbols, headSymbols, f.base, f.head)
+    const chunks = splitAtSymbols(
+      chunksById.get(f.id) ?? [],
+      baseSymbols,
+      headSymbols,
+      f.base.length,
+      f.head.length,
+    )
+    const proofs =
+      parse && !reason
+        ? await proveChunks(parsing, {
+            language: f.language,
+            baseLines: f.base,
+            headLines: f.head,
+            chunks,
+          })
+        : undefined
     const diff = buildFileDiff({
       fileId: f.id,
       path: f.path,
       language: f.language,
       baseLines: f.base,
       headLines: f.head,
-      baseTokens,
-      headTokens,
+      baseTokens: baseParsed?.tokens ?? null,
+      headTokens: headParsed?.tokens ?? null,
       ignoreWhitespace: opts.ignoreWhitespace,
-      chunks: chunksById.get(f.id),
+      chunks,
+      proofs,
     })
     diffs.set(f.id, diff)
     let additions = 0
@@ -262,7 +305,7 @@ export async function buildChangeSet(
       additions += c.headEnd - c.headStart
       deletions += c.baseEnd - c.baseStart
     }
-    const proofs = new Set(diff.fragments.map((fr) => fr.proof))
+    const proofKinds = new Set(diff.fragments.map((fr) => fr.proof))
     const allStructural =
       diff.fragments.length > 0 &&
       diff.fragments.every((fr) => fr.kind === "structural")
@@ -274,13 +317,14 @@ export async function buildChangeSet(
       baseOid: f.raw.oldOid,
       headOid: f.raw.newOid,
       language: f.language,
+      tier: (headParsed ?? baseParsed)?.tier ?? "text",
       additions,
       deletions,
       binary: f.binary,
       collapse: reason,
       structural: allStructural
-        ? proofs.size === 1
-          ? ([...proofs][0] ?? null)
+        ? proofKinds.size === 1
+          ? ([...proofKinds][0] ?? null)
           : "formatting"
         : null,
       chunks: diff.chunks,
@@ -289,6 +333,25 @@ export async function buildChangeSet(
       headLineCount: f.head.length,
       notes: f.notes,
     })
+    if (parse)
+      indexed.push({
+        fileId: f.id,
+        path: f.path,
+        oldPath: f.raw.oldPath,
+        language: f.language,
+        baseOid: f.raw.oldOid,
+        headOid: f.raw.newOid,
+        base: {
+          lines: f.base,
+          outline: baseParsed?.outline ?? null,
+          symbols: baseSymbols,
+        },
+        head: {
+          lines: f.head,
+          outline: headParsed?.outline ?? null,
+          symbols: headSymbols,
+        },
+      })
     await breathe()
   }
 
@@ -303,7 +366,7 @@ export async function buildChangeSet(
     additions: files.reduce((n, f) => n + f.additions, 0),
     deletions: files.reduce((n, f) => n + f.deletions, 0),
   }
-  return { summary, diffs }
+  return { summary, diffs, indexed }
 }
 
 /** Directory-tree order, so the file list and the diff read in the same order. */

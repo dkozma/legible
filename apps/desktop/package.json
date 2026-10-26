@@ -34,6 +34,7 @@
     "@legible/domain": "workspace:*",
     "@legible/git": "workspace:*",
     "@legible/hosts": "workspace:*",
+    "@legible/indexer": "workspace:*",
     "@legible/ipc": "workspace:*",
     "@legible/pipelines": "workspace:*",
     "@legible/store": "workspace:*",

@@ -3,8 +3,6 @@ export {
   type FileDiffInput,
   hash,
   isTrivialLine,
-  normalizeLine,
-  proveStructural,
 } from "./analyze"
 export {
   type ClassifyInput,

@@ -57,6 +57,12 @@ import {
 import { ERROR_REPORTS_ARG } from "./errorReportingShared"
 import { ExplanationService } from "./explanations"
 import { HostService } from "./hosts"
+import {
+  IndexerClient,
+  type IndexerTransport,
+  inProcessIndexer,
+} from "./indexerClient"
+import type { FromIndexer, Indexer } from "./indexerCore"
 import { ReviewService, UserError } from "./reviews"
 import { SecretStore } from "./secrets"
 import { loadShellEnv } from "./shellEnv"
@@ -96,6 +102,7 @@ let reviews: ReviewService
 let explanations: ExplanationService
 let hosts: HostService
 let agentHost: AgentHostClient
+let indexer: Indexer
 let settingsCache: Settings | null = null
 const pendingOpen: string[] = []
 
@@ -196,6 +203,22 @@ function spawnAgentHost(): Transport {
     // oxlint-disable-next-line unicorn/require-post-message-target-origin
     post: (m) => child.postMessage(m),
     onMessage: (cb) => child.on("message", (m: FromHost) => cb(m)),
+    onExit: (cb) => child.on("exit", cb),
+    kill: () => child.kill(),
+  }
+}
+
+function spawnIndexer(): IndexerTransport {
+  const args = errorReportingActive() ? [ERROR_REPORTS_ARG] : []
+  const child = utilityProcess.fork(join(here, "indexer.js"), args, {
+    serviceName: "Legible Indexer",
+    stdio: "inherit",
+  })
+  return {
+    // A utility process port, not window.postMessage: there's no origin.
+    // oxlint-disable-next-line unicorn/require-post-message-target-origin
+    post: (m) => child.postMessage(m),
+    onMessage: (cb) => child.on("message", (m: FromIndexer) => cb(m)),
     onExit: (cb) => child.on("exit", cb),
     kill: () => child.kill(),
   }
@@ -618,9 +641,19 @@ if (!app.requestSingleInstanceLock()) {
       store = new Store(join(dataDir, "legible.db"))
       secrets = new SecretStore(join(dataDir, "secrets.json"))
       hosts = new HostService(secrets, getSettings)
+      const indexerConfig = {
+        cacheDir: join(dataDir, "index-cache"),
+        // Copied next to the bundle by the build (electron.vite.config.ts).
+        grammarsDir: join(here, "grammars"),
+      }
+      indexer =
+        process.env.LEGIBLE_IN_PROCESS_INDEXER === "1"
+          ? inProcessIndexer(indexerConfig)
+          : new IndexerClient(spawnIndexer, indexerConfig)
       reviews = new ReviewService(
         store,
         hosts,
+        indexer,
         join(dataDir, "repos"),
         (reviewId, detail) =>
           send("review.changesAvailable", { reviewId, detail }),
@@ -666,6 +699,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on("will-quit", () => {
     agentHost?.dispose()
+    indexer?.dispose()
     reviews?.dispose()
     void store?.close()
   })
