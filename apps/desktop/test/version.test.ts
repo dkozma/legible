@@ -3,7 +3,7 @@ import { resolve } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { nextVersion } from "../scripts/version.mjs"
+import { nextVersion, prereleaseVersion } from "../scripts/version.mjs"
 
 const day = (iso: string) => new Date(`${iso}T12:00:00Z`)
 
@@ -45,5 +45,45 @@ describe("release versions", () => {
       { input: "v1999.101.1\n", encoding: "utf8" },
     )
     expect(out.trim()).toMatch(/^\d{4}\.[1-9]\d{2,3}\.1$/)
+  })
+})
+
+describe("prerelease versions", () => {
+  const semver =
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)$/
+
+  it("is the next release's version plus the commit", () => {
+    expect(
+      prereleaseVersion(
+        day("2026-10-26"),
+        ["v2026.1026.1"],
+        "6428c81c9b38c3af",
+      ),
+    ).toBe("2026.1026.2-g6428c81")
+  })
+
+  it("stays valid semver when the hash starts with a zero", () => {
+    const v = prereleaseVersion(day("2026-10-26"), [], "0123456789")
+    expect(v).toBe("2026.1026.1-g0123456")
+    expect(v).toMatch(semver)
+  })
+
+  it("rejects anything but a commit hash", () => {
+    expect(() => prereleaseVersion(day("2026-10-26"), [], "main")).toThrow(
+      "Not a commit hash",
+    )
+  })
+
+  it("takes the commit from the command line", () => {
+    const out = execFileSync(
+      "node",
+      [
+        resolve(__dirname, "../scripts/version.mjs"),
+        "--prerelease",
+        "abcdef0123",
+      ],
+      { input: "", encoding: "utf8" },
+    )
+    expect(out.trim()).toMatch(/^\d{4}\.[1-9]\d{2,3}\.1-gabcdef0$/)
   })
 })

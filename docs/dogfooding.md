@@ -42,6 +42,10 @@ Without signing credentials the build is unsigned. The first time, open it with 
 
 Signed, notarized builds come from the Release workflow. In the repository's Actions tab, choose **Release → Run workflow** on `main`. It picks the next version (`YYYY.MDD.N`, [ADR 0012](./adr/0012-calendar-versions.md)), tags the commit, and uploads the DMG to a draft GitHub Release. Publish the draft to make it downloadable and to offer it to installed copies. They check at launch, download in the background, and install when you quit. It needs the `MAC_CERTS`, `MAC_CERTS_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` secrets, and `SENTRY_DSN` for error reports. Builds are Apple Silicon only for now.
 
+### Prerelease builds
+
+To try a branch without building it yourself, choose **Prerelease build → Run workflow** in the Actions tab and pick the branch. The workflow builds an unsigned Apple Silicon app versioned `YYYY.MDD.N-g<commit>`: the next release's version plus the commit, as a semver prerelease. It keeps the DMG as a workflow artifact for 30 days. The download link is in the run's summary, and in a comment on the branch's open pull request (one comment, updated by each run). Because the build is unsigned, open it the first time with right-click → Open, or run `xattr -cr /Applications/Legible.app`. Prerelease builds never auto-update and never send error reports.
+
 ### From the terminal
 
 Put [`bin/legible`](../bin/legible) on your PATH:

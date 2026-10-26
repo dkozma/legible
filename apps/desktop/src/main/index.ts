@@ -598,6 +598,8 @@ function createWindow() {
 /** Best-effort: a failed update check never affects the running app. */
 async function checkForUpdates() {
   if (!app.isPackaged || process.env.LEGIBLE_NO_UPDATE) return
+  // Prerelease builds (YYYY.MDD.N-g<sha>) are for trying a branch; never replace one with a release.
+  if (app.getVersion().includes("-")) return
   try {
     const { autoUpdater } = await import("electron-updater")
     await autoUpdater.checkForUpdatesAndNotify()

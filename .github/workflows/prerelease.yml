@@ -1,0 +1,97 @@
+name: Prerelease build
+
+# Optional, by hand: Actions → "Prerelease build" → Run workflow, on any
+# branch. Builds an unsigned macOS (Apple Silicon) app versioned
+# YYYY.MDD.N-g<sha> (ADR 0012), keeps the DMG as a workflow artifact, and
+# links it from a comment on the branch's open pull request, if there is one.
+# Prerelease builds never auto-update.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: prerelease-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The version counts the day's release tags.
+          fetch-tags: true
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Choose the version
+        id: version
+        run: |
+          version=$(git tag -l 'v*' | node apps/desktop/scripts/version.mjs --prerelease "$GITHUB_SHA")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # The part before "-g<sha>": CFBundleVersion must be numeric.
+          echo "build=${version%%-*}" >> "$GITHUB_OUTPUT"
+          echo "Building $version"
+      - name: Set the version for this build
+        working-directory: apps/desktop
+        run: npm pkg set version=${{ steps.version.outputs.version }}
+
+      # No Sentry DSN: error reports stay off in prerelease builds.
+      - run: pnpm --filter @legible/desktop exec electron-vite build
+      - name: Package, unsigned
+        run: >-
+          pnpm --filter @legible/desktop exec electron-builder
+          --mac dmg --arm64 --publish never
+          -c.mac.notarize=false
+          -c.buildVersion=${{ steps.version.outputs.build }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      # A DMG, not the .app: artifacts don't keep the symlinks inside an app bundle.
+      - name: Keep the build
+        id: artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: Legible-${{ steps.version.outputs.version }}-arm64
+          path: apps/desktop/release/*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Link the build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          marker="<!-- legible-prerelease -->"
+          body=$(cat <<EOF
+          $marker
+          ### Prerelease build \`$VERSION\`
+
+          **[Download for macOS (Apple Silicon)]($ARTIFACT_URL)** · commit \`${GITHUB_SHA::7}\` · [workflow run]($RUN_URL)
+
+          Unzip, open the DMG and drag Legible to Applications. The build is unsigned: the first time, right-click the app → Open, or run \`xattr -cr /Applications/Legible.app\`. It never auto-updates. The download expires in 30 days.
+          EOF
+          )
+          echo "$body" >> "$GITHUB_STEP_SUMMARY"
+
+          for pr in $(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[].number'); do
+            existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --paginate \
+              --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\")))][0].id // empty")
+            if [ -n "$existing" ]; then
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
+            else
+              gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$pr/comments" -f body="$body" > /dev/null
+            fi
+            echo "Linked the build on #$pr"
+          done
