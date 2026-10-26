@@ -2,6 +2,9 @@
 
 _Working name._ A desktop app for understanding code changes, mainly changes written by AI agents, so you keep an accurate mental model of your system and catch incorrect logic, wrongly codified business rules, and changes nobody asked for.
 
+> [!WARNING]
+> Legible is in active, early development. Expect rough edges, missing features, and breaking changes to stored data and settings between builds. It's not ready to depend on yet.
+
 **Status:** M2. Read agent-written changes in a viewer built for understanding them, click anything to have Claude explain it, and follow how the change connects to the rest of the code: Symbols, Connection changes, ⌘-click to definitions. See [Dogfooding](docs/dogfooding.md) to run it.
 
 ```sh
