@@ -3,15 +3,7 @@ import { AlertTriangle, BookOpen, Loader2, RefreshCw, X } from "lucide-react"
 
 import { formatKey } from "../commands"
 import { Inline, usd } from "../components/Inline"
-import {
-  Button,
-  Callout,
-  cn,
-  Eyebrow,
-  Kbd,
-  LineTab,
-  Skeleton,
-} from "../components/ui"
+import { Button, Callout, cn, Eyebrow, Kbd, Skeleton } from "../components/ui"
 
 const MODEL_NAMES: Record<string, string> = {
   "claude-haiku-5-5": "Claude Haiku 5.5",
@@ -42,16 +34,7 @@ export function ExplainPanel({
   const shown = explanation ?? (job?.status === "done" ? job.explanation : null)
   return (
     <div className="flex min-h-0 flex-auto flex-col">
-      <div
-        role="tablist"
-        className="flex shrink-0 items-stretch gap-0.5 border-b px-2"
-      >
-        <LineTab selected>
-          <BookOpen />
-          Explain
-        </LineTab>
-      </div>
-      <div className="flex flex-auto flex-col gap-4 overflow-auto p-4">
+      <div className="flex min-w-0 flex-auto flex-col gap-4 overflow-x-hidden overflow-y-auto p-4">
         {running && job && (
           <div
             className="flex flex-col gap-3"
@@ -204,9 +187,9 @@ function ExplanationCard({
         <Button
           variant="plain"
           size="none"
-          className="justify-start font-mono text-sm text-foreground"
+          className="block max-w-full justify-start truncate text-left font-mono text-sm text-foreground"
           onClick={onJump}
-          title="Go to these lines"
+          title={e.label}
         >
           {e.label}
         </Button>

@@ -458,6 +458,7 @@ Remote Comments are mapped from host coordinates (GitHub line/side/commit; GitLa
 - Symbol-boundary fragment splitting; AST-backed structural-equivalence proofs.
 - Connections panel, ⌘-click, Trail; Explanations on Symbols and Connections.
 - **Exit:** on fixture and real repos in ≥ 5 Full-tier languages, Connections panel loads < 500 ms after a Step opens.
+- **As built:** see [Dogfooding](./dogfooding.md#what-m2-adds) and [ADR 0014](./adr/0014-tree-sitter-indexer.md). The indexer builds Change Sets too, so the diff engine moved into its utility process. Until Steps exist (M3), the panel follows the clicked line's Symbol. Indexing the refund fixture takes about 30 ms after the Change Set opens. Not yet done: `rename-local`/`move`/`extract` proofs, `tsconfig` path aliases, and the mini-graph.
 
 ### M3 — Understanding
 - Intent pipeline incl. Agent Transcript import and Inferred Intent.

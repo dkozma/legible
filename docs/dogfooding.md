@@ -1,4 +1,4 @@
-# Dogfooding M1
+# Dogfooding
 
 M1 is the first build meant for daily use. It reads agent-written changes in a viewer built for understanding them, and explains any range or file with Claude. Terms in **bold** are defined in [CONTEXT.md](../CONTEXT.md).
 
@@ -10,7 +10,15 @@ M1 is the first build meant for daily use. It reads agent-written changes in a v
 - **Explanations.** Before · After · What changed · Watch out, for a selection, a hunk, or a whole file, on the fast tier (Claude Haiku 5.5 by default). They're cached by content, so the same code with the same Intent and model is never paid for twice.
 - **Settings.** Claude through your own Claude Code, an Anthropic API key, Bedrock, Vertex, or Foundry. A model per tier, a spend cap per Explanation, host accounts, editor, theme.
 
-Not yet: the Walkthrough, Change Brief and Intent (M3), Connections (M2), Notes, Asks and Revisions (M4), and Agent Review (M5). The Pull Request description is shown as the Intent line above the diff, and Explanations use it as Intent.
+## What M2 adds
+
+- **Code structure.** An indexer process parses both sides of every changed file with tree-sitter. It covers 16 Full-tier languages (TypeScript, TSX, JavaScript, JSX, Python, Go, Rust, Java, C, C++, C#, Ruby, PHP, Scala, Lua, Elixir, OCaml) and 8 Structural-tier ones (JSON, shell, CSS, HTML, YAML, TOML, HCL, Zig). Other languages are Text tier, highlighted as in M1 ([ADR 0014](./adr/0014-tree-sitter-indexer.md)).
+- **Symbols**, matched between Base and Head by name, then by signature and body for renames. Hunks that span two functions are split into one Fragment each. Structural proofs now come from the syntax tree.
+- **Connections panel** (right side, beside Explain). Click a line to see its Symbol: its **Connection changes** ("No longer calls `auditLog`"), what it **Uses →**, and what it's **← Used by**, including unchanged code one hop away. Hover a row to preview the code; the button at its end explains that Connection. Ambiguous Connections show every candidate with a "?" and are never guessed. "likely" means the only definition by that name in the indexed code.
+- **⌘-click** (Ctrl-click) any name to go to its definition. If the definition is outside the Change Set, the panel shows its code. Every jump joins the **Trail**: `⌘[` / `⌘]` go back and forward, and the panel's breadcrumbs show where you've been.
+- **Explanations of Symbols and Connections**: **Explain method** on the panel's Symbol, or "how does A use B?" on a Connection. The fast tier gets the Symbol's Base and Head code and its Connection changes. For a Connection it also gets the target's code.
+
+Not yet: the Walkthrough, Change Brief and Intent (M3), Notes, Asks and Revisions (M4), and Agent Review (M5). The Pull Request description is shown as the Intent line above the diff, and Explanations use it as Intent.
 
 ## Run it
 
@@ -80,18 +88,20 @@ Public repositories open without an account. For private ones, add the host in S
 | `w` | Hide whitespace-only changes |
 | `o` | Open the current line in your editor |
 | `⇧R` | Refresh the Snapshot or fetch new commits |
-| `⌘[` / `⌘]` | Trail back / forward (jumps from the palette, tree and Explanations) |
+| `⌘`-click | Go to the definition of the name under the pointer |
+| `⌘[` / `⌘]` | Trail back / forward (jumps from ⌘-click, Connections, the palette, tree and Explanations) |
 | `⌘K` | Command palette: files and actions |
 | `⌘,` | Settings |
 | `?` | All shortcuts |
 
-Click a line number to select a line. Shift-click or drag to extend the selection. `esc` clears it.
+Click a line number to select a line. Shift-click or drag to extend the selection. `esc` clears it. Click code to show its Symbol in the Connections panel.
 
 ## Where things live
 
 Everything is local, in `~/Library/Application Support/Legible/` on macOS:
 
 - `legible.db`: Reviews, Iterations, viewed state, cached Explanations, and a record of every agent run with its cost.
+- `index-cache/`: parse results (highlighting, Symbols, references) per file version, up to 256 MB. Safe to delete.
 - `secrets.json`: API keys and tokens, encrypted with the Keychain.
 - `repos/`: blobless cache clones for Pull Requests.
 
@@ -113,12 +123,14 @@ node fixtures/make-refund-repo.mjs /tmp/refunds  # the M0 design fixture as a re
 
 Errors and crashes can go to Sentry ([ADR 0013](./adr/0013-opt-in-error-reports.md)). For development builds, copy `apps/desktop/.env.example` to `apps/desktop/.env` and set `MAIN_VITE_SENTRY_DSN`. `pnpm dev` then sends reports. A local packaged build gets the DSN too, but like a release it waits for the setting. `LEGIBLE_SENTRY_DSN=<dsn>` turns reports on for one run of any build. Release builds get the DSN from the `SENTRY_DSN` repository secret, and send nothing until you turn on Settings → Privacy → **Send error reports**.
 
-Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `hosts`, `agent-runtime` and `pipelines`. The UI is React with Tailwind CSS v4, themed with the M0 tokens ([ADR 0010](./adr/0010-tailwind-css.md)). The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents run in a separate utility process.
+Layout follows the [engineering plan](./engineering-plan.md#3-repository-layout): `apps/desktop` holds Electron main, preload and the renderer entry. The `packages/` are `domain`, `ipc`, `ui`, `store`, `git`, `diff`, `indexer`, `hosts`, `agent-runtime` and `pipelines`. Grammars are npm dependencies of `packages/indexer`, listed in `packages/indexer/grammars/manifest.json`. Bump a language's `queryVersion` there when you change its queries. The UI is React with Tailwind CSS v4, themed with the M0 tokens ([ADR 0010](./adr/0010-tailwind-css.md)). The renderer is sandboxed and talks to main only through the typed, zod-validated contract in `packages/ipc`. Agents and the indexer each run in their own utility process (`LEGIBLE_IN_PROCESS_INDEXER=1` runs the indexer in main, for debugging).
 
 ## Known rough edges
 
 - The first Explanation after launch takes a second or two longer while Claude Code starts.
 - Watching a working tree polls every six seconds on Linux. On macOS it uses file events.
 - On a very large Change Set the first open takes a few seconds, while every file is diffed and highlighted. After that, scrolling and switching layouts are immediate.
+- Connections come from syntax, not a type checker. A method called on an object of unknown type (`order.total()`) resolves only when one definition in the indexed code has that name. TypeScript `paths` aliases aren't followed yet.
+- For Pull Requests (blobless clones), "Used by" searches only the changed files' directories, and the panel says so.
 
 File issues as you hit them. They're the M2–M3 backlog.

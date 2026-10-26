@@ -32,7 +32,60 @@ export interface DiffActions {
   explainFile(fileId: string): void
   openInEditor(path: string, line: number): void
   toggleViewed(fileId: string): void
+  /**
+   * A click on code: shows the Symbol there; with ⌘ (Ctrl), follows the name
+   * to its definition. Line is 0-based, column in UTF-16 code units.
+   */
+  inspect(
+    fileId: string,
+    side: "base" | "head",
+    line: number,
+    col: number,
+    follow: boolean,
+  ): void
   canOpenInEditor: boolean
+}
+
+/** The text column under a point inside a line's code element, or null. */
+function columnAt(el: HTMLElement, x: number, y: number): number | null {
+  const doc = el.ownerDocument
+  let node: Node | null = null
+  let offset = 0
+  const pos = doc.caretPositionFromPoint?.(x, y)
+  if (pos) {
+    node = pos.offsetNode
+    offset = pos.offset
+  } else {
+    const r = doc.caretRangeFromPoint?.(x, y)
+    if (r) {
+      node = r.startContainer
+      offset = r.startOffset
+    }
+  }
+  if (!node || !el.contains(node)) return null
+  const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  let col = 0
+  while (walker.nextNode()) {
+    if (walker.currentNode === node) return col + offset
+    col += walker.currentNode.textContent?.length ?? 0
+  }
+  return null
+}
+
+/** Mouse-up on code: an inspect, unless the user was selecting text. */
+function onCodeClick(
+  e: React.MouseEvent<HTMLElement>,
+  actions: DiffActions,
+  fileId: string,
+  side: "base" | "head",
+  line: number,
+) {
+  if (e.button !== 0) return
+  const sel = window.getSelection()
+  if (sel && !sel.isCollapsed) return
+  const col = columnAt(e.currentTarget, e.clientX, e.clientY)
+  if (col === null) return
+  actions.inspect(fileId, side, line, col, e.metaKey || e.ctrlKey)
 }
 
 interface Props {
@@ -94,6 +147,20 @@ export function DiffView({
   const cursor = useUI((s) => s.cursor)
   const layout = useUI((s) => s.layout)
   const scrollTo = useUI((s) => s.scrollTo)
+  // While ⌘ (Ctrl) is held, names look clickable.
+  const [follow, setFollow] = useState(false)
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => setFollow(e.metaKey || e.ctrlKey)
+    const off = () => setFollow(false)
+    window.addEventListener("keydown", on)
+    window.addEventListener("keyup", on)
+    window.addEventListener("blur", off)
+    return () => {
+      window.removeEventListener("keydown", on)
+      window.removeEventListener("keyup", on)
+      window.removeEventListener("blur", off)
+    }
+  }, [])
   const filesById = useMemo(
     () => new Map(summary.files.map((f) => [f.id, f])),
     [summary.files],
@@ -190,6 +257,7 @@ export function DiffView({
         className="relative min-h-0 flex-auto overflow-auto bg-background font-mono text-sm leading-5 [tab-size:4]"
         onScroll={onScroll}
         data-testid="diff"
+        data-follow={follow || undefined}
         style={{ ["--vw" as string]: `${width}px` }}
       >
         <div
@@ -585,6 +653,16 @@ const RowView = memo(function RowView({
               "flex-auto pr-4 whitespace-pre select-text",
               text === null && "text-dim",
             )}
+            data-code
+            onMouseUp={(e) =>
+              onCodeClick(
+                e,
+                actions,
+                row.fileId,
+                row.t === "-" ? "base" : "head",
+                row.t === "-" ? base : head,
+              )
+            }
           >
             {text === null ? (
               "…"
@@ -640,7 +718,19 @@ const RowView = memo(function RowView({
                 {t === " " ? "" : t === "-" ? "−" : "+"}
               </span>
             </span>
-            <span className="flex-auto overflow-hidden pr-4 text-ellipsis whitespace-pre select-text">
+            <span
+              className="flex-auto overflow-hidden pr-4 text-ellipsis whitespace-pre select-text"
+              data-code
+              onMouseUp={(e) =>
+                onCodeClick(
+                  e,
+                  actions,
+                  row.fileId,
+                  side === "l" ? "base" : "head",
+                  idx,
+                )
+              }
+            >
               {text === undefined ? (
                 "…"
               ) : (

@@ -283,3 +283,8 @@
 @utility app-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ⌘ (Ctrl) held over the diff: names follow to their definitions. */
+[data-follow] [data-code] {
+  cursor: pointer;
+}

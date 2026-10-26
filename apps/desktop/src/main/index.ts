@@ -318,6 +318,25 @@ const handlers: Handlers = {
   },
   "explain.jobs": async ({ reviewId }) => explanations.list(reviewId),
   "explain.history": ({ reviewId }) => store.listExplanations(reviewId),
+  "connections.status": async ({ reviewId, iterationId }) =>
+    indexer.status(await reviews.indexKey(reviewId, iterationId)),
+  "connections.fileSymbols": async ({ reviewId, iterationId, fileId }) =>
+    indexer.fileSymbols(await reviews.indexKey(reviewId, iterationId), fileId),
+  "connections.symbol": async ({ reviewId, iterationId, symbolId }) =>
+    indexer.connections(
+      await reviews.indexKey(reviewId, iterationId),
+      symbolId,
+    ),
+  "connections.at": async ({ reviewId, iterationId, side, path, line, col }) =>
+    indexer.at(
+      await reviews.indexKey(reviewId, iterationId),
+      side,
+      path,
+      line,
+      col,
+    ),
+  "symbol.source": async ({ reviewId, iterationId, symbolId }) =>
+    indexer.source(await reviews.indexKey(reviewId, iterationId), symbolId),
   "spend.summary": async ({ reviewId }) => {
     const start = new Date()
     start.setDate(1)
@@ -669,6 +688,7 @@ if (!app.requestSingleInstanceLock()) {
       explanations = new ExplanationService(
         store,
         reviews,
+        indexer,
         agentHost,
         getSettings,
         (job: ExplanationJob) => send("job.updated", job),

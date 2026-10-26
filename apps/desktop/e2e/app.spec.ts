@@ -134,6 +134,109 @@ test("opens a file from the command palette", async () => {
   ).toBeInViewport()
 })
 
+/** Clicks the middle of `word` inside a line of code, with optional modifiers. */
+async function clickWord(
+  line: ReturnType<Page["locator"]>,
+  word: string,
+  modifiers: ("ControlOrMeta" | "Shift")[] = [],
+) {
+  const box = await line.evaluate((el, w) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+    while (walker.nextNode()) {
+      const n = walker.currentNode as Text
+      const i = n.data.indexOf(w)
+      if (i < 0) continue
+      const r = document.createRange()
+      r.setStart(n, i)
+      r.setEnd(n, i + w.length)
+      const b = r.getBoundingClientRect()
+      return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+    }
+    return null
+  }, word)
+  if (!box) throw new Error(`"${word}" isn't on that line`)
+  await page.mouse.move(box.x, box.y)
+  for (const m of modifiers) await page.keyboard.down(m)
+  await page.mouse.down()
+  await page.mouse.up()
+  for (const m of modifiers.toReversed()) await page.keyboard.up(m)
+}
+
+test("follows Connections: ⌘-click to a definition, Connection changes, Trail back", async () => {
+  const panel = page.getByTestId("connections-panel")
+  await page.getByRole("tab", { name: "Connections" }).click()
+  await page.keyboard.press("ControlOrMeta+k")
+  await page.keyboard.type("RefundService.ts")
+  await page.keyboard.press("Enter")
+
+  // A plain click on a line inside refundOrder shows its Connections.
+  const call = page
+    .locator("[data-code]")
+    .filter({ hasText: "await this.calculateRefundable(orderId)" })
+    .first()
+  // Vertically only: scrolling the line sideways would put its start under the sticky gutter.
+  await call.evaluate((el) => {
+    el.closest("[data-row]")?.scrollIntoView({ block: "center" })
+    const diff = el.closest<HTMLElement>('[data-testid="diff"]')
+    if (diff) diff.scrollLeft = 0
+  })
+  await clickWord(call, "balance")
+  const changes = panel.getByTestId("connection-change")
+  await expect(panel.getByRole("heading")).toContainText("refundOrder", {
+    timeout: 15_000,
+  })
+  await expect(
+    changes
+      .filter({ hasText: "No longer calls" })
+      .filter({ hasText: "auditLog" }),
+  ).toHaveCount(1)
+  await expect(
+    changes
+      .filter({ hasText: "Now calls" })
+      .filter({ hasText: "calculateRefundable" }),
+  ).toHaveCount(1)
+  await shot("08-connections")
+
+  // ⌘-click the call: goes to the definition and joins the Trail.
+  const t0 = Date.now()
+  await clickWord(call, "calculateRefundable", ["ControlOrMeta"])
+  await expect(panel.getByRole("heading")).toContainText("calculateRefundable")
+  expect(Date.now() - t0).toBeLessThan(2000)
+  await expect(
+    page
+      .locator("[data-code]")
+      .filter({ hasText: "async calculateRefundable(orderId: string)" }),
+  ).toBeInViewport()
+  await expect(panel.getByRole("navigation", { name: "Trail" })).toContainText(
+    "refundOrder",
+  )
+  await shot("09-definition")
+
+  await page.keyboard.press("ControlOrMeta+[")
+  await expect(panel.getByRole("heading")).toContainText("refundOrder")
+
+  // Explain the Symbol, then one of its Connections.
+  await panel.getByRole("button", { name: "Explain method" }).click()
+  const explanation = page.getByTestId("explanation")
+  await expect(explanation).toBeVisible({ timeout: 15_000 })
+  await expect(explanation).toContainText("RefundService.refundOrder · method")
+  await page.getByRole("tab", { name: "Connections" }).click()
+  await panel
+    .getByTestId("connection")
+    .filter({ hasText: "calculateRefundable" })
+    .hover()
+  await panel
+    .getByRole("button", {
+      name: /^Explain how refundOrder calls calculateRefundable/,
+    })
+    .click()
+  await expect(explanation).toContainText(
+    "RefundService.refundOrder calls RefundService.calculateRefundable",
+    { timeout: 15_000 },
+  )
+  await shot("10-connection-explanation")
+})
+
 test("offers a refresh when the working tree changes, never applying it silently", async () => {
   const apiFile = page
     .getByTestId("tree-file")

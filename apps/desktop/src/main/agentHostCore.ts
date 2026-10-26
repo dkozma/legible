@@ -37,11 +37,15 @@ export interface HostConfig {
 
 export interface ExplanationRunInput {
   target: ExplanationTarget
-  file: Pick<FileChange, "path" | "oldPath" | "status" | "language">
+  file: Pick<FileChange, "path" | "oldPath" | "language"> & {
+    status: FileChange["status"] | "unchanged"
+  }
   baseLines: string[]
   headLines: string[]
   chunks: DiffChunk[]
   intent: { title: string; body: string } | null
+  connections?: string[]
+  related?: { label: string; lines: string[] } | null
   repo: {
     gitDir: string
     workTree: string | null
@@ -215,6 +219,8 @@ export function createAgentHost(post: (m: FromHost) => void) {
             headLines: i.headLines,
             chunks: i.chunks,
             intent: i.intent,
+            connections: i.connections,
+            related: i.related,
             context: {
               repo: repoFor(i.repo),
               baseSha: i.baseSha,

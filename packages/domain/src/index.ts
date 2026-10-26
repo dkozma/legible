@@ -242,6 +242,53 @@ export const TOKEN_SCOPES = [
 export type TokenScope = (typeof TOKEN_SCOPES)[number]
 
 // ---------------------------------------------------------------------------
+// Models and agent work
+
+export const Provider = z.enum(["anthropic", "openai"])
+export type Provider = z.infer<typeof Provider>
+
+export const ModelTier = z.enum(["strong", "mid", "fast"])
+export type ModelTier = z.infer<typeof ModelTier>
+
+export const ClaudeAuth = z.enum([
+  "claude-code",
+  "anthropic-api",
+  "bedrock",
+  "vertex",
+  "foundry",
+])
+export type ClaudeAuth = z.infer<typeof ClaudeAuth>
+
+export interface ModelInfo {
+  provider: Provider
+  id: string
+  displayName: string
+  /** USD per million tokens. Null when unknown. */
+  inputPrice: number | null
+  outputPrice: number | null
+  contextWindow: number | null
+  status: "recommended" | "experimental"
+  /** Relative cost, 1–3, for the "$" badges. */
+  costRank: 1 | 2 | 3
+  tiers: ModelTier[]
+}
+
+export interface TierAssignment {
+  provider: Provider
+  model: string
+}
+
+export interface RuntimeStatus {
+  provider: Provider
+  auth: ClaudeAuth
+  ready: boolean
+  /** e.g. "Claude Code 2.1.310 at /usr/local/bin/claude" */
+  detail: string
+  executablePath: string | null
+  version: string | null
+}
+
+// ---------------------------------------------------------------------------
 // Symbols and Connections
 
 export const SymbolKind = z.enum([
@@ -390,54 +437,9 @@ export interface SymbolSource {
 }
 
 // ---------------------------------------------------------------------------
-// Models and agent work
-
-export const Provider = z.enum(["anthropic", "openai"])
-export type Provider = z.infer<typeof Provider>
-
-export const ModelTier = z.enum(["strong", "mid", "fast"])
-export type ModelTier = z.infer<typeof ModelTier>
-
-export const ClaudeAuth = z.enum([
-  "claude-code",
-  "anthropic-api",
-  "bedrock",
-  "vertex",
-  "foundry",
-])
-export type ClaudeAuth = z.infer<typeof ClaudeAuth>
-
-export interface ModelInfo {
-  provider: Provider
-  id: string
-  displayName: string
-  /** USD per million tokens. Null when unknown. */
-  inputPrice: number | null
-  outputPrice: number | null
-  contextWindow: number | null
-  status: "recommended" | "experimental"
-  /** Relative cost, 1–3, for the "$" badges. */
-  costRank: 1 | 2 | 3
-  tiers: ModelTier[]
-}
-
-export interface TierAssignment {
-  provider: Provider
-  model: string
-}
-
-export interface RuntimeStatus {
-  provider: Provider
-  auth: ClaudeAuth
-  ready: boolean
-  /** e.g. "Claude Code 2.1.310 at /usr/local/bin/claude" */
-  detail: string
-  executablePath: string | null
-  version: string | null
-}
-
-// ---------------------------------------------------------------------------
 // Explanations
+
+const LineRange = z.tuple([z.number().int(), z.number().int()]).nullable()
 
 export const ExplanationTarget = z.discriminatedUnion("kind", [
   z.object({
@@ -446,14 +448,43 @@ export const ExplanationTarget = z.discriminatedUnion("kind", [
     path: z.string(),
     oldPath: z.string().nullable(),
     /** 1-based inclusive. Null when the selection has no lines on that side. */
-    baseRange: z.tuple([z.number().int(), z.number().int()]).nullable(),
-    headRange: z.tuple([z.number().int(), z.number().int()]).nullable(),
+    baseRange: LineRange,
+    headRange: LineRange,
   }),
   z.object({
     kind: z.literal("file"),
     fileId: z.string(),
     path: z.string(),
     oldPath: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal("symbol"),
+    symbolId: z.string(),
+    /** Null when the Symbol is in a file the Change Set doesn't touch. */
+    fileId: z.string().nullable(),
+    path: z.string(),
+    oldPath: z.string().nullable(),
+    qualifiedName: z.string(),
+    symbolKind: SymbolKind,
+    /** The Symbol's lines on each side, 1-based inclusive. */
+    baseRange: LineRange,
+    headRange: LineRange,
+  }),
+  z.object({
+    kind: z.literal("connection"),
+    connectionId: z.string(),
+    connectionKind: ConnectionKind,
+    fromSymbolId: z.string(),
+    /** The target Symbol, when the Connection resolves to one. */
+    toSymbolId: z.string().nullable(),
+    fromName: z.string(),
+    toName: z.string(),
+    /** Where the source Symbol is; the ranges are its lines. */
+    fileId: z.string().nullable(),
+    path: z.string(),
+    oldPath: z.string().nullable(),
+    baseRange: LineRange,
+    headRange: LineRange,
   }),
 ])
 export type ExplanationTarget = z.infer<typeof ExplanationTarget>
@@ -608,8 +639,18 @@ export function isRangeTarget(
   return t.kind === "range"
 }
 
+const CONNECTION_VERB: Record<ConnectionKind, string> = {
+  calls: "calls",
+  references: "uses",
+  imports: "imports",
+  implements: "extends",
+}
+
 export function targetLabel(t: ExplanationTarget): string {
   if (t.kind === "file") return `${t.path} · whole file`
+  if (t.kind === "symbol") return `${t.qualifiedName} · ${t.symbolKind}`
+  if (t.kind === "connection")
+    return `${t.fromName} ${CONNECTION_VERB[t.connectionKind]} ${t.toName}`
   const r = t.headRange ?? t.baseRange
   if (!r) return t.path
   const side = t.headRange ? "" : " (removed)"

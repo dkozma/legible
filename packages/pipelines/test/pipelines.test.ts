@@ -14,11 +14,17 @@ import {
   TOOLS,
 } from "@legible/agent-runtime"
 import { diffLines, splitLines } from "@legible/diff"
+import type {
+  CodeSymbol,
+  ExplanationTarget,
+  SymbolConnections,
+} from "@legible/domain"
 import { GitRepo } from "@legible/git"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { z } from "zod"
 
 import {
+  describeConnections,
   ExplanationOutput,
   explanationCacheKey,
   explanationPrompt,
@@ -271,5 +277,169 @@ describe("tool-call progress labels", () => {
     expect(label("search", { pattern: "refund" })).toBe(
       'Searching for "refund"',
     )
+  })
+})
+
+describe("Explanations of Symbols and Connections", () => {
+  const sym = (over: Partial<CodeSymbol>): CodeSymbol => ({
+    id: "s",
+    side: "head",
+    path: "src/refunds/RefundService.ts",
+    language: "typescript",
+    kind: "method",
+    name: "refundOrder",
+    qualifiedName: "RefundService.refundOrder",
+    startLine: 47,
+    endLine: 64,
+    nameLine: 47,
+    nameCol: 8,
+    nameEndCol: 19,
+    signature: "async refundOrder(…)",
+    parentId: null,
+    change: "modified",
+    counterpartId: "b",
+    ...over,
+  })
+  const all: SymbolConnections = {
+    symbol: sym({}),
+    counterpart: sym({ id: "b", side: "base", startLine: 19, endLine: 26 }),
+    uses: [
+      {
+        id: "c1",
+        kind: "calls",
+        fromId: "s",
+        toId: null,
+        name: "auditLog",
+        status: "external",
+        candidates: [],
+        module: "../audit/auditLog",
+        sites: [],
+        change: "removed",
+      },
+      {
+        id: "c2",
+        kind: "calls",
+        fromId: "s",
+        toId: "t",
+        name: "calculateRefundable",
+        status: "resolved",
+        candidates: [],
+        module: null,
+        sites: [
+          {
+            side: "head",
+            path: "src/refunds/RefundService.ts",
+            line: 50,
+            col: 30,
+            endCol: 49,
+          },
+        ],
+        change: "added",
+      },
+    ],
+    usedBy: [],
+    symbols: {
+      s: sym({}),
+      t: sym({
+        id: "t",
+        name: "calculateRefundable",
+        qualifiedName: "RefundService.calculateRefundable",
+        nameLine: 35,
+      }),
+    },
+    scope: { neighborFiles: 0, complete: true, detail: null },
+  }
+
+  it("describes Connection changes for the prompt", () => {
+    expect(describeConnections(all)).toEqual([
+      "No longer calls `auditLog` (external, from ../audit/auditLog)",
+      "Now calls `RefundService.calculateRefundable` (src/refunds/RefundService.ts:35)",
+    ])
+    expect(describeConnections(all, "c2")[0]).toBe(
+      "This Connection: `RefundService.refundOrder` (src/refunds/RefundService.ts:47) calls `RefundService.calculateRefundable` (src/refunds/RefundService.ts:35), new on Head, at 1 site",
+    )
+  })
+
+  it("explains a Symbol with its lines marked and its Connection changes", async () => {
+    const input = await inputFor("src/refunds/RefundService.ts", [47, 64])
+    const symbol = {
+      ...input,
+      target: {
+        kind: "symbol",
+        symbolId: "s",
+        fileId: "f",
+        path: "src/refunds/RefundService.ts",
+        oldPath: null,
+        qualifiedName: "RefundService.refundOrder",
+        symbolKind: "method",
+        baseRange: [19, 26],
+        headRange: [47, 64],
+      } satisfies ExplanationTarget,
+      connections: describeConnections(all),
+    }
+    const prompt = explanationPrompt({ ...symbol, context: null as never })
+    expect(prompt).toContain("Explain the method `RefundService.refundOrder`")
+    expect(prompt).toContain("No longer calls `auditLog`")
+    expect(prompt).toMatch(/»\s+19\s+-\s+async refundOrder/)
+    // Different Connection changes, different cache entry.
+    expect(explanationCacheKey(symbol, "anthropic", "m")).not.toBe(
+      explanationCacheKey({ ...symbol, connections: [] }, "anthropic", "m"),
+    )
+  })
+
+  it("explains a Connection with the target's code", async () => {
+    const input = await inputFor("src/refunds/RefundService.ts", [47, 64])
+    const prompt = explanationPrompt({
+      ...input,
+      target: {
+        kind: "connection",
+        connectionId: "c2",
+        connectionKind: "calls",
+        fromSymbolId: "s",
+        toSymbolId: "t",
+        fromName: "RefundService.refundOrder",
+        toName: "RefundService.calculateRefundable",
+        fileId: "f",
+        path: "src/refunds/RefundService.ts",
+        oldPath: null,
+        baseRange: [19, 26],
+        headRange: [47, 64],
+      },
+      connections: describeConnections(all, "c2"),
+      related: {
+        label: "`RefundService.calculateRefundable`",
+        lines: ["async calculateRefundable() {}"],
+      },
+      context: null as never,
+    })
+    expect(prompt).toContain(
+      "Explain how `RefundService.refundOrder` calls `RefundService.calculateRefundable`",
+    )
+    expect(prompt).toContain("This Connection:")
+    expect(prompt).toContain("async calculateRefundable() {}")
+  })
+
+  it("explains a Symbol in a file the Change Set doesn't touch", () => {
+    const lines = ["export function helper() {", "  return 1", "}"]
+    const { text } = renderTargetDiff({
+      target: {
+        kind: "symbol",
+        symbolId: "h",
+        fileId: null,
+        path: "src/helper.ts",
+        oldPath: null,
+        qualifiedName: "helper",
+        symbolKind: "function",
+        baseRange: [1, 3],
+        headRange: [1, 3],
+      },
+      baseLines: lines,
+      headLines: lines,
+      chunks: [
+        { kind: "equal", baseStart: 0, baseEnd: 3, headStart: 0, headEnd: 3 },
+      ],
+    })
+    expect(text.split("\n")).toHaveLength(3)
+    expect(text).toMatch(/^»\s+1\s+1\s{3}export function helper/)
   })
 })

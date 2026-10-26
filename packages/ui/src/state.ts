@@ -14,10 +14,13 @@ export interface Selection {
   focus: number
 }
 
-/** A Trail entry: where the diff was scrolled. */
+/** A Trail entry: where the diff was scrolled, and the Symbol the Connections panel showed. */
 export interface Location {
   reviewId: string
   px: number
+  symbolId?: string | null
+  /** Breadcrumb text: the Symbol's name. */
+  label?: string | null
 }
 
 export interface PaletteSource {
@@ -49,6 +52,10 @@ export interface UIState {
   jobs: Record<string, ExplanationJob>
   activeJobId: string | null
   shownExplanation: Explanation | null
+  /** The right panel's tab. */
+  panel: "connections" | "explain"
+  /** The Symbol the Connections panel shows. */
+  focusSymbol: { symbolId: string; label: string } | null
   palette: boolean
   shortcuts: boolean
   toasts: Toast[]
@@ -93,6 +100,8 @@ export const useUI = create<UIState>((set, get) => ({
   jobs: {},
   activeJobId: null,
   shownExplanation: null,
+  panel: "connections",
+  focusSymbol: null,
   palette: false,
   shortcuts: false,
   toasts: [],
@@ -153,6 +162,7 @@ export const useUI = create<UIState>((set, get) => ({
       gapReveal: new Map(),
       activeJobId: null,
       shownExplanation: null,
+      focusSymbol: null,
       trail: { back: [], forward: [] },
     })
   },
