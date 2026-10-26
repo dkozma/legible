@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -11,7 +11,8 @@ let dir: string
 let repo: GitRepo
 
 beforeAll(async () => {
-  dir = mkdtempSync(join(tmpdir(), "legible-git-test-"))
+  // Real path: on macOS the temp dir is a symlink (/var → /private/var), and git reports resolved paths.
+  dir = realpathSync(mkdtempSync(join(tmpdir(), "legible-git-test-")))
   execFileSync("node", [
     resolve(__dirname, "../../../fixtures/make-refund-repo.mjs"),
     dir,
