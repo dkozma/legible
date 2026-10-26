@@ -23,6 +23,8 @@ import type {
   ConnectionKind,
   ConnectionSite,
   ConnectionStatus,
+  FileChange,
+  FragmentGraph,
   IndexScope,
   IndexStatus,
   PositionInfo,
@@ -34,6 +36,7 @@ import type {
 import type { GitRepo } from "@legible/git"
 
 import type { IndexedFile } from "./changeSet"
+import { buildFragmentGraph } from "./fragmentGraph"
 import type { RawImport } from "./imports"
 import { GRAMMARS } from "./manifest"
 import type { Outline, RawReference } from "./outline"
@@ -885,6 +888,39 @@ export class CodeIndex {
   }
 
   // ---- Queries ------------------------------------------------------------------
+
+  /** Fragment dependencies, reach and test links for the Walkthrough planner. */
+  fragmentGraph(files: FileChange[]): FragmentGraph {
+    return buildFragmentGraph(this, files)
+  }
+
+  /** Every Connection made on one side. */
+  connectionsOn(side: Side): Connection[] {
+    const out: Connection[] = []
+    for (const id of this.ids[side]) {
+      const c = this.connectionsById.get(`${side}\0${id}`)
+      if (c) out.push(c)
+    }
+    return out
+  }
+
+  /** Connections into a Symbol on one side. */
+  incomingOn(side: Side, id: string): Connection[] {
+    const s = this.symbol(id)
+    return s ? (this.incoming[side].get(this.canonical(s)) ?? []) : []
+  }
+
+  /** The id a Symbol has on Head when it was matched, else its own. */
+  canonicalId(id: string): string {
+    const s = this.symbol(id)
+    return s ? this.canonical(s) : id
+  }
+
+  /** Symbols of a changed file on one side, by path. */
+  symbolsAt(side: Side, path: string): CodeSymbol[] {
+    const e = this.byPath[side].get(path)
+    return e && e.side !== "both" ? e.symbols : []
+  }
 
   symbol(id: string): CodeSymbol | null {
     return this.symbolsById.get(id)?.symbol ?? null

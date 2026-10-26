@@ -42,6 +42,7 @@ export {
   normalizeCodeSpan,
 } from "./connections"
 export { splitAtSymbols } from "./fragments"
+export { buildFragmentGraph, fragmentRanges, isTestPath } from "./fragmentGraph"
 export { AST_PROOF_LANGUAGES, proveChunks } from "./proofs"
 export { createResolver, familyOf } from "./resolve"
 export { matchSymbols, symbolId, toCodeSymbols } from "./symbols"

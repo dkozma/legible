@@ -477,6 +477,40 @@ export interface SymbolSource {
   tokens: LineTokens[] | null
 }
 
+/** A Fragment's place in the code graph, for planning the Walkthrough. */
+export interface FragmentNode {
+  fragmentId: string
+  fileId: string
+  path: string
+  /** Changed Symbols the Fragment touches, innermost first: on Head, or on Base for removed code. */
+  symbols: {
+    id: string
+    qualifiedName: string
+    kind: SymbolKind
+    change: SymbolChange
+  }[]
+  /** In a test file. */
+  test: boolean
+  /** Code outside the Fragment that uses what it changes: directly, and within three hops. */
+  callers: number
+  blastRadius: number
+}
+
+/** `to` uses a Symbol `from` changes, so `from` reads first. */
+export interface FragmentEdge {
+  from: string
+  to: string
+  /** The Symbol's qualified name. */
+  via: string
+}
+
+export interface FragmentGraph {
+  nodes: FragmentNode[]
+  edges: FragmentEdge[]
+  /** Test Fragment id → the Fragments whose behavior it verifies. */
+  tests: Record<string, string[]>
+}
+
 // ---------------------------------------------------------------------------
 // Explanations
 
