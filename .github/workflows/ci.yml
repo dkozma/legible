@@ -26,6 +26,13 @@ jobs:
       - run: pnpm build
       - name: End-to-end (Electron, fake agent)
         run: xvfb-run -a pnpm --filter @legible/desktop exec playwright test
+      - name: Keep E2E traces when a test fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces-linux
+          path: apps/desktop/test-results/
+          retention-days: 7
 
   # Releases are built on macOS, and the app's main platform is macOS: run the
   # tests there too (symlinked temp dirs, FSEvents watching, Meta shortcuts),
@@ -46,6 +53,13 @@ jobs:
       - run: pnpm build
       - name: End-to-end (Electron, fake agent)
         run: pnpm --filter @legible/desktop exec playwright test
+      - name: Keep E2E traces when a test fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces-macos
+          path: apps/desktop/test-results/
+          retention-days: 7
       - name: Package the app, unsigned
         run: pnpm --filter @legible/desktop exec electron-builder --mac --dir --publish never
         env:

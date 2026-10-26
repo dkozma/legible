@@ -118,7 +118,8 @@ test("switches to split view and marks files viewed", async () => {
 })
 
 test("opens a file from the command palette", async () => {
-  await page.keyboard.press("Control+k")
+  // ⌘ on macOS, Ctrl elsewhere, like the app.
+  await page.keyboard.press("ControlOrMeta+k")
   await expect(
     page.getByRole("dialog", { name: "Command palette" }),
   ).toBeVisible()
@@ -156,7 +157,7 @@ test("offers a refresh when the working tree changes, never applying it silently
 })
 
 test("shows settings and the keyboard overlay", async () => {
-  await page.keyboard.press("Control+,")
+  await page.keyboard.press("ControlOrMeta+,")
   await expect(page.getByRole("heading", { name: "Providers" })).toBeVisible()
   await shot("06-settings")
   await page.keyboard.press("Escape")

@@ -157,9 +157,7 @@ test("never sends code, the repository path, the home directory or usage session
 })
 
 test("shows that reports are on for this run", async () => {
-  await page.keyboard.press(
-    process.platform === "darwin" ? "Meta+," : "Control+,",
-  )
+  await page.keyboard.press("ControlOrMeta+,")
   await page.getByRole("button", { name: "Privacy" }).click()
   await expect(page.locator("#privacy")).toContainText("On for this run")
 })
