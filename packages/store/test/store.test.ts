@@ -245,6 +245,7 @@ describe("Store", () => {
       steps: [],
       chapters: [],
       sittings: [],
+      edges: [],
       validation: {
         fragments: 0,
         repairedMissing: 0,

@@ -319,6 +319,9 @@ importers:
       '@legible/domain':
         specifier: workspace:*
         version: link:../domain
+      '@legible/judge':
+        specifier: workspace:*
+        version: link:../judge
       zod:
         specifier: ^4.6.7
         version: 4.6.7

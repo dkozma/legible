@@ -25,10 +25,14 @@ import { z } from "zod"
 
 import {
   describeConnections,
+  DomainChangesOutput,
   ExplanationOutput,
   explanationCacheKey,
   explanationPrompt,
   explanationTask,
+  GapOutput,
+  IntentOutput,
+  PlannerOutput,
   renderTargetDiff,
   toExplanationBody,
 } from "../src/index"
@@ -92,7 +96,17 @@ async function inputFor(path: string, target: "file" | [number, number]) {
 
 describe("schemas", () => {
   it("every structured-output schema and tool input passes the provider lint", () => {
-    expect(lintSchema(ExplanationOutput)).toEqual([])
+    for (const [name, schema] of Object.entries({
+      ExplanationOutput,
+      IntentOutput,
+      PlannerOutput,
+      DomainChangesOutput,
+      GapOutput,
+    }))
+      expect({ name, problems: lintSchema(schema) }).toEqual({
+        name,
+        problems: [],
+      })
     for (const t of TOOLS)
       expect({ tool: t.name, problems: lintSchema(z.object(t.input)) }).toEqual(
         { tool: t.name, problems: [] },

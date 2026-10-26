@@ -729,6 +729,8 @@ export interface StepFragment {
   deletions: number
   /** In a test file. */
   test: boolean
+  /** Generated, lockfile, vendored or binary. */
+  collapsed: boolean
 }
 
 export interface Step {
@@ -790,6 +792,8 @@ export interface Walkthrough {
   /** Empty unless the Change Set holds several independent features. */
   chapters: Chapter[]
   sittings: Sitting[]
+  /** Fragment dependencies (`to` uses what `from` changes), kept so edits can be re-validated. */
+  edges: { from: string; to: string }[]
   validation: WalkthroughValidation
   provider: Provider | null
   model: string | null
