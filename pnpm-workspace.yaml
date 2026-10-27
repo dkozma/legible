@@ -2,35 +2,36 @@ packages:
   - apps/*
   - packages/*
   - evals
-onlyBuiltDependencies:
-  - electron
-  - esbuild
-# Install scripts we skip on purpose. The tree-sitter grammars build native
-# Node bindings with node-gyp; the indexer loads their prebuilt .wasm instead
-# (ADR 0014). electron-winstaller copies a 7-Zip binary for Squirrel.Windows
-# installers; Windows builds use NSIS.
-ignoredBuiltDependencies:
-  - "@tree-sitter-grammars/tree-sitter-hcl"
-  - "@tree-sitter-grammars/tree-sitter-lua"
-  - "@tree-sitter-grammars/tree-sitter-toml"
-  - "@tree-sitter-grammars/tree-sitter-yaml"
-  - "@tree-sitter-grammars/tree-sitter-zig"
-  - electron-winstaller
-  - tree-sitter-bash
-  - tree-sitter-c
-  - tree-sitter-c-sharp
-  - tree-sitter-cpp
-  - tree-sitter-css
-  - tree-sitter-elixir
-  - tree-sitter-go
-  - tree-sitter-html
-  - tree-sitter-java
-  - tree-sitter-javascript
-  - tree-sitter-json
-  - tree-sitter-ocaml
-  - tree-sitter-php
-  - tree-sitter-python
-  - tree-sitter-ruby
-  - tree-sitter-rust
-  - tree-sitter-scala
-  - tree-sitter-typescript
+# electron-builder packages node_modules as-is; a flat layout keeps it simple.
+nodeLinker: hoisted
+# Which dependencies may run install scripts. The tree-sitter grammars would
+# build native Node bindings with node-gyp; the indexer loads their prebuilt
+# .wasm instead (ADR 0014). electron-winstaller copies a 7-Zip binary for
+# Squirrel.Windows installers; Windows builds use NSIS.
+allowBuilds:
+  electron: true
+  esbuild: true
+  "@tree-sitter-grammars/tree-sitter-hcl": false
+  "@tree-sitter-grammars/tree-sitter-lua": false
+  "@tree-sitter-grammars/tree-sitter-toml": false
+  "@tree-sitter-grammars/tree-sitter-yaml": false
+  "@tree-sitter-grammars/tree-sitter-zig": false
+  electron-winstaller: false
+  tree-sitter-bash: false
+  tree-sitter-c: false
+  tree-sitter-c-sharp: false
+  tree-sitter-cpp: false
+  tree-sitter-css: false
+  tree-sitter-elixir: false
+  tree-sitter-go: false
+  tree-sitter-html: false
+  tree-sitter-java: false
+  tree-sitter-javascript: false
+  tree-sitter-json: false
+  tree-sitter-ocaml: false
+  tree-sitter-php: false
+  tree-sitter-python: false
+  tree-sitter-ruby: false
+  tree-sitter-rust: false
+  tree-sitter-scala: false
+  tree-sitter-typescript: false

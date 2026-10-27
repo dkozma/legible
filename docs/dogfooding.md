@@ -48,7 +48,7 @@ Not yet: Notes, Asks, Revisions and updating the Pull Request description (M4), 
 
 ## Run it
 
-You need git 2.40 or newer and Node 22.13 or newer with pnpm 10 (`corepack enable`).
+You need git 2.40 or newer, Node 22.13 or newer, and any recent pnpm: it switches itself to the version `package.json` pins (pnpm 12). If `pnpm -v` in the repository prints something else, `pmOnFail` is set to `ignore` in your pnpm config; set it back to `download`, or install the pinned version.
 
 ```sh
 pnpm install
