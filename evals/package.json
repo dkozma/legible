@@ -4,14 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "evals": "vitest run --config vitest.config.ts"
+    "evals": "vitest run --config vitest.config.ts",
+    "connections": "vitest run --config vitest.connections.config.ts"
   },
   "dependencies": {
     "@legible/agent-runtime": "workspace:*",
+    "@legible/diff": "workspace:*",
     "@legible/domain": "workspace:*",
     "@legible/git": "workspace:*",
     "@legible/indexer": "workspace:*",
     "@legible/judge": "workspace:*",
     "@legible/pipelines": "workspace:*"
+  },
+  "devDependencies": {
+    "@sourcegraph/scip-typescript": "0.5.2",
+    "protobufjs": "^8.8.1"
   }
 }

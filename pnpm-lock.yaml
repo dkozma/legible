@@ -278,6 +278,9 @@ importers:
       '@legible/agent-runtime':
         specifier: workspace:*
         version: link:../packages/agent-runtime
+      '@legible/diff':
+        specifier: workspace:*
+        version: link:../packages/diff
       '@legible/domain':
         specifier: workspace:*
         version: link:../packages/domain
@@ -293,6 +296,13 @@ importers:
       '@legible/pipelines':
         specifier: workspace:*
         version: link:../packages/pipelines
+    devDependencies:
+      '@sourcegraph/scip-typescript':
+        specifier: 0.5.2
+        version: 0.5.2
+      protobufjs:
+        specifier: ^8.8.1
+        version: 8.8.1
 
   packages/agent-runtime:
     dependencies:
@@ -1485,6 +1495,11 @@ packages:
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
 
+  '@sourcegraph/scip-typescript@0.5.2':
+    resolution: {integrity: sha512-zfN0gbIT1DPX3XgQ6LfGwrvqj//cC2MsPEnwbSBQbOrhFVBojxze3MhrybixqdiYBMq33ez833h9EVcdWWB75w==}
+    engines: {node: '>=22.13.0'}
+    hasBin: true
+
   '@stablelib/base64@1.0.1':
     resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
 
@@ -1924,6 +1939,10 @@ packages:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
 
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
+    engines: {node: '>=20'}
+
   commander@5.1.0:
     resolution: {integrity: sha512-P0CysNDQ7rtVw4QIQtm+MRxV66vKFSvlsQvGYXZWR3qFU0jlMKHZZZgw8e+8DSah4UDKMqnknRDQz+xuQXQ/Zg==}
     engines: {node: '>= 6'}
@@ -2290,6 +2309,9 @@ packages:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
     engines: {node: '>= 0.4'}
 
+  google-protobuf@4.0.3:
+    resolution: {integrity: sha512-DI6iiRmF8fE/EzvGK5F9b8RxZeumHC2AAhi3xwOEh+GT5eRhJeW1aOtkDxn0W7cVCFQAtwK+ZDwIO1BYz+9WMA==}
+
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
@@ -2605,6 +2627,9 @@ packages:
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
+
+  long@5.3.2:
+    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
 
   lowercase-keys@2.0.0:
     resolution: {integrity: sha512-tqNXrS78oMOE73NMxK4EMLQsQowWf8jKooH9g7xPavRT706R6bkQJ6DY2Te7QukaZsulxa30wQ7bk0pm4XiHmA==}
@@ -2932,6 +2957,10 @@ packages:
 
   proper-lockfile@4.1.2:
     resolution: {integrity: sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA==}
+
+  protobufjs@8.8.1:
+    resolution: {integrity: sha512-d9e9179bjXSJdpJ3+R9fP8hzXsnKLyxTjHLG1dUzje8a27pPyXCe6PrcRtgx2rjoM3IZzHd2vAs+6J/BsO1k7Q==}
+    engines: {node: '>=12.0.0'}
 
   proxy-addr@2.0.8:
     resolution: {integrity: sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==}
@@ -3383,6 +3412,11 @@ packages:
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -4495,6 +4529,13 @@ snapshots:
 
   '@sindresorhus/is@4.6.0': {}
 
+  '@sourcegraph/scip-typescript@0.5.2':
+    dependencies:
+      commander: 14.0.3
+      google-protobuf: 4.0.3
+      progress: 2.0.3
+      typescript: 6.0.3
+
   '@stablelib/base64@1.0.1': {}
 
   '@standard-schema/spec@1.1.0': {}
@@ -4927,6 +4968,8 @@ snapshots:
   combined-stream@1.0.8:
     dependencies:
       delayed-stream: 1.0.0
+
+  commander@14.0.3: {}
 
   commander@5.1.0: {}
 
@@ -5368,6 +5411,8 @@ snapshots:
       gopd: 1.2.0
     optional: true
 
+  google-protobuf@4.0.3: {}
+
   gopd@1.2.0: {}
 
   got@11.8.6:
@@ -5624,6 +5669,8 @@ snapshots:
   lodash.isequal@4.5.0: {}
 
   lodash@4.18.1: {}
+
+  long@5.3.2: {}
 
   lowercase-keys@2.0.0: {}
 
@@ -5931,6 +5978,10 @@ snapshots:
       graceful-fs: 4.2.11
       retry: 0.12.0
       signal-exit: 3.0.7
+
+  protobufjs@8.8.1:
+    dependencies:
+      long: 5.3.2
 
   proxy-addr@2.0.8:
     dependencies:
@@ -6362,6 +6413,8 @@ snapshots:
       mime-types: 3.0.2
 
   typescript@5.9.3: {}
+
+  typescript@6.0.3: {}
 
   undici-types@6.21.0: {}
 

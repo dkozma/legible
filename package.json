@@ -15,6 +15,7 @@
     "test:e2e": "pnpm --filter @legible/desktop test:e2e",
     "fixtures": "node fixtures/make-refund-repo.mjs",
     "evals": "pnpm --filter @legible/evals evals",
+    "evals:connections": "pnpm --filter @legible/evals connections",
     "dist:mac": "pnpm --filter @legible/desktop dist:mac"
   },
   "devDependencies": {
