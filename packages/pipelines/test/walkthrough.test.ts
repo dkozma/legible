@@ -93,6 +93,20 @@ describe("assembleWalkthrough", () => {
     expect(w.validation.dependencyViolations).toBe(0)
   })
 
+  it("treats edges through likely Connections as hints, not constraints", () => {
+    const fragments = [1, 2].map((n) => frag(n))
+    const w = assembleWalkthrough({
+      ...base,
+      fragments,
+      planned: [step(["F2"]), step(["F1"])],
+      edges: [{ from: "f1", to: "f2", hard: false }],
+    })
+    expect(w.steps.map((s) => s.name)).toEqual(["F2", "F1"])
+    expect(w.steps[0]?.dependsOn).toEqual([])
+    expect(w.validation.dependencyViolations).toBe(0)
+    expect(w.edges).toEqual([])
+  })
+
   it("keeps mutually dependent Steps together and counts the cycle", () => {
     const fragments = [1, 2, 3].map((n) => frag(n))
     const w = assembleWalkthrough({

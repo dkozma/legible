@@ -1,5 +1,7 @@
 // The Connections panel: the focused Symbol, its Connection changes, what it
 // uses and what uses it, with Ambiguous Connections showing every candidate.
+// Likely and possible Connections (found by name) are marked as such; possible
+// ones are greyed out, and in Used by they wait in a collapsed group.
 
 import {
   type CodeSymbol,
@@ -391,6 +393,29 @@ function Name({
   )
 }
 
+/** How sure a Connection found by name is: "likely" or "possible", as a badge. */
+function GuessMark({ c }: { c: Connection }) {
+  if (c.status === "likely")
+    return (
+      <Badge
+        tone="secondary"
+        title="Found by name; the file imports it or the receiver's type names it"
+      >
+        likely
+      </Badge>
+    )
+  if (c.status === "possible")
+    return (
+      <Badge
+        tone="muted"
+        title="Only the name matches: nothing else points at this definition"
+      >
+        possible
+      </Badge>
+    )
+  return null
+}
+
 function ChangesSection({
   all,
   onGoSymbol,
@@ -438,9 +463,13 @@ function ChangesSection({
             c={c}
             all={all}
             direction={direction}
-            className={cn(removed && "line-through decoration-critical/70")}
+            className={cn(
+              removed && "line-through decoration-critical/70",
+              c.status === "possible" && "text-muted-foreground",
+            )}
           />
           {c.status === "ambiguous" && <Badge tone="outline">?</Badge>}
+          <GuessMark c={c} />
         </button>
       </li>
     )
@@ -483,7 +512,135 @@ function ConnectionList({
   onLeave(): void
 }) {
   const [open, setOpen] = useState<string | null>(null)
+  const [showPossible, setShowPossible] = useState(false)
   const quiet = all.symbol.change === "added" || all.symbol.change === "removed"
+  // Users found only by name wait in their own group.
+  const possible =
+    direction === "usedBy" ? list.filter((c) => c.status === "possible") : []
+  const sure = possible.length
+    ? list.filter((c) => c.status !== "possible")
+    : list
+  const row = (c: Connection) => {
+    const target = targetOf(c, all, direction)
+    const from = all.symbols[c.fromId] ?? null
+    const ambiguous = c.status === "ambiguous" && direction === "uses"
+    // This Symbol is one of several candidates for the use.
+    const oneOf = c.status === "ambiguous" && direction === "usedBy"
+    const label =
+      direction === "uses"
+        ? CONNECTION_VERB[c.kind]
+        : CONNECTION_VERB_IN[c.kind]
+    return (
+      <div key={c.id} data-testid="connection" className="group/conn relative">
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-sm py-1 pr-8 pl-1.5 text-left hover:bg-hover"
+          onMouseEnter={(e) => onHover(target?.id ?? null, e.currentTarget)}
+          onMouseLeave={onLeave}
+          onClick={() => {
+            onLeave()
+            if (ambiguous) setOpen(open === c.id ? null : c.id)
+            else if (direction === "uses" && target) onGoSymbol(target)
+            else if (c.sites[0]) onGoSite(c.sites[0], from)
+          }}
+          title={
+            target
+              ? `${target.qualifiedName} · ${target.path}:${target.nameLine}`
+              : (c.module ?? undefined)
+          }
+        >
+          <span className="w-[54px] shrink-0 text-xs text-muted-foreground">
+            {label}
+            {(ambiguous || oneOf) && "?"}
+          </span>
+          <Name
+            c={c}
+            all={all}
+            direction={direction}
+            className={cn(
+              c.change === "removed" && "text-muted-foreground line-through",
+              (c.status === "external" || c.status === "possible") &&
+                "text-muted-foreground",
+            )}
+          />
+          {c.change && !(quiet && direction === "uses") && (
+            <Badge tone={c.change === "added" ? "ok" : "critical"}>
+              {c.change}
+            </Badge>
+          )}
+          <GuessMark c={c} />
+          {oneOf && (
+            <Badge
+              tone="outline"
+              title={`One of ${c.candidates.length} candidates for this use`}
+            >
+              ?
+            </Badge>
+          )}
+          {ambiguous && (
+            <Badge
+              tone="outline"
+              title="Several definitions could be the target"
+            >
+              <CircleHelp />
+              Ambiguous
+            </Badge>
+          )}
+          {c.status === "external" && (
+            <span className="max-w-24 shrink-0 truncate text-xs text-dim">
+              {c.module ?? "external"}
+            </span>
+          )}
+        </button>
+        <Button
+          variant="muted"
+          size="icon-xs"
+          className="absolute top-0.5 right-1 opacity-0 group-hover/conn:opacity-100 focus-visible:opacity-100"
+          aria-label={`Explain how ${all.symbol.name} ${direction === "uses" ? CONNECTION_VERB[c.kind] : CONNECTION_VERB_IN[c.kind]} ${c.name}`}
+          title="Explain this Connection"
+          onClick={() => onExplain(c)}
+        >
+          <BookOpen />
+        </Button>
+        {ambiguous && open === c.id && (
+          <div
+            className="mx-1.5 mb-1 flex flex-col gap-0.5 rounded-md bg-inset p-2"
+            data-testid="candidates"
+          >
+            <div className="pb-1 text-xs text-muted-foreground">
+              Which <span className="font-mono">{c.name}</span> is this? Every
+              candidate:
+            </div>
+            {c.candidates.map((id, i) => {
+              const s = all.symbols[id]
+              if (!s) return null
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  className="flex items-center gap-2 rounded-sm px-1.5 py-0.5 text-left hover:bg-hover"
+                  onMouseEnter={(e) => onHover(id, e.currentTarget)}
+                  onMouseLeave={onLeave}
+                  onClick={() => {
+                    onLeave()
+                    onGoSymbol(s)
+                  }}
+                >
+                  <span className="min-w-0 grow truncate font-mono text-xs">
+                    {s.qualifiedName}
+                  </span>
+                  <span className="text-xs text-dim">
+                    {i === 0 ? "closest" : "candidate"}
+                  </span>
+                  <span className="font-mono text-xs text-dim">{where(s)}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
   return (
     <section className="flex flex-col gap-0.5" aria-label={title}>
       <div className="flex items-center px-1.5 pb-1">
@@ -498,130 +655,29 @@ function ConnectionList({
       {list.length === 0 && (
         <p className="px-1.5 text-xs text-dim">None found.</p>
       )}
-      {list.map((c) => {
-        const target = targetOf(c, all, direction)
-        const from = all.symbols[c.fromId] ?? null
-        const ambiguous = c.status === "ambiguous" && direction === "uses"
-        const label =
-          direction === "uses"
-            ? CONNECTION_VERB[c.kind]
-            : CONNECTION_VERB_IN[c.kind]
-        return (
-          <div
-            key={c.id}
-            data-testid="connection"
-            className="group/conn relative"
+      {sure.map(row)}
+      {possible.length > 0 && (
+        <>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-sm px-1.5 py-1 text-left text-xs text-muted-foreground hover:bg-hover"
+            aria-expanded={showPossible}
+            onClick={() => setShowPossible((v) => !v)}
+            title="Found by name only: nothing else says these use it"
+            data-testid="possible-users"
           >
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-sm py-1 pr-8 pl-1.5 text-left hover:bg-hover"
-              onMouseEnter={(e) => onHover(target?.id ?? null, e.currentTarget)}
-              onMouseLeave={onLeave}
-              onClick={() => {
-                onLeave()
-                if (ambiguous) setOpen(open === c.id ? null : c.id)
-                else if (direction === "uses" && target) onGoSymbol(target)
-                else if (c.sites[0]) onGoSite(c.sites[0], from)
-              }}
-              title={
-                target
-                  ? `${target.qualifiedName} · ${target.path}:${target.nameLine}`
-                  : (c.module ?? undefined)
-              }
-            >
-              <span className="w-[54px] shrink-0 text-xs text-muted-foreground">
-                {label}
-                {ambiguous && "?"}
-              </span>
-              <Name
-                c={c}
-                all={all}
-                direction={direction}
-                className={cn(
-                  c.change === "removed" &&
-                    "text-muted-foreground line-through",
-                  c.status === "external" && "text-muted-foreground",
-                )}
-              />
-              {c.change && !(quiet && direction === "uses") && (
-                <Badge tone={c.change === "added" ? "ok" : "critical"}>
-                  {c.change}
-                </Badge>
+            <ChevronRight
+              className={cn(
+                "size-3 transition-transform",
+                showPossible && "rotate-90",
               )}
-              {c.status === "likely" && (
-                <Badge
-                  tone="secondary"
-                  title="The only definition by this name in the indexed code"
-                >
-                  likely
-                </Badge>
-              )}
-              {ambiguous && (
-                <Badge
-                  tone="outline"
-                  title="Several definitions could be the target"
-                >
-                  <CircleHelp />
-                  Ambiguous
-                </Badge>
-              )}
-              {c.status === "external" && (
-                <span className="max-w-24 shrink-0 truncate text-xs text-dim">
-                  {c.module ?? "external"}
-                </span>
-              )}
-            </button>
-            <Button
-              variant="muted"
-              size="icon-xs"
-              className="absolute top-0.5 right-1 opacity-0 group-hover/conn:opacity-100 focus-visible:opacity-100"
-              aria-label={`Explain how ${all.symbol.name} ${direction === "uses" ? CONNECTION_VERB[c.kind] : CONNECTION_VERB_IN[c.kind]} ${c.name}`}
-              title="Explain this Connection"
-              onClick={() => onExplain(c)}
-            >
-              <BookOpen />
-            </Button>
-            {ambiguous && open === c.id && (
-              <div
-                className="mx-1.5 mb-1 flex flex-col gap-0.5 rounded-md bg-inset p-2"
-                data-testid="candidates"
-              >
-                <div className="pb-1 text-xs text-muted-foreground">
-                  Which <span className="font-mono">{c.name}</span> is this?
-                  Every candidate:
-                </div>
-                {c.candidates.map((id, i) => {
-                  const s = all.symbols[id]
-                  if (!s) return null
-                  return (
-                    <button
-                      type="button"
-                      key={id}
-                      className="flex items-center gap-2 rounded-sm px-1.5 py-0.5 text-left hover:bg-hover"
-                      onMouseEnter={(e) => onHover(id, e.currentTarget)}
-                      onMouseLeave={onLeave}
-                      onClick={() => {
-                        onLeave()
-                        onGoSymbol(s)
-                      }}
-                    >
-                      <span className="min-w-0 grow truncate font-mono text-xs">
-                        {s.qualifiedName}
-                      </span>
-                      <span className="text-xs text-dim">
-                        {i === 0 ? "closest" : "candidate"}
-                      </span>
-                      <span className="font-mono text-xs text-dim">
-                        {where(s)}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )
-      })}
+            />
+            Possible
+            <span className="text-dim">{possible.length}</span>
+          </button>
+          {showPossible && possible.map(row)}
+        </>
+      )}
     </section>
   )
 }

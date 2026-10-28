@@ -141,6 +141,7 @@ export function buildFragmentGraph(
   }
 
   // Uses: a Connection site inside a Fragment's Head lines that resolves to a Symbol another Fragment changes.
+  // Only resolved Connections order the Walkthrough; likely ones are hints, possible ones nothing.
   const byPath = new Map<string, Located[]>()
   for (const l of located) {
     const list = byPath.get(l.path) ?? []
@@ -149,48 +150,60 @@ export function buildFragmentGraph(
   }
   const edges = new Map<string, FragmentEdge>()
   for (const c of index.connectionsOn("head")) {
-    if (!c.toId) continue
+    if (!c.toId || c.status === "possible") continue
     const from = definers.get(index.canonicalId(c.toId))
     if (!from) continue
     const via = index.symbol(c.toId)?.qualifiedName ?? c.name
+    const hard = c.status === "resolved"
     for (const site of c.sites) {
       for (const user of byPath.get(site.path) ?? []) {
         if (!within(site.line, user.head)) continue
         for (const def of from) {
           if (def === user.fragmentId) continue
           const key = `${def}\0${user.fragmentId}`
-          if (!edges.has(key))
-            edges.set(key, { from: def, to: user.fragmentId, via })
+          const edge = edges.get(key)
+          if (!edge)
+            edges.set(key, { from: def, to: user.fragmentId, via, hard })
+          else if (hard && !edge.hard) edges.set(key, { ...edge, via, hard })
         }
       }
     }
   }
 
-  // Reach: who uses what a Fragment changes, directly and within a few hops.
+  // Reach: who uses what a Fragment changes, directly and within a few hops. A user found only
+  // through an Ambiguous Connection counts 1/n (n candidates), through a possible one not at all.
   for (const node of nodes.values()) {
     const own = new Set(node.symbols.map((s) => index.canonicalId(s.id)))
-    const direct = new Set<string>()
-    const seen = new Set<string>(own)
-    let frontier = [...own]
-    for (let hop = 0; hop < MAX_HOPS && frontier.length; hop++) {
-      const next: string[] = []
-      for (const id of frontier)
+    const direct = new Map<string, number>()
+    const seen = new Map<string, number>()
+    let frontier = new Map([...own].map((id) => [id, 1]))
+    for (let hop = 0; hop < MAX_HOPS && frontier.size; hop++) {
+      const next = new Map<string, number>()
+      for (const [id, weight] of frontier)
         for (const c of index.incomingOn("head", id)) {
+          const share =
+            c.status === "possible"
+              ? 0
+              : c.status === "ambiguous"
+                ? 1 / Math.max(1, c.candidates.length)
+                : 1
           const src = index.symbol(c.fromId)
-          if (!src) continue
+          if (!src || share === 0) continue
           const key = index.canonicalId(src.id)
-          if (seen.has(key)) continue
-          seen.add(key)
-          if (src.kind !== "module" || hop === 0) {
-            if (hop === 0) direct.add(key)
-            next.push(key)
-          }
+          const w = weight * share
+          if (own.has(key) || (seen.get(key) ?? 0) >= w) continue
+          const first = !seen.has(key)
+          seen.set(key, w)
+          if (hop === 0) direct.set(key, w)
+          if (first && (src.kind !== "module" || hop === 0)) next.set(key, w)
         }
       frontier = next
       if (seen.size > MAX_REACH) break
     }
-    node.callers = direct.size
-    node.blastRadius = seen.size - own.size
+    const sum = (m: Map<string, number>) =>
+      Math.round([...m.values()].reduce((a, b) => a + b, 0))
+    node.callers = sum(direct)
+    node.blastRadius = sum(seen)
   }
 
   // Tests verify what they use; failing that, the code they're named after.

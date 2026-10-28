@@ -395,11 +395,20 @@ export type ConnectionKind = z.infer<typeof ConnectionKind>
 
 /**
  * resolved: by a deterministic rule (same file, an import, the receiver's
- * class). likely: the only definition by that name in the indexed code.
- * ambiguous: several candidates (an Ambiguous Connection). external: no
- * definition in the indexed code, e.g. a library.
+ * class or declared type). likely: the only fitting definition by that name
+ * in the indexed code, which the using file reaches through its imports or
+ * names as the receiver's type. possible: the only definition by that name,
+ * with nothing else pointing at it; shown greyed out and left out of the
+ * Fragment graph and Explanations. ambiguous: several candidates (an
+ * Ambiguous Connection). external: no definition in the indexed code, e.g. a
+ * library.
  */
-export type ConnectionStatus = "resolved" | "likely" | "ambiguous" | "external"
+export type ConnectionStatus =
+  | "resolved"
+  | "likely"
+  | "possible"
+  | "ambiguous"
+  | "external"
 
 /** Where a Connection is made. Line is 1-based, columns 0-based. */
 export interface ConnectionSite {
@@ -415,7 +424,7 @@ export interface Connection {
   id: string
   kind: ConnectionKind
   fromId: string
-  /** The target when resolved or likely; null when ambiguous or external. */
+  /** The target when resolved, likely or possible; null when ambiguous or external. */
   toId: string | null
   /** The name as written where it's used. */
   name: string
@@ -491,7 +500,11 @@ export interface FragmentNode {
   }[]
   /** In a test file. */
   test: boolean
-  /** Code outside the Fragment that uses what it changes: directly, and within three hops. */
+  /**
+   * Code outside the Fragment that uses what it changes: directly, and within
+   * three hops. An Ambiguous Connection counts 1/n for each of its n
+   * candidates, a possible one not at all; rounded.
+   */
   callers: number
   blastRadius: number
 }
@@ -502,6 +515,11 @@ export interface FragmentEdge {
   to: string
   /** The Symbol's qualified name. */
   via: string
+  /**
+   * Through a resolved Connection: the Walkthrough must order `from` first.
+   * Otherwise (only likely Connections) a hint the planner may follow.
+   */
+  hard: boolean
 }
 
 export interface FragmentGraph {

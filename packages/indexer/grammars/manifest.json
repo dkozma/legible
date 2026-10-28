@@ -1,5 +1,5 @@
 {
-  "$comment": "Grammars per language id (languageForPath). Files are <package>/<path>, or <package>><nested package>/<path> for a package's own copy of a dependency. Highlight files concatenate in order, base language first. When two patterns capture the same node, the more specific one wins, and order breaks ties (highlight.ts). `legible` lists Legible's own tags queries under ../queries. The parse cache key includes a hash of each language's query text, so changing a query needs no version bump. A string value aliases another language.",
+  "$comment": "Grammars per language id (languageForPath). Files are <package>/<path>, or <package>><nested package>/<path> for a package's own copy of a dependency. Highlight files concatenate in order, base language first. When two patterns capture the same node, the more specific one wins, and order breaks ties (highlight.ts). `legible` lists Legible's own tags queries under ../queries, and `locals` its queries for names bound inside functions and blocks (@local.scope, @local.definition). The parse cache key includes a hash of each language's query text, so changing a query needs no version bump. A string value aliases another language.",
   "languages": {
     "typescript": {
       "wasm": "tree-sitter-typescript/tree-sitter-typescript.wasm",
@@ -11,7 +11,8 @@
         "tree-sitter-typescript/queries/tags.scm",
         "tree-sitter-typescript>tree-sitter-javascript/queries/tags.scm"
       ],
-      "legible": ["typescript/tags.scm"]
+      "legible": ["typescript/tags.scm"],
+      "locals": ["typescript/locals.scm"]
     },
     "tsx": {
       "wasm": "tree-sitter-typescript/tree-sitter-tsx.wasm",
@@ -24,7 +25,8 @@
         "tree-sitter-typescript/queries/tags.scm",
         "tree-sitter-typescript>tree-sitter-javascript/queries/tags.scm"
       ],
-      "legible": ["typescript/tags.scm", "jsx/tags.scm"]
+      "legible": ["typescript/tags.scm", "jsx/tags.scm"],
+      "locals": ["typescript/locals.scm"]
     },
     "javascript": {
       "wasm": "tree-sitter-javascript/tree-sitter-javascript.wasm",
@@ -34,20 +36,23 @@
         "tree-sitter-javascript/queries/highlights-params.scm"
       ],
       "tags": ["tree-sitter-javascript/queries/tags.scm"],
-      "legible": ["javascript/tags.scm", "jsx/tags.scm"]
+      "legible": ["javascript/tags.scm", "jsx/tags.scm"],
+      "locals": ["javascript/locals.scm"]
     },
     "jsx": "javascript",
     "python": {
       "wasm": "tree-sitter-python/tree-sitter-python.wasm",
       "highlights": ["tree-sitter-python/queries/highlights.scm"],
       "tags": ["tree-sitter-python/queries/tags.scm"],
-      "legible": ["python/tags.scm"]
+      "legible": ["python/tags.scm"],
+      "locals": ["python/locals.scm"]
     },
     "go": {
       "wasm": "tree-sitter-go/tree-sitter-go.wasm",
       "highlights": ["tree-sitter-go/queries/highlights.scm"],
       "tags": ["tree-sitter-go/queries/tags.scm"],
-      "legible": ["go/tags.scm"]
+      "legible": ["go/tags.scm"],
+      "locals": ["go/locals.scm"]
     },
     "rust": {
       "wasm": "tree-sitter-rust/tree-sitter-rust.wasm",

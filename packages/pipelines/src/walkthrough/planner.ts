@@ -92,7 +92,7 @@ export function renderFragments(input: PlannerInput): string {
     const from = byId.get(e.from)
     if (!from || !byId.has(e.to)) continue
     const set = uses.get(e.to) ?? new Set()
-    set.add(`${from.alias} (${e.via})`)
+    set.add(`${from.alias} (${e.via}${e.hard ? "" : ", likely"})`)
     uses.set(e.to, set)
   }
   const max = linesPerFragment(input.fragments.length)

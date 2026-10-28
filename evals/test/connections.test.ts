@@ -1,6 +1,8 @@
 // The Connections eval without a SCIP indexer: decoding a hand-encoded SCIP
 // index, and scoring a small repository with the probe's patterns A–C
-// against hand-written SCIP occurrences.
+// against hand-written SCIP occurrences. The resolver no longer makes A–C's
+// false positives, so the guesses it still makes (`possible` matches on `any`)
+// and a use SCIP calls local check that the scorer catches them.
 
 import { execFileSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
@@ -135,7 +137,7 @@ const BASE: Record<string, string> = {
     "export class Card {\n  charge(cents: number) {\n    return cents\n  }\n}\n",
   "src/order.ts": "export class Order {\n  save() {\n    return 1\n  }\n}\n",
   "src/user.ts":
-    'import type { Repo } from "orm"\n\nexport function persist(u: Repo) {\n  return u.save()\n}\n',
+    'import type { Repo } from "orm"\n\nexport function persist(u: Repo) {\n  return u.save()\n}\n\nexport function persistAny(u: any) {\n  return u.save()\n}\n',
   "src/render.ts": "export const unused = 1\n",
 }
 
@@ -159,8 +161,16 @@ const HEAD: Record<string, string> = {
     "  return client.charge(5)",
     "}",
     "",
+    "export function billAny(client: any) {",
+    "  return client.charge(5)",
+    "}",
+    "",
     "export function shown(n: number) {",
     "  return format(n) + total([n])",
+    "}",
+    "",
+    "export function twice(n: number) {",
+    "  return total([n, n])",
     "}",
     "",
   ].join("\n"),
@@ -189,6 +199,7 @@ const ORDER_SAVE = "s npm app 1 src/`order.ts`/Order#save()."
 const CARD_CHARGE = "s npm app 1 src/`card.ts`/Card#charge()."
 const TOTAL = "s npm app 1 src/`render.ts`/total()."
 const FORMAT_PARAM = "s npm app 1 src/`render.ts`/render().(format)"
+const TWICE_PARAM = "s npm app 1 src/`render.ts`/twice().(n)"
 
 /** What a type checker would say about the uses the test cares about. */
 function scipOf(files: Record<string, string>, head: boolean) {
@@ -208,6 +219,7 @@ function scipOf(files: Record<string, string>, head: boolean) {
     at("src/order.ts", "save", 0, ORDER_SAVE, 1),
     // C: `u` is an external ORM object; its save() isn't Order.save.
     at("src/user.ts", "save", 0, "s npm orm 1 Repo#save()."),
+    at("src/user.ts", "save", 1, "s npm orm 1 Repo#save()."),
     ...(head
       ? [
           at("src/render.ts", "format", 0, F),
@@ -217,11 +229,15 @@ function scipOf(files: Record<string, string>, head: boolean) {
           at("src/render.ts", "total", 1, "local 1", 1),
           at("src/render.ts", "format", 2, FORMAT_PARAM),
           at("src/render.ts", "total", 2, "local 1"),
-          // B: a method of an external SDK type.
+          // B: a method of an external SDK type, declared and not.
           at("src/render.ts", "charge", 0, "s npm stripe 1 Stripe#charge()."),
+          at("src/render.ts", "charge", 1, "s npm stripe 1 Stripe#charge()."),
           // Plain uses that resolve.
           at("src/render.ts", "format", 3, F),
           at("src/render.ts", "total", 3, TOTAL),
+          // A local by SCIP's lights where we see the function: a Connection on a local.
+          at("src/render.ts", "n", 5, TWICE_PARAM, 1),
+          at("src/render.ts", "total", 4, TWICE_PARAM),
         ]
       : []),
   ]
@@ -309,67 +325,70 @@ describe("scoring against SCIP", () => {
     )
   }
 
-  it("counts Connections on a parameter and a local as pattern A", () => {
-    expect(site("format", 2)).toMatchObject({
+  it("makes no Connection on a parameter or local, and counts one SCIP says is local (A)", () => {
+    expect(site("format", 2)).toBeUndefined()
+    expect(site("total", 2)).toBeUndefined()
+    expect(site("total", 4)).toMatchObject({
       scip: "local",
       ours: "resolved",
       correct: false,
     })
-    expect(site("total", 2)).toMatchObject({
-      scip: "local",
-      ours: "resolved",
-      correct: false,
-    })
-    expect(score.localsConnected.resolved).toBe(2)
+    expect(score.localsConnected).toEqual({ resolved: 1 })
     expect(
       examples(
         sites.map((s) => ({ ...s, sha: "x" })),
         [],
       ).locals,
-    ).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          text: expect.stringMatching(
-            /^src\/render\.ts:10 format .*→ resolved src\/fmt\.ts:1 format vs SCIP local/,
-          ),
-        }),
-      ]),
-    )
+    ).toEqual([
+      expect.objectContaining({
+        text: expect.stringMatching(
+          /^src\/render\.ts:26 total .*→ resolved src\/render\.ts:4 total vs SCIP local/,
+        ),
+      }),
+    ])
   })
 
-  it("scores a method on an external type guessed by name as a false likely (B)", () => {
+  it("scores a method on a typed SDK object as external, and an untyped guess as a false possible (B)", () => {
     expect(site("charge", 0)).toMatchObject({
       scip: "external",
-      ours: "likely",
+      ours: "external",
+      correct: true,
+    })
+    expect(site("charge", 1)).toMatchObject({
+      scip: "external",
+      ours: "possible",
       target: "src/card.ts:2 Card.charge",
       correct: false,
     })
-    expect(score.byStatus.likely).toEqual({ sites: 1, correct: 0 })
+    expect(score.byStatus.possible).toEqual({ sites: 1, correct: 0 })
+    expect(score.byStatus.likely).toBeUndefined()
   })
 
-  it("scores an unrelated `u.save()` in Used by as a false positive (C)", () => {
-    expect(usedBy).toContainEqual(
+  it("scores an unrelated `u.save()` in Used by as a false possible (C)", () => {
+    const fromUser = usedBy.filter((u) => u.path === "src/user.ts")
+    expect(fromUser).toContainEqual(
       expect.objectContaining({
-        path: "src/user.ts",
         symbol: "Order.save",
-        status: "likely",
+        status: "possible",
         correct: false,
         scip: "Repo#save().",
       }),
     )
+    // `u: Repo` is typed, so its save() isn't a user at all.
+    expect(fromUser.every((u) => u.status === "possible")).toBe(true)
     // On Base and on Head: Order.save is changed on both sides.
-    expect(score.usedBy.precision.likely).toEqual({ sites: 2, correct: 0 })
+    expect(score.usedBy.precision.possible).toEqual({ sites: 2, correct: 0 })
   })
 
   it("scores plain imports and same-file calls as correct", () => {
     expect(site("format", 3)).toMatchObject({ ours: "resolved", correct: true })
     expect(site("total", 3)).toMatchObject({ ours: "resolved", correct: true })
     expect(site("format", 0)).toMatchObject({ ours: "resolved", correct: true })
-    expect(score.byStatus.resolved).toEqual({ sites: 5, correct: 3 })
+    expect(score.byStatus.resolved).toEqual({ sites: 4, correct: 3 })
   })
 
   it("leaves uses SCIP says nothing about unscored", () => {
-    expect(site("xs", 1)).toMatchObject({ scip: "unknown" })
+    expect(site("Stripe", 1)).toMatchObject({ scip: "unknown" })
     expect(score.unknown).toBeGreaterThan(0)
     expect(score.recallIndexed.sites).toBe(score.recallAll.sites)
   })

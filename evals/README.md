@@ -104,4 +104,18 @@ The report ends with the 20 most frequent false positives per bucket (each statu
 
 Alignment rules learned in the spike, which `score.ts` encodes: scip-typescript writes parameters as global symbols (`render().(format)`) and writes `local N` for names it reaches inside a `.d.ts` (zod's `z.enum`), so a local counts only when the document defines it; `new Order()` refers to the constructor, which counts as its class; overloads share one symbol, defined at the first signature; positions are UTF-16, like ours (`position_encoding` is unspecified). A member use of a constructor's parameter property (`this.fetchImpl` for `private fetchImpl`) names the parameter in SCIP; it isn't a local, and we have no Symbol for it, so it's not scored.
 
+**Resolver fixes (#74).** `2026-10-28-connections-typescript.md` is the resolver before the fixes and `…-after-74.md` after, scored the same way:
+
+| | Before | After |
+|---|---|---|
+| `resolved` precision | 97% | 99% |
+| `likely` precision | 74% | 95% |
+| `possible` precision (new) | — | 10% |
+| Connections on locals and parameters | 5,300 | 2,626 |
+| …of them not `external` | 1,524 | 284 |
+| Recall, files we indexed | 87% | 89% |
+| Used by precision / recall | 91% / 82% | 96% / 82% |
+
+True links that dropped to `possible` are few: 23 uses and 2 Used by sites are found only as `possible`. Most of the remaining Connections on locals are `external`. Some are properties of inline object types, which SCIP files as locals (hono's `c.var.echo()`). Others are type parameters in a generic list with a trailing comma, which this tree-sitter-typescript version doesn't parse.
+
 Commit a new result whenever a resolver change lands, with `EVAL_LABEL` naming the change.

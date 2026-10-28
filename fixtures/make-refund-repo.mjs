@@ -217,6 +217,17 @@ export const limits = {
 `,
 )
 write(
+  "src/services.ts",
+  `
+import { RefundService } from './refunds/RefundService';
+import { gateway, orders } from './infra';
+
+export const service = {
+  refunds: new RefundService(orders, gateway),
+};
+`,
+)
+write(
   "README.md",
   `
 # Storefront

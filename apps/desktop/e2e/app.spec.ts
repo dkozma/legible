@@ -294,6 +294,10 @@ test("follows Connections: ⌘-click to a definition, Connection changes, Trail 
       .filter({ hasText: "Now calls" })
       .filter({ hasText: "calculateRefundable" }),
   ).toHaveCount(1)
+  // Found by name (`this.refunds.record`), so marked as a guess rather than shown as certain.
+  await expect(
+    changes.filter({ hasText: "Now calls" }).filter({ hasText: "record" }),
+  ).toContainText("likely")
   await shot("08-connections")
 
   // ⌘-click the call: goes to the definition and joins the Trail.

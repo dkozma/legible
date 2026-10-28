@@ -95,12 +95,22 @@ describe("fragmentGraph", () => {
         fragmentsOf(service),
       ),
     ).toBe(true)
-    // Across layers: the service's change before the API handler calling it.
+    // Across layers: the service's change before the API handler calling it. The handler
+    // reaches RefundService only through `service.refunds`, so it's a hint, not a constraint.
+    const handler = graph.edges.filter(
+      (e) =>
+        fragmentsOf(service, "RefundService.refundOrder").includes(e.from) &&
+        fragmentsOf("src/api/refunds.ts", "postRefund").includes(e.to),
+    )
+    expect(handler.length).toBeGreaterThan(0)
+    expect(handler.every((e) => !e.hard)).toBe(true)
     expect(
-      hasEdge(
-        fragmentsOf(service, "RefundService.refundOrder"),
-        fragmentsOf("src/api/refunds.ts", "postRefund"),
-      ),
+      graph.edges.find(
+        (e) =>
+          fragmentsOf(service, "RefundService.calculateRefundable").includes(
+            e.from,
+          ) && fragmentsOf(service, "RefundService.refundOrder").includes(e.to),
+      )?.hard,
     ).toBe(true)
     expect(graph.edges.every((e) => e.from !== e.to)).toBe(true)
   })

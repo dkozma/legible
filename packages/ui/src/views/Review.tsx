@@ -497,8 +497,14 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           return
         }
         const [only] = at.targets
-        if (only && at.targets.length === 1) goToSymbol(only)
-        else if (at.targets.length > 1 && at.symbol) {
+        if (only && at.targets.length === 1) {
+          goToSymbol(only)
+          if (at.connection?.status === "possible")
+            s.toast(
+              `A guess: only the name ${at.connection.name} matches this definition.`,
+              "info",
+            )
+        } else if (at.targets.length > 1 && at.symbol) {
           s.set({
             focusSymbol: {
               symbolId: at.symbol.id,

@@ -23,6 +23,8 @@ export interface GrammarSpec {
   tags: GrammarFile[]
   /** Legible's own tags queries, paths under grammars/queries/, appended after the upstream ones. */
   legible: string[]
+  /** Legible's queries for names bound inside functions and blocks (@local.scope, @local.definition). */
+  locals: string[]
 }
 
 interface ManifestEntry {
@@ -30,6 +32,7 @@ interface ManifestEntry {
   highlights: string[]
   tags: string[]
   legible: string[]
+  locals?: string[]
 }
 
 /** "pkg/file" or "via>pkg/file"; scoped packages take two segments. Same as grammars/bundle.mjs. */
@@ -57,6 +60,7 @@ function load(): Record<string, GrammarSpec> {
       highlights: entry.highlights.map(parseFileSpec),
       tags: entry.tags.map(parseFileSpec),
       legible: entry.legible,
+      locals: entry.locals ?? [],
     }
   }
   for (const [id, entry] of Object.entries(languages))

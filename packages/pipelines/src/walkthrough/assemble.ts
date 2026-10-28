@@ -46,7 +46,10 @@ export interface Draft {
   userEdited: boolean
 }
 
-type Edge = { from: string; to: string }
+/** A dependency between Fragments; one that isn't `hard` (a likely Connection) never constrains the order. */
+type Edge = { from: string; to: string; hard?: boolean }
+
+const constraints = (edges: Edge[]) => edges.filter((e) => e.hard !== false)
 
 // ---- Ordering ------------------------------------------------------------------
 
@@ -240,7 +243,8 @@ function orderDrafts(
 const featureKey = (f: string) => f.trim().toLowerCase()
 
 /** Pairs where a Step uses what a later Step changes, outside a cycle. */
-export function dependencyViolations(steps: Step[], edges: Edge[]): number {
+export function dependencyViolations(steps: Step[], all: Edge[]): number {
+  const edges = constraints(all)
   const pos = new Map<string, number>()
   steps.forEach((s, i) => s.fragments.forEach((f) => pos.set(f.fragmentId, i)))
   const drafts: Draft[] = steps.map((s, i) => ({
@@ -497,7 +501,7 @@ export function assembleWalkthrough(input: AssembleInput): Walkthrough {
 /** Orders drafts, gives them ids and Chapters, and packs Sittings. Also used after the user edits Steps. */
 export function finishWalkthrough(
   drafts: Draft[],
-  edges: Edge[],
+  all: Edge[],
   meta: Pick<
     Walkthrough,
     | "reviewId"
@@ -508,6 +512,7 @@ export function finishWalkthrough(
     | "costUsd"
   > & { fallbackReason?: string | null },
 ): Walkthrough {
+  const edges = constraints(all)
   const live = drafts.filter((d) => d.fragments.length)
   const ordered = orderDrafts(live, edges)
   const named = ordered.features.filter((f) => f.length)
