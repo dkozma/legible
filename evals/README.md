@@ -4,16 +4,18 @@ Labeled Change Sets, and a harness that runs them through Legible's real pipelin
 
 ```sh
 pnpm evals                                   # every case, deterministic fake runtime (no model, no network)
-EVAL_RUNTIME=claude pnpm evals               # Claude: your `claude` login, or ANTHROPIC_API_KEY
+EVAL_RUNTIME=claude pnpm evals               # Claude: ANTHROPIC_API_KEY, or your `claude` login without one
 EVAL_RUNTIME=openai pnpm evals               # OpenAI: OPENAI_API_KEY
-EVAL_RUNTIME=claude EVAL_MODEL=claude-haiku-5-5 pnpm evals   # one model for every tier
-EVAL_JUDGE=jev pnpm evals                    # judgments on TypeSafe (TYPESAFE_API_KEY, EVAL_JEV_MODEL)
-EVAL_JUDGE=decisions pnpm evals              # judgments on OpenAI Decisions (OPENAI_API_KEY)
+EVAL_RUNTIME=claude EVAL_MODEL=claude-haiku-5-5 pnpm evals         # one model for every tier
+EVAL_RUNTIME=claude EVAL_JUDGE=jev pnpm evals        # judgments on TypeSafe (TYPESAFE_API_KEY, EVAL_JEV_MODEL)
+EVAL_RUNTIME=claude EVAL_JUDGE=decisions pnpm evals  # judgments on OpenAI Decisions (OPENAI_API_KEY)
 EVAL_CASE=refunds-ts pnpm evals              # one case
-EVAL_BUDGET_USD=1 pnpm evals                 # spend cap per case (default $2)
+EVAL_RUNTIME=claude EVAL_BUDGET_USD=1 pnpm evals     # spend cap per case (default $2)
 ```
 
-Each run prints a table and writes `results/<date>-<runtime>.{json,md}`. Commit the results of runs that change a prompt version, a model's status in the catalog, or a Judge threshold.
+Keys come from your shell or the repository's `.env`; the shell wins. With `ANTHROPIC_API_KEY` in `.env`, Claude runs bill that key, not your `claude` login. `EVAL_JUDGE` and `EVAL_MODEL` need a model runtime: the fake runtime answers every judgment itself. A Judge backend still uses the runtime for the Walkthrough and for its fast-tier fallback. The run stops before any case if a setting would be ignored or a key is missing.
+
+Each run prints a table and writes `results/<date>-<runtime>-<model>[-<judge>].{json,md}`, for example `2026-10-28-claude-defaults-jev.md`. The table doesn't say which Judge backend answered; `judgeBackend` in the JSON does, and starts with `fast:` when an external backend failed and the fast tier stood in; `judgeFallback` says why. Commit the results of runs that change a prompt version, a model's status in the catalog, or a Judge threshold.
 
 ## What's measured
 

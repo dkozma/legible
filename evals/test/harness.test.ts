@@ -8,7 +8,7 @@ import type { StepFragment } from "@legible/domain"
 
 import { loadCases } from "../src/cases"
 import { summarize } from "../src/report"
-import { fakeEnv, runCase } from "../src/run"
+import { envFromProcess, fakeEnv, runCase } from "../src/run"
 import { matches, similar } from "../src/score"
 
 const frag = (over: Partial<StepFragment>): StepFragment => ({
@@ -50,6 +50,54 @@ describe("labels", () => {
     const cases = loadCases()
     expect(cases.length).toBeGreaterThanOrEqual(6)
     for (const c of cases) expect.soft(c.labels.steps.length).toBeGreaterThan(0)
+  })
+})
+
+describe("settings", () => {
+  it("default to the fake runtime and the fast-tier Judge", () => {
+    const env = envFromProcess({})
+    expect(env.label).toBe("fake")
+    expect(env.externalJudge).toBeNull()
+  })
+
+  it("refuse what the fake runtime would ignore", () => {
+    expect(() => envFromProcess({ EVAL_JUDGE: "jev" })).toThrow(
+      "EVAL_JUDGE=jev needs a model runtime",
+    )
+    expect(() => envFromProcess({ EVAL_MODEL: "gpt-5" })).toThrow(
+      "EVAL_MODEL needs a model runtime",
+    )
+  })
+
+  it("refuse unknown values", () => {
+    expect(() => envFromProcess({ EVAL_RUNTIME: "opneai" })).toThrow(
+      'EVAL_RUNTIME must be fake, claude or openai, not "opneai"',
+    )
+    expect(() =>
+      envFromProcess({ EVAL_RUNTIME: "claude", EVAL_JUDGE: "typesafe" }),
+    ).toThrow("EVAL_JUDGE must be fast, jev or decisions")
+    expect(() => envFromProcess({ EVAL_BUDGET_USD: "two" })).toThrow(
+      "EVAL_BUDGET_USD must be a positive number",
+    )
+  })
+
+  it("need the key for the runtime and the Judge", () => {
+    expect(() => envFromProcess({ EVAL_RUNTIME: "openai" })).toThrow(
+      "EVAL_RUNTIME=openai needs OPENAI_API_KEY",
+    )
+    expect(() =>
+      envFromProcess({ EVAL_RUNTIME: "claude", EVAL_JUDGE: "jev" }),
+    ).toThrow("EVAL_JUDGE=jev needs TYPESAFE_API_KEY")
+    expect(() =>
+      envFromProcess({ EVAL_RUNTIME: "claude", EVAL_JUDGE: "decisions" }),
+    ).toThrow("EVAL_JUDGE=decisions needs OPENAI_API_KEY")
+    const env = envFromProcess({
+      EVAL_RUNTIME: "claude",
+      EVAL_JUDGE: "jev",
+      TYPESAFE_API_KEY: "test",
+    })
+    expect(env.externalJudge?.name).toBe("jev")
+    expect(env.label).toBe("claude:defaults+jev")
   })
 })
 

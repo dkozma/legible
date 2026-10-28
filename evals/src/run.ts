@@ -61,6 +61,8 @@ export interface EvalEnv {
   runtimes: Partial<Record<Provider, AgentRuntime>>
   tiers: Record<ModelTier, TierAssignment>
   judge: "fast" | "jev" | "decisions"
+  /** The backend for `jev` or `decisions`, ahead of the fast-tier fallback. */
+  externalJudge: JudgeBackend | null
   /** Spend cap per case. */
   budgetUsd: number
 }
@@ -73,6 +75,8 @@ export interface CaseResult {
   durationMs: number
   model: string | null
   judgeBackend: string
+  /** Why the fast tier stood in for an external Judge backend, if it did. */
+  judgeFallback: string | null
   error: string | null
 }
 
@@ -83,33 +87,81 @@ export function fakeEnv(budgetUsd = 2): EvalEnv {
     runtimes: { anthropic: new FakeRuntime(fakeAnswer) },
     tiers: DEFAULT_TIERS,
     judge: "fast",
+    externalJudge: null,
     budgetUsd,
   }
 }
 
-/** The runtime and models a run uses, from EVAL_* environment variables. */
-export function envFromProcess(): EvalEnv {
-  const runtime = process.env.EVAL_RUNTIME ?? "fake"
-  const model = process.env.EVAL_MODEL ?? null
-  const judge = (process.env.EVAL_JUDGE ?? "fast") as EvalEnv["judge"]
-  const budgetUsd = Number(process.env.EVAL_BUDGET_USD ?? 2)
+const RUNTIMES: readonly string[] = ["fake", "claude", "openai"]
+const JUDGES: readonly string[] = ["fast", "jev", "decisions"]
+
+/**
+ * The runtime and models a run uses, from EVAL_* environment variables.
+ * Throws before any case runs when a setting would be ignored or a key is
+ * missing, so a misconfigured run never writes a result file.
+ */
+export function envFromProcess(vars: NodeJS.ProcessEnv = process.env): EvalEnv {
+  const runtime = vars.EVAL_RUNTIME ?? "fake"
+  const model = vars.EVAL_MODEL ?? null
+  const judge = (vars.EVAL_JUDGE ?? "fast") as EvalEnv["judge"]
+  const budgetUsd = Number(vars.EVAL_BUDGET_USD ?? 2)
+  const need = (key: string, setting: string): string => {
+    const value = vars[key]
+    if (!value)
+      throw new Error(
+        `${setting} needs ${key}, in your shell or the repository's .env.`,
+      )
+    return value
+  }
+  if (!RUNTIMES.includes(runtime))
+    throw new Error(
+      `EVAL_RUNTIME must be fake, claude or openai, not "${runtime}".`,
+    )
+  if (!JUDGES.includes(judge))
+    throw new Error(
+      `EVAL_JUDGE must be fast, jev or decisions, not "${judge}".`,
+    )
+  if (!(budgetUsd > 0))
+    throw new Error(
+      `EVAL_BUDGET_USD must be a positive number of dollars, not "${vars.EVAL_BUDGET_USD}".`,
+    )
+  if (runtime === "fake" && judge !== "fast")
+    throw new Error(
+      `EVAL_JUDGE=${judge} needs a model runtime: the fake runtime answers every judgment itself. Add EVAL_RUNTIME=claude or EVAL_RUNTIME=openai.`,
+    )
+  if (runtime === "fake" && model)
+    throw new Error(
+      "EVAL_MODEL needs a model runtime: the fake runtime has no models. Add EVAL_RUNTIME=claude or EVAL_RUNTIME=openai.",
+    )
   if (runtime === "fake") return fakeEnv(budgetUsd)
+  const externalJudge =
+    judge === "jev"
+      ? new JevBackend(
+          need("TYPESAFE_API_KEY", "EVAL_JUDGE=jev"),
+          vars.EVAL_JEV_MODEL ?? "jev-latest",
+        )
+      : judge === "decisions"
+        ? new DecisionsBackend(need("OPENAI_API_KEY", "EVAL_JUDGE=decisions"))
+        : null
+  // In the label, so a Judge run doesn't overwrite the same day's plain run.
+  const judgeLabel = judge === "fast" ? "" : `+${judge}`
   if (runtime === "openai") {
     const tiers: Record<ModelTier, TierAssignment> = { ...OPENAI_DEFAULT_TIERS }
     if (model)
       for (const t of ["strong", "mid", "fast"] as const)
         tiers[t] = { provider: "openai", model }
     return {
-      label: `openai:${model ?? "defaults"}`,
+      label: `openai:${model ?? "defaults"}${judgeLabel}`,
       runtimes: {
         openai: new OpenAIAgentsRuntime({
           auth: "api-key",
-          apiKey: process.env.OPENAI_API_KEY ?? null,
+          apiKey: need("OPENAI_API_KEY", "EVAL_RUNTIME=openai"),
           chatgpt: null,
         }),
       },
       tiers,
       judge,
+      externalJudge,
       budgetUsd,
     }
   }
@@ -117,9 +169,9 @@ export function envFromProcess(): EvalEnv {
   if (model)
     for (const t of ["strong", "mid", "fast"] as const)
       tiers[t] = { provider: "anthropic", model }
-  const key = process.env.ANTHROPIC_API_KEY
+  const key = vars.ANTHROPIC_API_KEY
   return {
-    label: `claude:${model ?? "defaults"}`,
+    label: `claude:${model ?? "defaults"}${judgeLabel}`,
     runtimes: {
       anthropic: new ClaudeSdkRuntime({
         auth: key ? "anthropic-api" : "claude-code",
@@ -135,6 +187,7 @@ export function envFromProcess(): EvalEnv {
     },
     tiers,
     judge,
+    externalJudge,
     budgetUsd,
   }
 }
@@ -146,6 +199,7 @@ export async function runCase(c: EvalCase, env: EvalEnv): Promise<CaseResult> {
   let costUsd = 0
   let model: string | null = null
   let judgeBackend = env.judge as string
+  let judgeFallback: string | null = null
   try {
     const base = await repo.mergeBase("main", "HEAD")
     const head = (await repo.resolveCommit("HEAD")) as string
@@ -244,21 +298,13 @@ export async function runCase(c: EvalCase, env: EvalEnv): Promise<CaseResult> {
     const detected = new Map<string, RiskArea[]>(
       w.steps.map((s) => [s.id, detectRiskAreas(s, byId, text)]),
     )
-    const external: JudgeBackend[] = []
-    if (env.judge === "jev" && process.env.TYPESAFE_API_KEY)
-      external.push(
-        new JevBackend(
-          process.env.TYPESAFE_API_KEY,
-          process.env.EVAL_JEV_MODEL ?? "jev-latest",
-        ),
-      )
-    if (env.judge === "decisions" && process.env.OPENAI_API_KEY)
-      external.push(new DecisionsBackend(process.env.OPENAI_API_KEY))
+    const external = env.externalJudge ? [env.externalJudge] : []
     const judge = new Judge(external, new FastTierBackend(run, context))
     const req = understandingRequest(intent, w.steps, byId, detected)
     if (req.judgments.length) {
       const judged = await judge.judge(req, { signal })
       judgeBackend = `${judged.backend}:${judged.model}`
+      judgeFallback = judged.fallbackReason
       costUsd += judged.backend === "fast" ? 0 : (judged.costUsd ?? 0)
       w = applyJudged(
         w,
@@ -298,6 +344,7 @@ export async function runCase(c: EvalCase, env: EvalEnv): Promise<CaseResult> {
       durationMs: Date.now() - started,
       model,
       judgeBackend,
+      judgeFallback,
       error: null,
     }
   } catch (e) {
@@ -324,6 +371,7 @@ export async function runCase(c: EvalCase, env: EvalEnv): Promise<CaseResult> {
       durationMs: Date.now() - started,
       model,
       judgeBackend,
+      judgeFallback,
       error: (e as Error).message,
     }
   } finally {
