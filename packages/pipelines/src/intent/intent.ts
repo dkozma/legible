@@ -166,8 +166,13 @@ export function toRequirements(
 /** Items under a "How to test" / "Testing" / "Test plan" heading. */
 export function howToTestFromDescription(body: string): string[] {
   const lines = body.split(/\r?\n/)
-  const heading =
-    /^\s*(#{1,6}\s*|\*\*)?\s*(how to test|testing|test plan|steps to test|to test|verification|qa)\b.*$/i
+  const names =
+    "(how to test|testing|test plan|steps to test|to test|verification|qa)"
+  // A `#` heading may say more ("## Testing notes"); a bold or bare one is the name alone, so "Testing this was slow" isn't one.
+  const heading = new RegExp(
+    `^\\s*(#{1,6}\\s*${names}\\b.*|(\\*\\*)?\\s*${names}\\s*:?\\s*(\\*\\*)?\\s*:?\\s*)$`,
+    "i",
+  )
   const out: string[] = []
   let inside = false
   for (const line of lines) {

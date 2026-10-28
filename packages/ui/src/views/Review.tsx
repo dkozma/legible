@@ -1497,6 +1497,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           >
             {activeStep && w && (
               <StepHeader
+                key={activeStep.id}
                 walkthrough={w}
                 step={activeStep}
                 intent={intent.data ?? null}

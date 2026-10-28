@@ -131,7 +131,9 @@ export function riskFor(
   else if (wide) score += 1
   if (wide)
     reasons.push(
-      `${reach.callers} ${reach.callers === 1 ? "caller" : "callers"}`,
+      reach.callers >= WIDE.callers
+        ? `${reach.callers} ${reach.callers === 1 ? "caller" : "callers"}`
+        : `${reach.blastRadius} uses within three hops`,
     )
   const level: RiskLevel =
     score >= 3 ? "critical" : score >= 2 ? "elevated" : "low"

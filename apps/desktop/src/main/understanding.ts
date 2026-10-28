@@ -408,6 +408,12 @@ export class UnderstandingService {
       this.report(err, s, err instanceof AgentRunError ? err.code : "internal")
     }
     try {
+      // The cap covers the Iteration across rebuilds: start from what its saved build spent.
+      const [savedW, savedBrief] = await Promise.all([
+        this.store.getWalkthrough(reviewId, iterationId),
+        this.store.getBrief(reviewId, iterationId),
+      ])
+      job.status.costUsd = savedBrief?.costUsd ?? savedW?.costUsd ?? 0
       const review = await this.reviews.summary(reviewId)
       const prep = await this.prep(job)
 
@@ -721,17 +727,36 @@ export class UnderstandingService {
     if (remaining.length) {
       try {
         const clusters = clusterFragments(remaining, edges)
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           clusters.map((c) => plan(c, 1 / clusters.length)),
         )
-        planned = results.flat()
+        if (job.abort.signal.aborted) throw new Error("aborted")
+        const failed = clusters.filter(
+          (_, i) => results[i]?.status === "rejected",
+        )
+        const reasons = results.flatMap((r) =>
+          r.status === "rejected" ? [r.reason as Error] : [],
+        )
+        if (failed.length === clusters.length) throw reasons[0]
+        planned = results.flatMap((r) =>
+          r.status === "fulfilled" ? r.value : [],
+        )
         // One more try for anything the model left out; the validator repairs the rest.
         const placed = new Set(
           planned.flatMap((s) => s.fragments.map((a) => a.trim())),
         )
-        const missing = remaining.filter((f) => !placed.has(f.alias))
+        const failedAliases = new Set(failed.flat().map((f) => f.alias))
+        const missing = remaining.filter(
+          (f) => !placed.has(f.alias) && !failedAliases.has(f.alias),
+        )
         if (missing.length && missing.length < remaining.length)
           planned.push(...(await plan(missing, 0.5).catch(() => [])))
+        // A failed cluster is planned by file; the clusters that answered keep their Steps.
+        if (failed.length) {
+          fallbackReason = `${failed.length} of ${clusters.length} parts planned by file, without a model: ${reasons[0]?.message}`
+          this.stage(job, "walkthrough", "running", fallbackReason)
+          planned.push(...fallbackPlan(failed.flat()))
+        }
       } catch (e) {
         if (job.abort.signal.aborted) throw e
         fallbackReason = `Planned by file, without a model: ${(e as Error).message}`

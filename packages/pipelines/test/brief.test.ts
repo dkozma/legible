@@ -152,6 +152,11 @@ describe("Risk", () => {
       level: "critical",
       reasons: ["payments", "6 callers"],
     })
+    // Raised by reach through others, not by direct callers.
+    expect(riskFor([], { callers: 1, blastRadius: 70 })).toEqual({
+      level: "elevated",
+      reasons: ["70 uses within three hops"],
+    })
     expect(riskFor(["deletes"], { callers: 0, blastRadius: 0 }).level).toBe(
       "low",
     )

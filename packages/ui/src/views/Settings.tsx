@@ -1082,7 +1082,6 @@ function Judges({
   update: (fn: (s: Settings) => Settings) => void
 }) {
   const j = settings.judge
-  const both = settings.claude.enabled && settings.openai.enabled
   return (
     <Section
       id="judges"
@@ -1175,24 +1174,6 @@ function Judges({
             </Tabs>
           </div>
         )}
-        <div className={settingRow}>
-          <div className="flex min-w-60 grow flex-col gap-0.5">
-            <span className="text-sm font-semibold">
-              Cross-check Verification
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Verify Agent Review Findings on the provider that didn't produce
-              them (M5). Needs both Claude and OpenAI.
-            </span>
-          </div>
-          <Switch
-            checked={settings.verification.crossCheck && both}
-            label="Cross-check Verification"
-            onChange={(v) =>
-              both && update((s) => ({ ...s, verification: { crossCheck: v } }))
-            }
-          />
-        </div>
       </Card>
     </Section>
   )

@@ -899,6 +899,7 @@ export interface ChangeBrief {
   howToTest: { fromSource: string[]; suggested: string[] }
   /** Set when finding Domain Changes failed; the rest of the Brief still stands. */
   domainChangesError: string | null
+  /** Spent on this Iteration's Intent, Walkthrough and Brief so far, rebuilds included; the spend cap applies to it. */
   costUsd: number
   createdAt: string
 }
@@ -971,10 +972,6 @@ export const Settings = z.object({
     /** First enabled backend wins. */
     order: z.array(JudgeBackendName),
   }),
-  verification: z.object({
-    /** Verify Findings on the provider that didn't produce them (M5). */
-    crossCheck: z.boolean(),
-  }),
   intent: z.object({
     /** Read local Claude Code and Codex sessions to find the Change Set's Agent Transcript. */
     readTranscripts: z.boolean(),
@@ -1034,7 +1031,6 @@ export const DEFAULT_SETTINGS: Settings = {
     decisions: { enabled: false },
     order: ["jev", "decisions"],
   },
-  verification: { crossCheck: false },
   intent: { readTranscripts: true },
   understanding: { auto: true },
   spend: {

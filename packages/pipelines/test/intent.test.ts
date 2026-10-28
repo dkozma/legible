@@ -277,6 +277,12 @@ describe("Intent", () => {
       "Refund $5 of a $20 order",
       "Try to refund more than the balance",
     ])
+    // A sentence that starts with a heading's word isn't a heading.
+    expect(
+      howToTestFromDescription(
+        "Testing this was slow, so I also:\n- bumped vitest\n\n**Testing:**\n- run it",
+      ),
+    ).toEqual(["run it"])
     expect(linkedIssues(input.pullRequest?.body ?? "", "github.com")).toEqual([
       { project: null, number: 12 },
       { project: "acme/store", number: 40 },
