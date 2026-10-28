@@ -73,19 +73,25 @@ export function markdown(s: RunSummary): string {
       pct(c.scores.grouping),
       pct(c.scores.layerAccuracy),
       pct(c.scores.unrequestedRecall),
+      pct(c.scores.unrequestedPrecision),
       pct(c.scores.domainChangeRecall),
+      pct(c.scores.domainChangePrecision),
       c.scores.chaptersRight ? "yes" : "no",
       `$${c.costUsd.toFixed(3)}`,
     ].join(" | "),
   )
   const a = s.averages
+  const judges = [...new Set(s.cases.map((c) => c.judgeBackend))]
+  const fallbacks = [...new Set(s.cases.flatMap((c) => c.judgeFallback ?? []))]
   return [
     `## ${s.label} · ${s.date.slice(0, 10)}`,
     "",
-    "| Case | Steps | Coverage | Dep. violations | Grouping F1 | Layers | Unrequested recall | Domain Change recall | Chapters | Cost |",
-    "|---|---|---|---|---|---|---|---|---|---|",
+    "| Case | Steps | Coverage | Dep. violations | Grouping F1 | Layers | Unrequested recall | Unrequested precision | Domain Change recall | Domain Change precision | Chapters | Cost |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ...rows.map((r) => `| ${r} |`),
-    `| **All** | | ${pct(a.coverage)} | ${a.dependencyViolations} | ${pct(a.grouping)} | ${pct(a.layerAccuracy)} | ${pct(a.unrequestedRecall)} | ${pct(a.domainChangeRecall)} | | ${a.costPer1kLines === null ? "—" : `$${a.costPer1kLines.toFixed(3)}/1k lines`} |`,
+    `| **All** | | ${pct(a.coverage)} | ${a.dependencyViolations} | ${pct(a.grouping)} | ${pct(a.layerAccuracy)} | ${pct(a.unrequestedRecall)} | ${pct(a.unrequestedPrecision)} | ${pct(a.domainChangeRecall)} | ${pct(a.domainChangePrecision)} | | ${a.costPer1kLines === null ? "—" : `$${a.costPer1kLines.toFixed(3)}/1k lines`} |`,
+    "",
+    `Judge: ${judges.join(", ")}${fallbacks.length ? ` (fast tier stood in: ${fallbacks.join("; ")})` : ""}.`,
     "",
     `Exit criteria: coverage ${s.exitCriteria.coverage ? "met" : "NOT met"}, dependency order ${s.exitCriteria.dependencyOrder ? "met" : "NOT met"}.`,
   ].join("\n")

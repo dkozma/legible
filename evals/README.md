@@ -15,7 +15,7 @@ EVAL_RUNTIME=claude EVAL_BUDGET_USD=1 pnpm evals     # spend cap per case (defau
 
 Keys come from your shell or the repository's `.env`; the shell wins. With `ANTHROPIC_API_KEY` in `.env`, Claude runs bill that key, not your `claude` login. `EVAL_JUDGE` and `EVAL_MODEL` need a model runtime: the fake runtime answers every judgment itself. A Judge backend still uses the runtime for the Walkthrough and for its fast-tier fallback. The run stops before any case if a setting would be ignored or a key is missing.
 
-Each run prints a table and writes `results/<date>-<runtime>-<model>[-<judge>].{json,md}`, for example `2026-10-28-claude-defaults-jev.md`. The table doesn't say which Judge backend answered; `judgeBackend` in the JSON does, and starts with `fast:` when an external backend failed and the fast tier stood in; `judgeFallback` says why. Commit the results of runs that change a prompt version, a model's status in the catalog, or a Judge threshold.
+Each run prints a table and writes `results/<date>-<runtime>-<model>[-<judge>].{md,json}`, for example `2026-10-28-claude-defaults-jev.md`. Below the table, `Judge:` names the backend that answered; it starts with `fast:` when an external backend failed and the fast tier stood in, and says why. Only the `.md` is committed; the `.json` stays local for digging. Commit the results of runs that change a prompt version, a model's status in the catalog, or a Judge threshold.
 
 ## What's measured
 

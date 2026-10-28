@@ -15,3 +15,4 @@ fixtures/.generated/
 apps/desktop/release/
 apps/desktop/test-results/
 evals/.cache/
+evals/results/*.json
