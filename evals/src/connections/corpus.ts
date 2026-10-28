@@ -14,8 +14,11 @@ import {
   writeFileSync,
 } from "node:fs"
 import { createRequire } from "node:module"
+import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { promisify } from "node:util"
+
+import { workspacePackages, writeScipConfig } from "./workspace"
 
 const run = promisify(execFile)
 
@@ -43,6 +46,8 @@ export interface CommitIndexes {
   /** SCIP files for the parent (Base) and the commit (Head). */
   base: string | null
   head: string | null
+  /** With `oracle`: the same, indexed without dependencies (workspace packages mapped to source); null if that failed. */
+  oracle: { base: string | null; head: string | null } | null
   /** Why this commit can't be scored, if it can't. */
   skipped: string | null
 }
@@ -181,17 +186,22 @@ async function selectCommits(
 
 /**
  * A SCIP index for every commit of an entry and its parent, built or from
- * the cache. Commits that can't be indexed are kept with the reason.
+ * the cache. Commits that can't be indexed are kept with the reason. With
+ * `oracle`, also one built without dependencies, as Legible could build it
+ * when a Change Set loads.
  */
 export async function prepare(
   entry: CorpusEntry,
   log: (line: string) => void = () => {},
+  options: { oracle?: boolean } = {},
 ): Promise<PreparedEntry> {
   const dir = join(CACHE_DIR, "connections", entry.name)
   const { repoDir, rev } = await repository(entry, dir)
   const selected = await selectCommits(repoDir, rev, entry.commits)
   const scipDir = join(dir, `scip-typescript-${SCIP_TYPESCRIPT.version}`)
+  const oracleDir = `${scipDir}-nodeps`
   mkdirSync(scipDir, { recursive: true })
+  if (options.oracle) mkdirSync(oracleDir, { recursive: true })
 
   // Dependencies installed once, at the revision, for entries that link them in.
   let shared: string | null = null
@@ -219,18 +229,39 @@ export async function prepare(
   }
 
   const errors = new Map<string, string>()
-  const indexOf = async (sha: string): Promise<string | null> => {
-    const out = join(scipDir, `${sha}.scip`)
+  const indexOf = async (
+    sha: string,
+    noDeps = false,
+  ): Promise<string | null> => {
+    const out = join(noDeps ? oracleDir : scipDir, `${sha}.scip`)
+    const key = `${noDeps ? "nodeps " : ""}${sha}`
     if (existsSync(out)) return out
-    if (errors.has(sha)) return null
+    if (errors.has(key)) return null
     const partial = `${out}.partial`
-    const wt = join(dir, `wt-${sha.slice(0, 12)}`)
+    // TypeScript looks for node_modules in every parent directory, and this
+    // cache is inside a checkout that has them: index without dependencies
+    // somewhere that has none.
+    const wt = noDeps
+      ? join(tmpdir(), `legible-scip-nodeps-${entry.name}-${sha.slice(0, 12)}`)
+      : join(dir, `wt-${sha.slice(0, 12)}`)
     const started = Date.now()
     try {
       rmSync(wt, { recursive: true, force: true })
       await git(repoDir, ["worktree", "prune"])
       await git(repoDir, ["worktree", "add", "--detach", "--force", wt, sha])
-      if (entry.install && entry.perCommitInstall) await sh(wt, entry.install)
+      let projects = entry.projects ?? []
+      if (noDeps) {
+        for (let d = wt; d !== dirname(d); d = dirname(d))
+          if (existsSync(join(d, "node_modules")))
+            throw new Error(
+              `${d} has node_modules: not indexing without dependencies`,
+            )
+        const packages = workspacePackages(wt)
+        projects = (projects.length ? projects : ["tsconfig.json"]).map((p) =>
+          writeScipConfig(wt, p, packages),
+        )
+      } else if (entry.install && entry.perCommitInstall)
+        await sh(wt, entry.install)
       else if (!existsSync(join(wt, "node_modules"))) {
         const deps = await sharedDeps()
         if (existsSync(join(deps, "node_modules")))
@@ -244,7 +275,7 @@ export async function prepare(
           "--no-progress-bar",
           "--output",
           partial,
-          ...(entry.projects ?? []),
+          ...projects,
         ],
         { cwd: wt, maxBuffer: 64 * 1024 * 1024 },
       )
@@ -253,14 +284,14 @@ export async function prepare(
       // Only a finished index is cached.
       renameSync(partial, out)
       log(
-        `  indexed ${entry.name} ${sha.slice(0, 8)} in ${((Date.now() - started) / 1000).toFixed(1)}s`,
+        `  indexed ${entry.name} ${sha.slice(0, 8)}${noDeps ? " without dependencies" : ""} in ${((Date.now() - started) / 1000).toFixed(1)}s`,
       )
       return out
     } catch (e) {
       rmSync(partial, { force: true })
       const reason = failure(e, wt)
-      errors.set(sha, reason)
-      log(`  ${entry.name} ${sha.slice(0, 8)} not indexed: ${reason}`)
+      errors.set(key, reason)
+      log(`  ${entry.name} ${key.slice(0, 15)} not indexed: ${reason}`)
       return null
     } finally {
       await git(repoDir, ["worktree", "remove", "--force", wt]).catch(() =>
@@ -278,6 +309,7 @@ export async function prepare(
         subject: c.subject,
         base: null,
         head: null,
+        oracle: null,
         skipped: "root commit: no parent to compare with",
       })
       continue
@@ -295,6 +327,13 @@ export async function prepare(
       subject: c.subject,
       base,
       head,
+      oracle:
+        options.oracle && !reason
+          ? {
+              base: await indexOf(c.parent, true),
+              head: await indexOf(c.sha, true),
+            }
+          : null,
       skipped: reason,
     })
   }

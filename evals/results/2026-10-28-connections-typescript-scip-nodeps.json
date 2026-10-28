@@ -1,0 +1,5339 @@
+{
+  "label": "scip-nodeps",
+  "date": "2026-10-28T12:21:26.966Z",
+  "scipTypescript": "0.5.2",
+  "mode": "corpus",
+  "entries": [
+    {
+      "name": "legible",
+      "source": "this repository",
+      "scored": 14,
+      "skipped": 1,
+      "total": {
+        "byStatus": {
+          "resolved": {
+            "sites": 20969,
+            "correct": 20951
+          },
+          "external": {
+            "sites": 29125,
+            "correct": 28784
+          },
+          "ambiguous": {
+            "sites": 2259,
+            "correct": 2203
+          },
+          "possible": {
+            "sites": 303,
+            "correct": 11
+          },
+          "likely": {
+            "sites": 48,
+            "correct": 2
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 8427,
+              "correct": 8423
+            },
+            "external": {
+              "sites": 4303,
+              "correct": 4303
+            },
+            "ambiguous": {
+              "sites": 810,
+              "correct": 810
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 4560,
+              "correct": 4560
+            },
+            "external": {
+              "sites": 3524,
+              "correct": 3523
+            },
+            "ambiguous": {
+              "sites": 1088,
+              "correct": 1088
+            },
+            "possible": {
+              "sites": 7,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 21277,
+              "correct": 20937
+            },
+            "ambiguous": {
+              "sites": 361,
+              "correct": 305
+            },
+            "resolved": {
+              "sites": 7961,
+              "correct": 7947
+            },
+            "possible": {
+              "sites": 296,
+              "correct": 11
+            },
+            "likely": {
+              "sites": 48,
+              "correct": 2
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 21,
+              "correct": 21
+            },
+            "external": {
+              "sites": 21,
+              "correct": 21
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 341,
+        "ambiguous": {
+          "sites": 2212,
+          "correct": 2203
+        },
+        "recallIndexed": {
+          "sites": 23680,
+          "found": {
+            "resolved": 20803,
+            "ambiguous": 2199
+          },
+          "notExtracted": 360
+        },
+        "recallAll": {
+          "sites": 23833,
+          "found": {
+            "resolved": 20951,
+            "ambiguous": 2203
+          },
+          "notExtracted": 360
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 6353,
+              "correct": 6353
+            },
+            "possible": {
+              "sites": 43,
+              "correct": 0
+            },
+            "ambiguous": {
+              "sites": 38,
+              "correct": 12
+            },
+            "likely": {
+              "sites": 4,
+              "correct": 3
+            }
+          },
+          "recall": {
+            "sites": 6522,
+            "found": 6368
+          },
+          "symbols": 1436,
+          "unmatched": 108
+        },
+        "unknown": 104,
+        "filesWithoutScip": 14
+      }
+    },
+    {
+      "name": "hono",
+      "source": "https://github.com/honojs/hono@bac5c4a8bcd7",
+      "scored": 30,
+      "skipped": 0,
+      "total": {
+        "byStatus": {
+          "resolved": {
+            "sites": 10765,
+            "correct": 10753
+          },
+          "external": {
+            "sites": 22314,
+            "correct": 18753
+          },
+          "ambiguous": {
+            "sites": 3192,
+            "correct": 459
+          },
+          "possible": {
+            "sites": 33,
+            "correct": 2
+          },
+          "likely": {
+            "sites": 14,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 2145,
+              "correct": 2137
+            },
+            "external": {
+              "sites": 150,
+              "correct": 84
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 3841,
+              "correct": 3841
+            },
+            "external": {
+              "sites": 2093,
+              "correct": 1562
+            },
+            "ambiguous": {
+              "sites": 359,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 17,
+              "correct": 0
+            },
+            "likely": {
+              "sites": 2,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 20067,
+              "correct": 17103
+            },
+            "ambiguous": {
+              "sites": 2833,
+              "correct": 459
+            },
+            "resolved": {
+              "sites": 4745,
+              "correct": 4741
+            },
+            "possible": {
+              "sites": 16,
+              "correct": 2
+            },
+            "likely": {
+              "sites": 12,
+              "correct": 0
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 4,
+              "correct": 4
+            },
+            "resolved": {
+              "sites": 34,
+              "correct": 34
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {
+          "external": 337,
+          "ambiguous": 2
+        },
+        "wronglyExternal": 3224,
+        "ambiguous": {
+          "sites": 1733,
+          "correct": 459
+        },
+        "recallIndexed": {
+          "sites": 12105,
+          "found": {
+            "resolved": 10190,
+            "ambiguous": 360
+          },
+          "notExtracted": 1541
+        },
+        "recallAll": {
+          "sites": 12175,
+          "found": {
+            "resolved": 10240,
+            "ambiguous": 362
+          },
+          "notExtracted": 1541
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 1280,
+              "correct": 1280
+            }
+          },
+          "recall": {
+            "sites": 1483,
+            "found": 1280
+          },
+          "symbols": 87,
+          "unmatched": 16
+        },
+        "unknown": 228,
+        "filesWithoutScip": 141
+      }
+    }
+  ],
+  "total": {
+    "byStatus": {
+      "resolved": {
+        "sites": 31734,
+        "correct": 31704
+      },
+      "external": {
+        "sites": 51439,
+        "correct": 47537
+      },
+      "ambiguous": {
+        "sites": 5451,
+        "correct": 2662
+      },
+      "possible": {
+        "sites": 336,
+        "correct": 13
+      },
+      "likely": {
+        "sites": 62,
+        "correct": 2
+      }
+    },
+    "byKind": {
+      "read": {
+        "resolved": {
+          "sites": 10572,
+          "correct": 10560
+        },
+        "external": {
+          "sites": 4453,
+          "correct": 4387
+        },
+        "ambiguous": {
+          "sites": 810,
+          "correct": 810
+        }
+      },
+      "references": {
+        "resolved": {
+          "sites": 8401,
+          "correct": 8401
+        },
+        "external": {
+          "sites": 5617,
+          "correct": 5085
+        },
+        "ambiguous": {
+          "sites": 1447,
+          "correct": 1088
+        },
+        "possible": {
+          "sites": 24,
+          "correct": 0
+        },
+        "likely": {
+          "sites": 2,
+          "correct": 0
+        }
+      },
+      "calls": {
+        "external": {
+          "sites": 41344,
+          "correct": 38040
+        },
+        "ambiguous": {
+          "sites": 3194,
+          "correct": 764
+        },
+        "resolved": {
+          "sites": 12706,
+          "correct": 12688
+        },
+        "possible": {
+          "sites": 312,
+          "correct": 13
+        },
+        "likely": {
+          "sites": 60,
+          "correct": 2
+        }
+      },
+      "implements": {
+        "resolved": {
+          "sites": 55,
+          "correct": 55
+        },
+        "external": {
+          "sites": 25,
+          "correct": 25
+        }
+      }
+    },
+    "localsConnected": {},
+    "declarationsConnected": {
+      "external": 337,
+      "ambiguous": 2
+    },
+    "wronglyExternal": 3565,
+    "ambiguous": {
+      "sites": 3945,
+      "correct": 2662
+    },
+    "recallIndexed": {
+      "sites": 35785,
+      "found": {
+        "resolved": 30993,
+        "ambiguous": 2559
+      },
+      "notExtracted": 1901
+    },
+    "recallAll": {
+      "sites": 36008,
+      "found": {
+        "resolved": 31191,
+        "ambiguous": 2565
+      },
+      "notExtracted": 1901
+    },
+    "usedBy": {
+      "precision": {
+        "resolved": {
+          "sites": 7633,
+          "correct": 7633
+        },
+        "possible": {
+          "sites": 43,
+          "correct": 0
+        },
+        "ambiguous": {
+          "sites": 38,
+          "correct": 12
+        },
+        "likely": {
+          "sites": 4,
+          "correct": 3
+        }
+      },
+      "recall": {
+        "sites": 8005,
+        "found": 7648
+      },
+      "symbols": 1523,
+      "unmatched": 124
+    },
+    "unknown": 332,
+    "filesWithoutScip": 155
+  },
+  "changeSets": [
+    {
+      "entry": "legible",
+      "sha": "6782c6acd38844d1be359dffa4d6d8e0b1c31446",
+      "parent": "d777c9f5f0da368470a485b518853a9031f8dec1",
+      "subject": "M3: Judge retries 429 and 5xx before falling back",
+      "files": 2,
+      "connections": 261,
+      "durationMs": 1166,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 353,
+            "correct": 353
+          },
+          "external": {
+            "sites": 402,
+            "correct": 402
+          },
+          "ambiguous": {
+            "sites": 3,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 137,
+              "correct": 137
+            },
+            "external": {
+              "sites": 24,
+              "correct": 24
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 90,
+              "correct": 90
+            },
+            "external": {
+              "sites": 54,
+              "correct": 54
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 324,
+              "correct": 324
+            },
+            "ambiguous": {
+              "sites": 3,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 122,
+              "correct": 122
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 4,
+              "correct": 4
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 358,
+          "found": {
+            "resolved": 353
+          },
+          "notExtracted": 5
+        },
+        "recallAll": {
+          "sites": 358,
+          "found": {
+            "resolved": 353
+          },
+          "notExtracted": 5
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 28,
+              "correct": 28
+            }
+          },
+          "recall": {
+            "sites": 28,
+            "found": 28
+          },
+          "symbols": 10,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "d777c9f5f0da368470a485b518853a9031f8dec1",
+      "parent": "4ac3ad5ee9302dcdb2dfa00ae19ecc1ec7ab6efa",
+      "subject": "M3: evals load .env and stop on settings they would ignore",
+      "files": 4,
+      "connections": 280,
+      "durationMs": 288,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 209,
+            "correct": 209
+          },
+          "resolved": {
+            "sites": 304,
+            "correct": 304
+          },
+          "ambiguous": {
+            "sites": 16,
+            "correct": 16
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 21,
+              "correct": 21
+            },
+            "resolved": {
+              "sites": 129,
+              "correct": 129
+            },
+            "ambiguous": {
+              "sites": 6,
+              "correct": 6
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 156,
+              "correct": 156
+            },
+            "resolved": {
+              "sites": 109,
+              "correct": 109
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 32,
+              "correct": 32
+            },
+            "ambiguous": {
+              "sites": 10,
+              "correct": 10
+            },
+            "resolved": {
+              "sites": 66,
+              "correct": 66
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 16,
+          "correct": 16
+        },
+        "recallIndexed": {
+          "sites": 250,
+          "found": {
+            "resolved": 238,
+            "ambiguous": 12
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 320,
+          "found": {
+            "resolved": 304,
+            "ambiguous": 16
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 52,
+              "correct": 52
+            }
+          },
+          "recall": {
+            "sites": 52,
+            "found": 52
+          },
+          "symbols": 14,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda",
+      "parent": "b4ef074655c2414c196acff2cbbe880e6ce53537",
+      "subject": "Resizable side panels that remember their widths",
+      "files": 7,
+      "connections": 1078,
+      "durationMs": 655,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 1604,
+            "correct": 1524
+          },
+          "resolved": {
+            "sites": 1015,
+            "correct": 1015
+          },
+          "possible": {
+            "sites": 14,
+            "correct": 0
+          },
+          "ambiguous": {
+            "sites": 105,
+            "correct": 98
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 83,
+              "correct": 83
+            },
+            "resolved": {
+              "sites": 548,
+              "correct": 548
+            },
+            "ambiguous": {
+              "sites": 10,
+              "correct": 10
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 1397,
+              "correct": 1317
+            },
+            "resolved": {
+              "sites": 399,
+              "correct": 399
+            },
+            "possible": {
+              "sites": 12,
+              "correct": 0
+            },
+            "ambiguous": {
+              "sites": 79,
+              "correct": 72
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 124,
+              "correct": 124
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 68,
+              "correct": 68
+            },
+            "ambiguous": {
+              "sites": 16,
+              "correct": 16
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 80,
+        "ambiguous": {
+          "sites": 98,
+          "correct": 98
+        },
+        "recallIndexed": {
+          "sites": 1178,
+          "found": {
+            "resolved": 953,
+            "ambiguous": 98
+          },
+          "notExtracted": 47
+        },
+        "recallAll": {
+          "sites": 1240,
+          "found": {
+            "resolved": 1015,
+            "ambiguous": 98
+          },
+          "notExtracted": 47
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 318,
+              "correct": 318
+            },
+            "possible": {
+              "sites": 10,
+              "correct": 0
+            },
+            "ambiguous": {
+              "sites": 8,
+              "correct": 8
+            }
+          },
+          "recall": {
+            "sites": 328,
+            "found": 326
+          },
+          "symbols": 30,
+          "unmatched": 0
+        },
+        "unknown": 1,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537",
+      "parent": "48e52bc434107c65216a2c4e8fd31a8a5bfe370f",
+      "subject": "M3: fix findings from an independent review",
+      "files": 21,
+      "connections": 4634,
+      "durationMs": 817,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 5696,
+            "correct": 5609
+          },
+          "resolved": {
+            "sites": 4041,
+            "correct": 4041
+          },
+          "possible": {
+            "sites": 97,
+            "correct": 6
+          },
+          "ambiguous": {
+            "sites": 432,
+            "correct": 420
+          },
+          "likely": {
+            "sites": 16,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 630,
+              "correct": 630
+            },
+            "resolved": {
+              "sites": 1509,
+              "correct": 1509
+            },
+            "ambiguous": {
+              "sites": 148,
+              "correct": 148
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 4360,
+              "correct": 4273
+            },
+            "resolved": {
+              "sites": 1544,
+              "correct": 1544
+            },
+            "possible": {
+              "sites": 95,
+              "correct": 6
+            },
+            "ambiguous": {
+              "sites": 76,
+              "correct": 64
+            },
+            "likely": {
+              "sites": 16,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 698,
+              "correct": 698
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 980,
+              "correct": 980
+            },
+            "ambiguous": {
+              "sites": 208,
+              "correct": 208
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 8,
+              "correct": 8
+            },
+            "resolved": {
+              "sites": 8,
+              "correct": 8
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 87,
+        "ambiguous": {
+          "sites": 422,
+          "correct": 420
+        },
+        "recallIndexed": {
+          "sites": 4579,
+          "found": {
+            "resolved": 4041,
+            "ambiguous": 420
+          },
+          "notExtracted": 38
+        },
+        "recallAll": {
+          "sites": 4579,
+          "found": {
+            "resolved": 4041,
+            "ambiguous": 420
+          },
+          "notExtracted": 38
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 589,
+              "correct": 589
+            },
+            "possible": {
+              "sites": 28,
+              "correct": 0
+            }
+          },
+          "recall": {
+            "sites": 647,
+            "found": 589
+          },
+          "symbols": 93,
+          "unmatched": 0
+        },
+        "unknown": 30,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "48e52bc434107c65216a2c4e8fd31a8a5bfe370f",
+      "parent": "340de6b3c6e25e75bf63999967f7fe7c28678bff",
+      "subject": "M3: docs — ADR 0015, dogfooding, README privacy, engineering plan as built",
+      "files": 5,
+      "connections": 83,
+      "durationMs": 218,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 93,
+            "correct": 79
+          },
+          "resolved": {
+            "sites": 94,
+            "correct": 94
+          },
+          "ambiguous": {
+            "sites": 14,
+            "correct": 14
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 6,
+              "correct": 6
+            },
+            "resolved": {
+              "sites": 54,
+              "correct": 54
+            }
+          },
+          "calls": {
+            "resolved": {
+              "sites": 38,
+              "correct": 38
+            },
+            "external": {
+              "sites": 85,
+              "correct": 71
+            },
+            "ambiguous": {
+              "sites": 14,
+              "correct": 14
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 2,
+              "correct": 2
+            },
+            "resolved": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 14,
+        "ambiguous": {
+          "sites": 14,
+          "correct": 14
+        },
+        "recallIndexed": {
+          "sites": 108,
+          "found": {
+            "resolved": 80,
+            "ambiguous": 14
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 122,
+          "found": {
+            "resolved": 94,
+            "ambiguous": 14
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 4,
+              "correct": 4
+            }
+          },
+          "recall": {
+            "sites": 4,
+            "found": 4
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "340de6b3c6e25e75bf63999967f7fe7c28678bff",
+      "parent": "537007c15504794a5c1d5a358124eb7bdddcf371",
+      "subject": "M3: evals harness with six labeled cases",
+      "files": 63,
+      "connections": 766,
+      "durationMs": 388,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 227,
+            "correct": 226
+          },
+          "resolved": {
+            "sites": 201,
+            "correct": 201
+          },
+          "ambiguous": {
+            "sites": 13,
+            "correct": 13
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 23,
+              "correct": 23
+            },
+            "resolved": {
+              "sites": 72,
+              "correct": 72
+            },
+            "ambiguous": {
+              "sites": 5,
+              "correct": 5
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 178,
+              "correct": 178
+            },
+            "resolved": {
+              "sites": 83,
+              "correct": 83
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 26,
+              "correct": 25
+            },
+            "ambiguous": {
+              "sites": 8,
+              "correct": 8
+            },
+            "resolved": {
+              "sites": 46,
+              "correct": 46
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 1,
+        "ambiguous": {
+          "sites": 13,
+          "correct": 13
+        },
+        "recallIndexed": {
+          "sites": 209,
+          "found": {
+            "resolved": 195,
+            "ambiguous": 13
+          },
+          "notExtracted": 1
+        },
+        "recallAll": {
+          "sites": 216,
+          "found": {
+            "resolved": 201,
+            "ambiguous": 13
+          },
+          "notExtracted": 1
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 108,
+              "correct": 108
+            }
+          },
+          "recall": {
+            "sites": 108,
+            "found": 108
+          },
+          "symbols": 32,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 8
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "537007c15504794a5c1d5a358124eb7bdddcf371",
+      "parent": "b727ad2495e99cc45df8d22f413bff47339fd6a4",
+      "subject": "M3: Change Brief, Walkthrough sidebar, Step view and editing, provider and Judge settings",
+      "files": 17,
+      "connections": 3361,
+      "durationMs": 643,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 3851,
+            "correct": 3756
+          },
+          "resolved": {
+            "sites": 3542,
+            "correct": 3542
+          },
+          "possible": {
+            "sites": 29,
+            "correct": 0
+          },
+          "ambiguous": {
+            "sites": 271,
+            "correct": 261
+          },
+          "likely": {
+            "sites": 4,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 340,
+              "correct": 340
+            },
+            "resolved": {
+              "sites": 1613,
+              "correct": 1613
+            },
+            "ambiguous": {
+              "sites": 41,
+              "correct": 41
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 3123,
+              "correct": 3028
+            },
+            "resolved": {
+              "sites": 1440,
+              "correct": 1440
+            },
+            "possible": {
+              "sites": 27,
+              "correct": 0
+            },
+            "ambiguous": {
+              "sites": 107,
+              "correct": 97
+            },
+            "likely": {
+              "sites": 4,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 388,
+              "correct": 388
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 489,
+              "correct": 489
+            },
+            "ambiguous": {
+              "sites": 123,
+              "correct": 123
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 95,
+        "ambiguous": {
+          "sites": 261,
+          "correct": 261
+        },
+        "recallIndexed": {
+          "sites": 3965,
+          "found": {
+            "resolved": 3542,
+            "ambiguous": 261
+          },
+          "notExtracted": 73
+        },
+        "recallAll": {
+          "sites": 3965,
+          "found": {
+            "resolved": 3542,
+            "ambiguous": 261
+          },
+          "notExtracted": 73
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 534,
+              "correct": 534
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 2
+            }
+          },
+          "recall": {
+            "sites": 544,
+            "found": 536
+          },
+          "symbols": 183,
+          "unmatched": 67
+        },
+        "unknown": 17,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "b727ad2495e99cc45df8d22f413bff47339fd6a4",
+      "parent": "78c41ec65243341614728222c61282eaa343d547",
+      "subject": "M3: Understanding service, agent host pipelines, ChatGPT sign-in and IPC",
+      "files": 20,
+      "connections": 3826,
+      "durationMs": 480,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 3451,
+            "correct": 3442
+          },
+          "resolved": {
+            "sites": 2504,
+            "correct": 2504
+          },
+          "likely": {
+            "sites": 10,
+            "correct": 0
+          },
+          "ambiguous": {
+            "sites": 351,
+            "correct": 342
+          },
+          "possible": {
+            "sites": 62,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 705,
+              "correct": 705
+            },
+            "resolved": {
+              "sites": 996,
+              "correct": 996
+            },
+            "ambiguous": {
+              "sites": 157,
+              "correct": 157
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 4,
+              "correct": 4
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 685,
+              "correct": 685
+            },
+            "external": {
+              "sites": 548,
+              "correct": 548
+            },
+            "ambiguous": {
+              "sites": 185,
+              "correct": 185
+            }
+          },
+          "calls": {
+            "resolved": {
+              "sites": 823,
+              "correct": 823
+            },
+            "external": {
+              "sites": 2194,
+              "correct": 2185
+            },
+            "likely": {
+              "sites": 10,
+              "correct": 0
+            },
+            "ambiguous": {
+              "sites": 9,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 62,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 9,
+        "ambiguous": {
+          "sites": 342,
+          "correct": 342
+        },
+        "recallIndexed": {
+          "sites": 2875,
+          "found": {
+            "resolved": 2504,
+            "ambiguous": 342
+          },
+          "notExtracted": 29
+        },
+        "recallAll": {
+          "sites": 2875,
+          "found": {
+            "resolved": 2504,
+            "ambiguous": 342
+          },
+          "notExtracted": 29
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 782,
+              "correct": 782
+            },
+            "ambiguous": {
+              "sites": 1,
+              "correct": 0
+            }
+          },
+          "recall": {
+            "sites": 782,
+            "found": 782
+          },
+          "symbols": 173,
+          "unmatched": 2
+        },
+        "unknown": 28,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "78c41ec65243341614728222c61282eaa343d547",
+      "parent": "3968d87cc2bf29913caf370c89410bb43ad96436",
+      "subject": "M3: Intent, Walkthrough and Change Brief pipelines",
+      "files": 23,
+      "connections": 2358,
+      "durationMs": 334,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 2239,
+            "correct": 2239
+          },
+          "ambiguous": {
+            "sites": 241,
+            "correct": 239
+          },
+          "resolved": {
+            "sites": 1168,
+            "correct": 1168
+          },
+          "possible": {
+            "sites": 17,
+            "correct": 0
+          },
+          "likely": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 466,
+              "correct": 466
+            },
+            "ambiguous": {
+              "sites": 114,
+              "correct": 114
+            },
+            "resolved": {
+              "sites": 409,
+              "correct": 409
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 1548,
+              "correct": 1548
+            },
+            "resolved": {
+              "sites": 456,
+              "correct": 456
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 17,
+              "correct": 0
+            },
+            "likely": {
+              "sites": 2,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 224,
+              "correct": 224
+            },
+            "ambiguous": {
+              "sites": 125,
+              "correct": 125
+            },
+            "resolved": {
+              "sites": 303,
+              "correct": 303
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 1,
+              "correct": 1
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 241,
+          "correct": 239
+        },
+        "recallIndexed": {
+          "sites": 1408,
+          "found": {
+            "ambiguous": 239,
+            "resolved": 1168
+          },
+          "notExtracted": 1
+        },
+        "recallAll": {
+          "sites": 1408,
+          "found": {
+            "ambiguous": 239,
+            "resolved": 1168
+          },
+          "notExtracted": 1
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 613,
+              "correct": 613
+            }
+          },
+          "recall": {
+            "sites": 618,
+            "found": 613
+          },
+          "symbols": 143,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "3968d87cc2bf29913caf370c89410bb43ad96436",
+      "parent": "18b758a5e4897100fc7a7de5594aa2cd732e6f04",
+      "subject": "M3: Fragment graph — dependencies, reach and test links for the Walkthrough planner",
+      "files": 7,
+      "connections": 2022,
+      "durationMs": 341,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 1575,
+            "correct": 1575
+          },
+          "resolved": {
+            "sites": 1146,
+            "correct": 1146
+          },
+          "ambiguous": {
+            "sites": 204,
+            "correct": 204
+          },
+          "possible": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 361,
+              "correct": 361
+            },
+            "resolved": {
+              "sites": 311,
+              "correct": 311
+            },
+            "ambiguous": {
+              "sites": 88,
+              "correct": 88
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 450,
+              "correct": 450
+            },
+            "external": {
+              "sites": 278,
+              "correct": 278
+            },
+            "ambiguous": {
+              "sites": 116,
+              "correct": 116
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 2,
+              "correct": 2
+            }
+          },
+          "calls": {
+            "resolved": {
+              "sites": 383,
+              "correct": 383
+            },
+            "external": {
+              "sites": 936,
+              "correct": 936
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 204,
+          "correct": 204
+        },
+        "recallIndexed": {
+          "sites": 1382,
+          "found": {
+            "resolved": 1146,
+            "ambiguous": 204
+          },
+          "notExtracted": 32
+        },
+        "recallAll": {
+          "sites": 1382,
+          "found": {
+            "resolved": 1146,
+            "ambiguous": 204
+          },
+          "notExtracted": 32
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 222,
+              "correct": 222
+            }
+          },
+          "recall": {
+            "sites": 232,
+            "found": 222
+          },
+          "symbols": 38,
+          "unmatched": 0
+        },
+        "unknown": 2,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "18b758a5e4897100fc7a7de5594aa2cd732e6f04",
+      "parent": "33010da3d479901af8e9db0e28907abdad398245",
+      "subject": "M3: packages/judge with TypeSafe Jev, OpenAI Decisions and fast-tier backends",
+      "files": 10,
+      "connections": 594,
+      "durationMs": 216,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 402,
+            "correct": 402
+          },
+          "external": {
+            "sites": 407,
+            "correct": 407
+          },
+          "ambiguous": {
+            "sites": 15,
+            "correct": 14
+          },
+          "possible": {
+            "sites": 10,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 200,
+              "correct": 200
+            },
+            "external": {
+              "sites": 37,
+              "correct": 37
+            },
+            "ambiguous": {
+              "sites": 7,
+              "correct": 7
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 317,
+              "correct": 317
+            },
+            "possible": {
+              "sites": 10,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 88,
+              "correct": 88
+            },
+            "ambiguous": {
+              "sites": 1,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 52,
+              "correct": 52
+            },
+            "ambiguous": {
+              "sites": 7,
+              "correct": 7
+            },
+            "resolved": {
+              "sites": 111,
+              "correct": 111
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 3,
+              "correct": 3
+            },
+            "external": {
+              "sites": 1,
+              "correct": 1
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 14,
+          "correct": 14
+        },
+        "recallIndexed": {
+          "sites": 419,
+          "found": {
+            "resolved": 402,
+            "ambiguous": 14
+          },
+          "notExtracted": 3
+        },
+        "recallAll": {
+          "sites": 419,
+          "found": {
+            "resolved": 402,
+            "ambiguous": 14
+          },
+          "notExtracted": 3
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 329,
+              "correct": 329
+            }
+          },
+          "recall": {
+            "sites": 344,
+            "found": 329
+          },
+          "symbols": 55,
+          "unmatched": 0
+        },
+        "unknown": 1,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "33010da3d479901af8e9db0e28907abdad398245",
+      "parent": "3c517a8205c367fe4c653778d90a696e43640d27",
+      "subject": "M3: domain types and storage for Intent, Walkthrough and Change Brief; OpenAI runtime and cross-provider router",
+      "files": 13,
+      "connections": 2014,
+      "durationMs": 259,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 755,
+            "correct": 755
+          },
+          "ambiguous": {
+            "sites": 259,
+            "correct": 256
+          },
+          "external": {
+            "sites": 1560,
+            "correct": 1560
+          },
+          "possible": {
+            "sites": 35,
+            "correct": 5
+          },
+          "likely": {
+            "sites": 11,
+            "correct": 2
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 286,
+              "correct": 286
+            },
+            "ambiguous": {
+              "sites": 106,
+              "correct": 106
+            },
+            "external": {
+              "sites": 354,
+              "correct": 354
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 283,
+              "correct": 283
+            },
+            "external": {
+              "sites": 251,
+              "correct": 251
+            },
+            "ambiguous": {
+              "sites": 150,
+              "correct": 150
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 950,
+              "correct": 950
+            },
+            "resolved": {
+              "sites": 183,
+              "correct": 183
+            },
+            "possible": {
+              "sites": 35,
+              "correct": 5
+            },
+            "ambiguous": {
+              "sites": 3,
+              "correct": 0
+            },
+            "likely": {
+              "sites": 11,
+              "correct": 2
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 3,
+              "correct": 3
+            },
+            "external": {
+              "sites": 5,
+              "correct": 5
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 259,
+          "correct": 256
+        },
+        "recallIndexed": {
+          "sites": 1013,
+          "found": {
+            "resolved": 755,
+            "ambiguous": 256
+          },
+          "notExtracted": 2
+        },
+        "recallAll": {
+          "sites": 1013,
+          "found": {
+            "resolved": 755,
+            "ambiguous": 256
+          },
+          "notExtracted": 2
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 538,
+              "correct": 538
+            },
+            "likely": {
+              "sites": 3,
+              "correct": 3
+            }
+          },
+          "recall": {
+            "sites": 583,
+            "found": 541
+          },
+          "symbols": 136,
+          "unmatched": 3
+        },
+        "unknown": 8,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "3c517a8205c367fe4c653778d90a696e43640d27",
+      "parent": "979f18376c178e55528286fff3fb60bf1007baf1",
+      "subject": "M2: code structure — tree-sitter indexer, Symbols, Connections panel, ⌘-click and Trail (#67)",
+      "files": 85,
+      "connections": 6131,
+      "durationMs": 815,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 6957,
+            "correct": 6902
+          },
+          "resolved": {
+            "sites": 5064,
+            "correct": 5046
+          },
+          "ambiguous": {
+            "sites": 335,
+            "correct": 326
+          },
+          "likely": {
+            "sites": 5,
+            "correct": 0
+          },
+          "possible": {
+            "sites": 31,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 1142,
+              "correct": 1142
+            },
+            "resolved": {
+              "sites": 1887,
+              "correct": 1883
+            },
+            "ambiguous": {
+              "sites": 128,
+              "correct": 128
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 5002,
+              "correct": 4947
+            },
+            "resolved": {
+              "sites": 2191,
+              "correct": 2177
+            },
+            "ambiguous": {
+              "sites": 67,
+              "correct": 58
+            },
+            "likely": {
+              "sites": 5,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 30,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 811,
+              "correct": 811
+            },
+            "resolved": {
+              "sites": 985,
+              "correct": 985
+            },
+            "ambiguous": {
+              "sites": 140,
+              "correct": 140
+            },
+            "possible": {
+              "sites": 1,
+              "correct": 0
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 2,
+              "correct": 2
+            },
+            "resolved": {
+              "sites": 1,
+              "correct": 1
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 55,
+        "ambiguous": {
+          "sites": 328,
+          "correct": 326
+        },
+        "recallIndexed": {
+          "sites": 5556,
+          "found": {
+            "resolved": 5046,
+            "ambiguous": 326
+          },
+          "notExtracted": 129
+        },
+        "recallAll": {
+          "sites": 5556,
+          "found": {
+            "resolved": 5046,
+            "ambiguous": 326
+          },
+          "notExtracted": 129
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 2236,
+              "correct": 2236
+            },
+            "ambiguous": {
+              "sites": 27,
+              "correct": 2
+            },
+            "likely": {
+              "sites": 1,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 5,
+              "correct": 0
+            }
+          },
+          "recall": {
+            "sites": 2252,
+            "found": 2238
+          },
+          "symbols": 527,
+          "unmatched": 36
+        },
+        "unknown": 17,
+        "filesWithoutScip": 6
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "979f18376c178e55528286fff3fb60bf1007baf1",
+      "parent": "74cc4eca1bc6e819e7d08647aa57059a3e9a87cc",
+      "subject": "Fix the macOS test failure that stopped the first release, and run CI on macOS (#65)",
+      "files": 4,
+      "connections": 301,
+      "durationMs": 207,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 854,
+            "correct": 854
+          },
+          "resolved": {
+            "sites": 380,
+            "correct": 380
+          },
+          "possible": {
+            "sites": 6,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 111,
+              "correct": 111
+            },
+            "resolved": {
+              "sites": 276,
+              "correct": 276
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 707,
+              "correct": 707
+            },
+            "resolved": {
+              "sites": 102,
+              "correct": 102
+            },
+            "possible": {
+              "sites": 6,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 36,
+              "correct": 36
+            },
+            "resolved": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 380,
+          "found": {
+            "resolved": 380
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 380,
+          "found": {
+            "resolved": 380
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "legible",
+      "sha": "74cc4eca1bc6e819e7d08647aa57059a3e9a87cc",
+      "parent": "b5d1d5c183b51b9b8d24c8121350b9350c859564",
+      "subject": "M1: desktop shell, diff viewer and Explanations (#2)",
+      "files": 0,
+      "connections": 0,
+      "durationMs": 0,
+      "score": null,
+      "skipped": "parent b5d1d5c1 not indexed: - . (missing tsconfig.json)"
+    },
+    {
+      "entry": "hono",
+      "sha": "eb78ecaabe26baa8addc053cf8a94b5b7603c001",
+      "parent": "06a45bc3a639c1f9eea28e16370bc03447f0d7cb",
+      "subject": "fix(utils/url): preserve encoded duplicate query order (#5495)",
+      "files": 3,
+      "connections": 376,
+      "durationMs": 2154,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 644,
+            "correct": 640
+          },
+          "external": {
+            "sites": 1687,
+            "correct": 1687
+          },
+          "ambiguous": {
+            "sites": 95,
+            "correct": 83
+          },
+          "possible": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 116,
+              "correct": 116
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 117,
+              "correct": 117
+            },
+            "external": {
+              "sites": 225,
+              "correct": 225
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 1462,
+              "correct": 1462
+            },
+            "ambiguous": {
+              "sites": 95,
+              "correct": 83
+            },
+            "resolved": {
+              "sites": 411,
+              "correct": 407
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 83,
+          "correct": 83
+        },
+        "recallIndexed": {
+          "sites": 731,
+          "found": {
+            "resolved": 640,
+            "ambiguous": 83
+          },
+          "notExtracted": 8
+        },
+        "recallAll": {
+          "sites": 731,
+          "found": {
+            "resolved": 640,
+            "ambiguous": 83
+          },
+          "notExtracted": 8
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 4,
+              "correct": 4
+            }
+          },
+          "recall": {
+            "sites": 4,
+            "found": 4
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "06a45bc3a639c1f9eea28e16370bc03447f0d7cb",
+      "parent": "5ca49b0720755c585c9a9835f0a479ceea36fb52",
+      "subject": "feat(bearer-auth): allow MessageFunction to return a Response (#5269)",
+      "files": 2,
+      "connections": 101,
+      "durationMs": 558,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 1284,
+            "correct": 1122
+          },
+          "resolved": {
+            "sites": 266,
+            "correct": 266
+          },
+          "ambiguous": {
+            "sites": 142,
+            "correct": 2
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 2,
+              "correct": 2
+            },
+            "resolved": {
+              "sites": 26,
+              "correct": 26
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 1179,
+              "correct": 1017
+            },
+            "resolved": {
+              "sites": 160,
+              "correct": 160
+            },
+            "ambiguous": {
+              "sites": 132,
+              "correct": 2
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 80,
+              "correct": 80
+            },
+            "external": {
+              "sites": 103,
+              "correct": 103
+            },
+            "ambiguous": {
+              "sites": 10,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 162,
+        "ambiguous": {
+          "sites": 74,
+          "correct": 2
+        },
+        "recallIndexed": {
+          "sites": 198,
+          "found": {
+            "resolved": 194
+          },
+          "notExtracted": 4
+        },
+        "recallAll": {
+          "sites": 200,
+          "found": {
+            "resolved": 194,
+            "ambiguous": 2
+          },
+          "notExtracted": 4
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 108,
+              "correct": 108
+            }
+          },
+          "recall": {
+            "sites": 108,
+            "found": 108
+          },
+          "symbols": 17,
+          "unmatched": 10
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52",
+      "parent": "e9c01079a932ffdfa269c0011075ac43fd8a1035",
+      "subject": "fix(css): Fix multiline CSS handling in style replacement (#5405)",
+      "files": 2,
+      "connections": 340,
+      "durationMs": 473,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 443,
+            "correct": 435
+          },
+          "external": {
+            "sites": 439,
+            "correct": 366
+          },
+          "ambiguous": {
+            "sites": 4,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 151,
+              "correct": 143
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 86,
+              "correct": 86
+            },
+            "external": {
+              "sites": 62,
+              "correct": 60
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "resolved": {
+              "sites": 206,
+              "correct": 206
+            },
+            "external": {
+              "sites": 377,
+              "correct": 306
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 73,
+        "ambiguous": {
+          "sites": 2,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 443,
+          "found": {
+            "resolved": 435
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 445,
+          "found": {
+            "resolved": 435
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 38,
+              "correct": 38
+            }
+          },
+          "recall": {
+            "sites": 38,
+            "found": 38
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035",
+      "parent": "08807ce12aa3aa27c8c5adf63e677bbab6bceda9",
+      "subject": "fix(hono-base): disallow `getPath` when `strict` is `false` (#5563)",
+      "files": 3,
+      "connections": 928,
+      "durationMs": 868,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 2095,
+            "correct": 2095
+          },
+          "external": {
+            "sites": 4665,
+            "correct": 3232
+          },
+          "ambiguous": {
+            "sites": 1124,
+            "correct": 122
+          },
+          "likely": {
+            "sites": 4,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 154,
+              "correct": 154
+            },
+            "external": {
+              "sites": 16,
+              "correct": 2
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 1083,
+              "correct": 1083
+            },
+            "external": {
+              "sites": 603,
+              "correct": 148
+            },
+            "ambiguous": {
+              "sites": 124,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "ambiguous": {
+              "sites": 1000,
+              "correct": 122
+            },
+            "external": {
+              "sites": 4044,
+              "correct": 3080
+            },
+            "resolved": {
+              "sites": 856,
+              "correct": 856
+            },
+            "likely": {
+              "sites": 4,
+              "correct": 0
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 2,
+              "correct": 2
+            },
+            "resolved": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {
+          "external": 337,
+          "ambiguous": 2
+        },
+        "wronglyExternal": 1096,
+        "ambiguous": {
+          "sites": 614,
+          "correct": 122
+        },
+        "recallIndexed": {
+          "sites": 2729,
+          "found": {
+            "resolved": 1947,
+            "ambiguous": 120
+          },
+          "notExtracted": 658
+        },
+        "recallAll": {
+          "sites": 2735,
+          "found": {
+            "resolved": 1947,
+            "ambiguous": 120
+          },
+          "notExtracted": 658
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 25,
+              "correct": 25
+            }
+          },
+          "recall": {
+            "sites": 25,
+            "found": 25
+          },
+          "symbols": 4,
+          "unmatched": 2
+        },
+        "unknown": 66,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "08807ce12aa3aa27c8c5adf63e677bbab6bceda9",
+      "parent": "e77c7c8eb9fea50a496ba10010063998b55d7a6b",
+      "subject": "fix(trie-router): keep first value for duplicate path params (#5422) (#5423)",
+      "files": 5,
+      "connections": 686,
+      "durationMs": 803,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 7242,
+            "correct": 6283
+          },
+          "resolved": {
+            "sites": 2169,
+            "correct": 2169
+          },
+          "ambiguous": {
+            "sites": 1069,
+            "correct": 120
+          },
+          "likely": {
+            "sites": 4,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 4,
+              "correct": 4
+            },
+            "resolved": {
+              "sites": 110,
+              "correct": 110
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 130,
+              "correct": 124
+            },
+            "ambiguous": {
+              "sites": 92,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 511,
+              "correct": 511
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 7106,
+              "correct": 6153
+            },
+            "ambiguous": {
+              "sites": 977,
+              "correct": 120
+            },
+            "resolved": {
+              "sites": 1546,
+              "correct": 1546
+            },
+            "likely": {
+              "sites": 4,
+              "correct": 0
+            }
+          },
+          "implements": {
+            "external": {
+              "sites": 2,
+              "correct": 2
+            },
+            "resolved": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 959,
+        "ambiguous": {
+          "sites": 593,
+          "correct": 120
+        },
+        "recallIndexed": {
+          "sites": 2783,
+          "found": {
+            "resolved": 2021,
+            "ambiguous": 118
+          },
+          "notExtracted": 644
+        },
+        "recallAll": {
+          "sites": 2789,
+          "found": {
+            "resolved": 2021,
+            "ambiguous": 118
+          },
+          "notExtracted": 644
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 350,
+              "correct": 350
+            }
+          },
+          "recall": {
+            "sites": 350,
+            "found": 350
+          },
+          "symbols": 6,
+          "unmatched": 0
+        },
+        "unknown": 62,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "e77c7c8eb9fea50a496ba10010063998b55d7a6b",
+      "parent": "d54720da80134a180f5fe2dd98a7676cfc8f08b4",
+      "subject": "fix(helper/route): match regex params in basePath() the same way as the router (#5498)",
+      "files": 2,
+      "connections": 83,
+      "durationMs": 540,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 204,
+            "correct": 204
+          },
+          "external": {
+            "sites": 189,
+            "correct": 178
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 94,
+              "correct": 94
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 169,
+              "correct": 158
+            },
+            "resolved": {
+              "sites": 74,
+              "correct": 74
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 20,
+              "correct": 20
+            },
+            "resolved": {
+              "sites": 36,
+              "correct": 36
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 11,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 222,
+          "found": {
+            "resolved": 204
+          },
+          "notExtracted": 18
+        },
+        "recallAll": {
+          "sites": 222,
+          "found": {
+            "resolved": 204
+          },
+          "notExtracted": 18
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 29,
+              "correct": 29
+            }
+          },
+          "recall": {
+            "sites": 29,
+            "found": 29
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 2,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "d54720da80134a180f5fe2dd98a7676cfc8f08b4",
+      "parent": "ae401f080004872678100e890fd3398d3df09e67",
+      "subject": "fix(serve-static): respect q-values in Accept-Encoding for precompressed files (#5436)",
+      "files": 2,
+      "connections": 142,
+      "durationMs": 452,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 156,
+            "correct": 156
+          },
+          "external": {
+            "sites": 641,
+            "correct": 560
+          },
+          "ambiguous": {
+            "sites": 104,
+            "correct": 29
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 37,
+              "correct": 37
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 617,
+              "correct": 536
+            },
+            "resolved": {
+              "sites": 54,
+              "correct": 54
+            },
+            "ambiguous": {
+              "sites": 98,
+              "correct": 29
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 65,
+              "correct": 65
+            },
+            "external": {
+              "sites": 24,
+              "correct": 24
+            },
+            "ambiguous": {
+              "sites": 6,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 81,
+        "ambiguous": {
+          "sites": 49,
+          "correct": 29
+        },
+        "recallIndexed": {
+          "sites": 166,
+          "found": {
+            "resolved": 148,
+            "ambiguous": 2
+          },
+          "notExtracted": 16
+        },
+        "recallAll": {
+          "sites": 166,
+          "found": {
+            "resolved": 148,
+            "ambiguous": 2
+          },
+          "notExtracted": 16
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 47,
+              "correct": 47
+            }
+          },
+          "recall": {
+            "sites": 61,
+            "found": 47
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 2,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "ae401f080004872678100e890fd3398d3df09e67",
+      "parent": "2013fed5b21719bb1e6f44ce7f49757660946856",
+      "subject": "fix(css): keep the descendant combinator before a pseudo-class when minifying (#5451)",
+      "files": 2,
+      "connections": 355,
+      "durationMs": 421,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 432,
+            "correct": 360
+          },
+          "resolved": {
+            "sites": 471,
+            "correct": 471
+          },
+          "possible": {
+            "sites": 4,
+            "correct": 0
+          },
+          "ambiguous": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "references": {
+            "external": {
+              "sites": 34,
+              "correct": 32
+            },
+            "resolved": {
+              "sites": 112,
+              "correct": 112
+            },
+            "possible": {
+              "sites": 4,
+              "correct": 0
+            }
+          },
+          "read": {
+            "resolved": {
+              "sites": 156,
+              "correct": 156
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 398,
+              "correct": 328
+            },
+            "resolved": {
+              "sites": 203,
+              "correct": 203
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 72,
+        "ambiguous": {
+          "sites": 2,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 471,
+          "found": {
+            "resolved": 471
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 473,
+          "found": {
+            "resolved": 471
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 8,
+              "correct": 8
+            }
+          },
+          "recall": {
+            "sites": 8,
+            "found": 8
+          },
+          "symbols": 4,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "2013fed5b21719bb1e6f44ce7f49757660946856",
+      "parent": "43379d93e23abaaa54ff85f2ce64a149f50d4295",
+      "subject": "fix(css): keep \"//\" inside an unquoted url() when minifying (#5450)",
+      "files": 2,
+      "connections": 355,
+      "durationMs": 403,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 432,
+            "correct": 360
+          },
+          "resolved": {
+            "sites": 469,
+            "correct": 469
+          },
+          "possible": {
+            "sites": 4,
+            "correct": 0
+          },
+          "ambiguous": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "references": {
+            "external": {
+              "sites": 34,
+              "correct": 32
+            },
+            "resolved": {
+              "sites": 112,
+              "correct": 112
+            },
+            "possible": {
+              "sites": 4,
+              "correct": 0
+            }
+          },
+          "read": {
+            "resolved": {
+              "sites": 156,
+              "correct": 156
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 398,
+              "correct": 328
+            },
+            "resolved": {
+              "sites": 201,
+              "correct": 201
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 72,
+        "ambiguous": {
+          "sites": 2,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 469,
+          "found": {
+            "resolved": 469
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 471,
+          "found": {
+            "resolved": 469
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 4,
+              "correct": 4
+            }
+          },
+          "recall": {
+            "sites": 4,
+            "found": 4
+          },
+          "symbols": 4,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "43379d93e23abaaa54ff85f2ce64a149f50d4295",
+      "parent": "3362244401515a1530616aefb87eb388152f82a3",
+      "subject": "fix(jsx): preserve self-closing void elements in cloneElement (#5314)",
+      "files": 2,
+      "connections": 606,
+      "durationMs": 597,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 396,
+            "correct": 396
+          },
+          "external": {
+            "sites": 237,
+            "correct": 213
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 114,
+              "correct": 114
+            },
+            "external": {
+              "sites": 6,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 183,
+              "correct": 165
+            },
+            "resolved": {
+              "sites": 108,
+              "correct": 108
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 168,
+              "correct": 168
+            },
+            "external": {
+              "sites": 48,
+              "correct": 48
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 6,
+              "correct": 6
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 24,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 388,
+          "found": {
+            "resolved": 382
+          },
+          "notExtracted": 6
+        },
+        "recallAll": {
+          "sites": 388,
+          "found": {
+            "resolved": 382
+          },
+          "notExtracted": 6
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 16,
+              "correct": 16
+            }
+          },
+          "recall": {
+            "sites": 16,
+            "found": 16
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 4,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "3362244401515a1530616aefb87eb388152f82a3",
+      "parent": "588ec13fa68ea44fed1b5e1b503341db2bf09d70",
+      "subject": "fix(build): keep barrel imports in the bundled `d.ts` (#5557)",
+      "files": 5,
+      "connections": 206,
+      "durationMs": 390,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 30,
+            "correct": 30
+          },
+          "external": {
+            "sites": 16,
+            "correct": 8
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 14,
+              "correct": 14
+            },
+            "external": {
+              "sites": 2,
+              "correct": 0
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 14,
+              "correct": 14
+            },
+            "external": {
+              "sites": 12,
+              "correct": 8
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 2,
+              "correct": 0
+            },
+            "resolved": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 8,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 26,
+          "found": {
+            "resolved": 26
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 30,
+          "found": {
+            "resolved": 30
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 8
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "588ec13fa68ea44fed1b5e1b503341db2bf09d70",
+      "parent": "552ea024250093a48071b3ded9710de4c6e05f14",
+      "subject": "fix(serve-static): only serve GET and HEAD requests (#5514)",
+      "files": 2,
+      "connections": 140,
+      "durationMs": 453,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 148,
+            "correct": 148
+          },
+          "external": {
+            "sites": 590,
+            "correct": 514
+          },
+          "ambiguous": {
+            "sites": 95,
+            "correct": 25
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 36,
+              "correct": 36
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 566,
+              "correct": 490
+            },
+            "resolved": {
+              "sites": 51,
+              "correct": 51
+            },
+            "ambiguous": {
+              "sites": 89,
+              "correct": 25
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 61,
+              "correct": 61
+            },
+            "external": {
+              "sites": 24,
+              "correct": 24
+            },
+            "ambiguous": {
+              "sites": 6,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 76,
+        "ambiguous": {
+          "sites": 44,
+          "correct": 25
+        },
+        "recallIndexed": {
+          "sites": 154,
+          "found": {
+            "resolved": 140,
+            "ambiguous": 2
+          },
+          "notExtracted": 12
+        },
+        "recallAll": {
+          "sites": 154,
+          "found": {
+            "resolved": 140,
+            "ambiguous": 2
+          },
+          "notExtracted": 12
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 45,
+              "correct": 45
+            }
+          },
+          "recall": {
+            "sites": 59,
+            "found": 45
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 2,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "f78a245abc393368583085e19c7f5b28b460bf51",
+      "parent": "decda78a369f0a2bd6e989b62b61bda978599791",
+      "subject": "chore: unified oxfmt and oxlint config (#5518)",
+      "files": 3,
+      "connections": 42,
+      "durationMs": 679,
+      "score": {
+        "byStatus": {},
+        "byKind": {},
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 2
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "ae595de8ae05ea548560da93140ee1d53e5a8202",
+      "parent": "f23b146afcec63606144cde50b5fbd360dd60238",
+      "subject": "feat(mount): introduce Mount Middleware and deprecate `app.mount` (#5221)",
+      "files": 5,
+      "connections": 355,
+      "durationMs": 760,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 283,
+            "correct": 283
+          },
+          "external": {
+            "sites": 307,
+            "correct": 233
+          },
+          "ambiguous": {
+            "sites": 90,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 89,
+              "correct": 89
+            },
+            "external": {
+              "sites": 12,
+              "correct": 0
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 146,
+              "correct": 146
+            },
+            "external": {
+              "sites": 79,
+              "correct": 59
+            },
+            "ambiguous": {
+              "sites": 46,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "ambiguous": {
+              "sites": 44,
+              "correct": 0
+            },
+            "external": {
+              "sites": 216,
+              "correct": 174
+            },
+            "resolved": {
+              "sites": 48,
+              "correct": 48
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 74,
+        "ambiguous": {
+          "sites": 21,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 302,
+          "found": {
+            "resolved": 281
+          },
+          "notExtracted": 19
+        },
+        "recallAll": {
+          "sites": 302,
+          "found": {
+            "resolved": 281
+          },
+          "notExtracted": 19
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 324,
+              "correct": 324
+            }
+          },
+          "recall": {
+            "sites": 481,
+            "found": 324
+          },
+          "symbols": 18,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "f23b146afcec63606144cde50b5fbd360dd60238",
+      "parent": "6d73a74f9757ed65d6103c0e8375097fa20873c4",
+      "subject": "fix(jsx): allow JSXNode function component results (#5476)",
+      "files": 2,
+      "connections": 597,
+      "durationMs": 582,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 390,
+            "correct": 390
+          },
+          "external": {
+            "sites": 218,
+            "correct": 198
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 114,
+              "correct": 114
+            },
+            "external": {
+              "sites": 6,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 164,
+              "correct": 150
+            },
+            "resolved": {
+              "sites": 104,
+              "correct": 104
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 166,
+              "correct": 166
+            },
+            "external": {
+              "sites": 48,
+              "correct": 48
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 6,
+              "correct": 6
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 20,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 382,
+          "found": {
+            "resolved": 376
+          },
+          "notExtracted": 6
+        },
+        "recallAll": {
+          "sites": 382,
+          "found": {
+            "resolved": 376
+          },
+          "notExtracted": 6
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 5,
+              "correct": 5
+            }
+          },
+          "recall": {
+            "sites": 5,
+            "found": 5
+          },
+          "symbols": 3,
+          "unmatched": 0
+        },
+        "unknown": 4,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "6d73a74f9757ed65d6103c0e8375097fa20873c4",
+      "parent": "deff529656cff775b35956f7f9071388d4eb55ae",
+      "subject": "docs(request): fix jsdoc comments for some getters (#5445)",
+      "files": 1,
+      "connections": 330,
+      "durationMs": 428,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 98,
+            "correct": 98
+          },
+          "external": {
+            "sites": 140,
+            "correct": 104
+          },
+          "ambiguous": {
+            "sites": 4,
+            "correct": 2
+          },
+          "possible": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 32,
+              "correct": 32
+            },
+            "external": {
+              "sites": 10,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 106,
+              "correct": 80
+            },
+            "resolved": {
+              "sites": 56,
+              "correct": 56
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "resolved": {
+              "sites": 10,
+              "correct": 10
+            },
+            "external": {
+              "sites": 24,
+              "correct": 24
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 36,
+        "ambiguous": {
+          "sites": 2,
+          "correct": 2
+        },
+        "recallIndexed": {
+          "sites": 108,
+          "found": {
+            "resolved": 98,
+            "ambiguous": 2
+          },
+          "notExtracted": 8
+        },
+        "recallAll": {
+          "sites": 108,
+          "found": {
+            "resolved": 98,
+            "ambiguous": 2
+          },
+          "notExtracted": 8
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 104,
+              "correct": 104
+            }
+          },
+          "recall": {
+            "sites": 104,
+            "found": 104
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 4,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "deff529656cff775b35956f7f9071388d4eb55ae",
+      "parent": "6abd35b0a5f35f67b6417627d5b0a6c2d266ac04",
+      "subject": "test(client): simulate network error for undefined route in parseResponse test (#5439)",
+      "files": 1,
+      "connections": 145,
+      "durationMs": 378,
+      "score": {
+        "byStatus": {
+          "external": {
+            "sites": 454,
+            "correct": 426
+          },
+          "resolved": {
+            "sites": 166,
+            "correct": 166
+          },
+          "ambiguous": {
+            "sites": 24,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "external": {
+              "sites": 52,
+              "correct": 52
+            },
+            "resolved": {
+              "sites": 28,
+              "correct": 28
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 368,
+              "correct": 340
+            },
+            "resolved": {
+              "sites": 90,
+              "correct": 90
+            },
+            "ambiguous": {
+              "sites": 24,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 34,
+              "correct": 34
+            },
+            "resolved": {
+              "sites": 48,
+              "correct": 48
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 28,
+        "ambiguous": {
+          "sites": 24,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 166,
+          "found": {
+            "resolved": 166
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 166,
+          "found": {
+            "resolved": 166
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 22,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "afb2068c1c53a530528ac5f237e245793dd03c07",
+      "parent": "e5bb2062a3ddd645e3a16d1300bd76d6c9af33a5",
+      "subject": "fix(combine): return a Response from a short-circuiting middleware in some() (#5391)",
+      "files": 2,
+      "connections": 117,
+      "durationMs": 808,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 225,
+            "correct": 225
+          },
+          "external": {
+            "sites": 418,
+            "correct": 324
+          },
+          "ambiguous": {
+            "sites": 102,
+            "correct": 6
+          },
+          "possible": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 85,
+              "correct": 85
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 60,
+              "correct": 60
+            },
+            "external": {
+              "sites": 16,
+              "correct": 16
+            },
+            "ambiguous": {
+              "sites": 1,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 402,
+              "correct": 308
+            },
+            "resolved": {
+              "sites": 80,
+              "correct": 80
+            },
+            "ambiguous": {
+              "sites": 101,
+              "correct": 6
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 94,
+        "ambiguous": {
+          "sites": 62,
+          "correct": 6
+        },
+        "recallIndexed": {
+          "sites": 212,
+          "found": {
+            "resolved": 192,
+            "ambiguous": 6
+          },
+          "notExtracted": 14
+        },
+        "recallAll": {
+          "sites": 212,
+          "found": {
+            "resolved": 192,
+            "ambiguous": 6
+          },
+          "notExtracted": 14
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 20,
+              "correct": 20
+            }
+          },
+          "recall": {
+            "sites": 20,
+            "found": 20
+          },
+          "symbols": 5,
+          "unmatched": 2
+        },
+        "unknown": 0,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "e5bb2062a3ddd645e3a16d1300bd76d6c9af33a5",
+      "parent": "c3053ccf14f1c4c70a0c2888eed6121b9f6c8f95",
+      "subject": "fix(jsx): add px to numeric gridGap, gridRowGap and gridColumnGap (#5487)",
+      "files": 2,
+      "connections": 84,
+      "durationMs": 438,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 124,
+            "correct": 124
+          },
+          "external": {
+            "sites": 312,
+            "correct": 312
+          },
+          "ambiguous": {
+            "sites": 8,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 44,
+              "correct": 44
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 306,
+              "correct": 306
+            },
+            "resolved": {
+              "sites": 80,
+              "correct": 80
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 6,
+              "correct": 6
+            },
+            "ambiguous": {
+              "sites": 8,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 124,
+          "found": {
+            "resolved": 124
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 124,
+          "found": {
+            "resolved": 124
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 56,
+              "correct": 56
+            }
+          },
+          "recall": {
+            "sites": 56,
+            "found": 56
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 4,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "c3053ccf14f1c4c70a0c2888eed6121b9f6c8f95",
+      "parent": "c437d7569219a21e45fa81797749e8f34fe19dcc",
+      "subject": "fix(etag): correctly match mixed-case header name in retainedHeader option (#5475)",
+      "files": 2,
+      "connections": 85,
+      "durationMs": 429,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 162,
+            "correct": 162
+          },
+          "external": {
+            "sites": 695,
+            "correct": 545
+          },
+          "ambiguous": {
+            "sites": 57,
+            "correct": 2
+          },
+          "likely": {
+            "sites": 4,
+            "correct": 0
+          },
+          "possible": {
+            "sites": 4,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 14,
+              "correct": 14
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 52,
+              "correct": 52
+            },
+            "resolved": {
+              "sites": 48,
+              "correct": 48
+            },
+            "ambiguous": {
+              "sites": 7,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 643,
+              "correct": 493
+            },
+            "resolved": {
+              "sites": 100,
+              "correct": 100
+            },
+            "ambiguous": {
+              "sites": 50,
+              "correct": 2
+            },
+            "likely": {
+              "sites": 4,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 4,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 150,
+        "ambiguous": {
+          "sites": 42,
+          "correct": 2
+        },
+        "recallIndexed": {
+          "sites": 146,
+          "found": {
+            "resolved": 118,
+            "ambiguous": 2
+          },
+          "notExtracted": 26
+        },
+        "recallAll": {
+          "sites": 146,
+          "found": {
+            "resolved": 118,
+            "ambiguous": 2
+          },
+          "notExtracted": 26
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 44,
+              "correct": 44
+            }
+          },
+          "recall": {
+            "sites": 44,
+            "found": 44
+          },
+          "symbols": 4,
+          "unmatched": 2
+        },
+        "unknown": 6,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "c437d7569219a21e45fa81797749e8f34fe19dcc",
+      "parent": "be1f7498fed269544a3c544db0a5a727048462a8",
+      "subject": "test(build): type-check the bundled declarations from a consumer project (#5486)",
+      "files": 6,
+      "connections": 206,
+      "durationMs": 342,
+      "score": {
+        "byStatus": {},
+        "byKind": {},
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 4
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "be1f7498fed269544a3c544db0a5a727048462a8",
+      "parent": "37ce06904e732d4bc11c9075adf362c76049a594",
+      "subject": "fix(build): keep internal types private in bundled d.ts and avoid a self-referencing JSX.IntrinsicElements (#5485)",
+      "files": 11,
+      "connections": 650,
+      "durationMs": 592,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 344,
+            "correct": 344
+          },
+          "external": {
+            "sites": 111,
+            "correct": 106
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 104,
+              "correct": 104
+            },
+            "external": {
+              "sites": 5,
+              "correct": 0
+            }
+          },
+          "references": {
+            "external": {
+              "sites": 48,
+              "correct": 48
+            },
+            "resolved": {
+              "sites": 152,
+              "correct": 152
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 58,
+              "correct": 58
+            },
+            "resolved": {
+              "sites": 82,
+              "correct": 82
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 6,
+              "correct": 6
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 5,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 332,
+          "found": {
+            "resolved": 330
+          },
+          "notExtracted": 2
+        },
+        "recallAll": {
+          "sites": 332,
+          "found": {
+            "resolved": 330
+          },
+          "notExtracted": 2
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 2,
+          "unmatched": 0
+        },
+        "unknown": 4,
+        "filesWithoutScip": 19
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "1e1207cabfcd154146bf6ac9fd6a0b646f7fc484",
+      "parent": "8b05c774ef1555c70f5ba5e2991b7e77cc3635cc",
+      "subject": "test(serve-static): fix the test (#5479)",
+      "files": 1,
+      "connections": 34,
+      "durationMs": 631,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 78,
+            "correct": 78
+          },
+          "external": {
+            "sites": 536,
+            "correct": 448
+          },
+          "ambiguous": {
+            "sites": 56,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 6,
+              "correct": 6
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 526,
+              "correct": 438
+            },
+            "resolved": {
+              "sites": 36,
+              "correct": 36
+            },
+            "ambiguous": {
+              "sites": 54,
+              "correct": 0
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 36,
+              "correct": 36
+            },
+            "external": {
+              "sites": 10,
+              "correct": 10
+            },
+            "ambiguous": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 88,
+        "ambiguous": {
+          "sites": 12,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 78,
+          "found": {
+            "resolved": 78
+          },
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 78,
+          "found": {
+            "resolved": 78
+          },
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 2,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "8b05c774ef1555c70f5ba5e2991b7e77cc3635cc",
+      "parent": "18331a905e2415f7f73038357f2eec354123f7a6",
+      "subject": "Merge commit from fork",
+      "files": 2,
+      "connections": 139,
+      "durationMs": 456,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 138,
+            "correct": 138
+          },
+          "external": {
+            "sites": 521,
+            "correct": 455
+          },
+          "ambiguous": {
+            "sites": 83,
+            "correct": 20
+          },
+          "likely": {
+            "sites": 2,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 36,
+              "correct": 36
+            }
+          },
+          "calls": {
+            "external": {
+              "sites": 498,
+              "correct": 432
+            },
+            "resolved": {
+              "sites": 47,
+              "correct": 47
+            },
+            "ambiguous": {
+              "sites": 79,
+              "correct": 20
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 55,
+              "correct": 55
+            },
+            "external": {
+              "sites": 23,
+              "correct": 23
+            },
+            "ambiguous": {
+              "sites": 4,
+              "correct": 0
+            },
+            "likely": {
+              "sites": 2,
+              "correct": 0
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 66,
+        "ambiguous": {
+          "sites": 37,
+          "correct": 20
+        },
+        "recallIndexed": {
+          "sites": 139,
+          "found": {
+            "resolved": 130,
+            "ambiguous": 2
+          },
+          "notExtracted": 7
+        },
+        "recallAll": {
+          "sites": 139,
+          "found": {
+            "resolved": 130,
+            "ambiguous": 2
+          },
+          "notExtracted": 7
+        },
+        "usedBy": {
+          "precision": {
+            "resolved": {
+              "sites": 53,
+              "correct": 53
+            }
+          },
+          "recall": {
+            "sites": 71,
+            "found": 53
+          },
+          "symbols": 4,
+          "unmatched": 0
+        },
+        "unknown": 2,
+        "filesWithoutScip": 0
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "72f0d8d58e20547c25370a97191765a9ca0e1d9b",
+      "parent": "f3d5e8856244eb5faf9e1322834ca1639134d971",
+      "subject": "feat(adapters/netlify): publish to JSR (#5468)",
+      "files": 8,
+      "connections": 50,
+      "durationMs": 738,
+      "score": {
+        "byStatus": {},
+        "byKind": {},
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 8
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "645ddd6e6ceb0cf5bd9c49dfe03850f874409151",
+      "parent": "1c6e060d1309195d2feacf29b4a7b5bd7eb3eccb",
+      "subject": "test: move adapter runtime tests into `adapters/*` (#5466)",
+      "files": 49,
+      "connections": 706,
+      "durationMs": 961,
+      "score": {
+        "byStatus": {},
+        "byKind": {},
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 31
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "1c6e060d1309195d2feacf29b4a7b5bd7eb3eccb",
+      "parent": "b877827fccde0be4ee78457ae8b65db2436139f9",
+      "subject": "feat(adapters/deno): publish to JSR (#5465)",
+      "files": 10,
+      "connections": 87,
+      "durationMs": 526,
+      "score": {
+        "byStatus": {},
+        "byKind": {},
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 6
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "b877827fccde0be4ee78457ae8b65db2436139f9",
+      "parent": "4d9f2a2ed4bf2fbd1c891a261b033caf138ea1f8",
+      "subject": "feat(adapters): add the seven adapters as workspace packages (#5463)",
+      "files": 101,
+      "connections": 2235,
+      "durationMs": 627,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 1047,
+            "correct": 1047
+          },
+          "ambiguous": {
+            "sites": 118,
+            "correct": 38
+          },
+          "external": {
+            "sites": 694,
+            "correct": 665
+          },
+          "possible": {
+            "sites": 10,
+            "correct": 0
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 324,
+              "correct": 324
+            },
+            "external": {
+              "sites": 26,
+              "correct": 15
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 551,
+              "correct": 551
+            },
+            "external": {
+              "sites": 319,
+              "correct": 305
+            },
+            "ambiguous": {
+              "sites": 46,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 6,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "ambiguous": {
+              "sites": 72,
+              "correct": 38
+            },
+            "external": {
+              "sites": 349,
+              "correct": 345
+            },
+            "resolved": {
+              "sites": 160,
+              "correct": 160
+            },
+            "possible": {
+              "sites": 4,
+              "correct": 0
+            }
+          },
+          "implements": {
+            "resolved": {
+              "sites": 12,
+              "correct": 12
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 29,
+        "ambiguous": {
+          "sites": 60,
+          "correct": 38
+        },
+        "recallIndexed": {
+          "sites": 1084,
+          "found": {
+            "resolved": 1007,
+            "ambiguous": 20
+          },
+          "notExtracted": 57
+        },
+        "recallAll": {
+          "sites": 1124,
+          "found": {
+            "resolved": 1047,
+            "ambiguous": 20
+          },
+          "notExtracted": 57
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 30,
+        "filesWithoutScip": 50
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "4d9f2a2ed4bf2fbd1c891a261b033caf138ea1f8",
+      "parent": "fc2343dbad8af7ab82bc4a6c6907e57416aed878",
+      "subject": "chore(adapters/bun): ship ESM only (#5462)",
+      "files": 3,
+      "connections": 4,
+      "durationMs": 294,
+      "score": {
+        "byStatus": {},
+        "byKind": {},
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 0,
+          "correct": 0
+        },
+        "recallIndexed": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "recallAll": {
+          "sites": 0,
+          "found": {},
+          "notExtracted": 0
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 0,
+        "filesWithoutScip": 2
+      },
+      "skipped": null
+    },
+    {
+      "entry": "hono",
+      "sha": "fc2343dbad8af7ab82bc4a6c6907e57416aed878",
+      "parent": "d7fb6972924f0a22fa3877b1a6e11e5273828527",
+      "subject": "feat(adapters): add @hono/bun as a workspace package (#5447)",
+      "files": 27,
+      "connections": 570,
+      "durationMs": 593,
+      "score": {
+        "byStatus": {
+          "resolved": {
+            "sites": 219,
+            "correct": 219
+          },
+          "external": {
+            "sites": 54,
+            "correct": 54
+          },
+          "ambiguous": {
+            "sites": 13,
+            "correct": 10
+          },
+          "possible": {
+            "sites": 5,
+            "correct": 2
+          }
+        },
+        "byKind": {
+          "read": {
+            "resolved": {
+              "sites": 105,
+              "correct": 105
+            },
+            "external": {
+              "sites": 9,
+              "correct": 9
+            }
+          },
+          "references": {
+            "resolved": {
+              "sites": 78,
+              "correct": 78
+            },
+            "external": {
+              "sites": 33,
+              "correct": 33
+            },
+            "ambiguous": {
+              "sites": 3,
+              "correct": 0
+            },
+            "possible": {
+              "sites": 3,
+              "correct": 0
+            }
+          },
+          "calls": {
+            "resolved": {
+              "sites": 36,
+              "correct": 36
+            },
+            "external": {
+              "sites": 12,
+              "correct": 12
+            },
+            "ambiguous": {
+              "sites": 10,
+              "correct": 10
+            },
+            "possible": {
+              "sites": 2,
+              "correct": 2
+            }
+          }
+        },
+        "localsConnected": {},
+        "declarationsConnected": {},
+        "wronglyExternal": 0,
+        "ambiguous": {
+          "sites": 10,
+          "correct": 10
+        },
+        "recallIndexed": {
+          "sites": 252,
+          "found": {
+            "resolved": 213,
+            "ambiguous": 3
+          },
+          "notExtracted": 36
+        },
+        "recallAll": {
+          "sites": 258,
+          "found": {
+            "resolved": 219,
+            "ambiguous": 3
+          },
+          "notExtracted": 36
+        },
+        "usedBy": {
+          "precision": {},
+          "recall": {
+            "sites": 0,
+            "found": 0
+          },
+          "symbols": 0,
+          "unmatched": 0
+        },
+        "unknown": 12,
+        "filesWithoutScip": 11
+      },
+      "skipped": null
+    }
+  ],
+  "examples": {
+    "likely": [
+      {
+        "text": "apps/desktop/src/main/understanding.ts:166 all (calls) → likely packages/store/src/sqlite.ts:28 Statement.all vs SCIP external",
+        "count": 22,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/store/src/index.ts:160 prepare (calls) → likely packages/store/src/sqlite.ts:53 NodeSqliteDatabase.prepare vs SCIP external",
+        "count": 12,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "src/hono.test.ts:1412 redirect (calls) → likely src/client/types.ts:146 ClientResponse.redirect vs SCIP src/context.ts:767",
+        "count": 8,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "src/middleware/etag/index.test.ts:37 digest (calls) → likely src/middleware/etag/digest.ts:30 generateDigest.digest vs SCIP external",
+        "count": 4,
+        "sha": "c3053ccf14f1c4c70a0c2888eed6121b9f6c8f95"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:69 getResponse (calls) → likely packages/agent-runtime/src/openai.ts:67 MeteredModel.getResponse vs SCIP external",
+        "count": 2,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:76 getStreamedResponse (calls) → likely packages/agent-runtime/src/openai.ts:74 MeteredModel.getStreamedResponse vs SCIP external",
+        "count": 2,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:87 getModel (calls) → likely packages/agent-runtime/src/openai.ts:86 MeteredProvider.getModel vs SCIP external",
+        "count": 2,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "src/middleware/serve-static/index.ts:97 Set (references) → likely src/context.ts:105 Set vs SCIP external",
+        "count": 2,
+        "sha": "8b05c774ef1555c70f5ba5e2991b7e77cc3635cc"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:73 getResponse (calls) → likely packages/agent-runtime/src/openai.ts:71 MeteredModel.getResponse vs SCIP external",
+        "count": 1,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:80 getStreamedResponse (calls) → likely packages/agent-runtime/src/openai.ts:78 MeteredModel.getStreamedResponse vs SCIP external",
+        "count": 1,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:91 getModel (calls) → likely packages/agent-runtime/src/openai.ts:90 MeteredProvider.getModel vs SCIP external",
+        "count": 1,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "apps/desktop/src/main/agentHostClient.ts:129 onEvent (calls) → likely apps/desktop/src/main/agentHostCore.ts:234 createAgentHost.handle.onEvent vs SCIP apps/desktop/src/main/agentHostClient.ts:31",
+        "count": 1,
+        "sha": "b727ad2495e99cc45df8d22f413bff47339fd6a4"
+      },
+      {
+        "text": "apps/desktop/src/main/agentHostClient.ts:147 onEvent (calls) → likely apps/desktop/src/main/agentHostCore.ts:283 createAgentHost.run.onEvent vs SCIP apps/desktop/src/main/agentHostClient.ts:33",
+        "count": 1,
+        "sha": "b727ad2495e99cc45df8d22f413bff47339fd6a4"
+      },
+      {
+        "text": "apps/desktop/src/main/indexer.ts:18 handle (calls) → likely apps/desktop/src/main/indexerCore.ts:212 serveIndexer.handle vs SCIP external",
+        "count": 1,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      }
+    ],
+    "possible": [
+      {
+        "text": "packages/store/src/index.ts:204 execute (calls) → possible packages/agent-runtime/src/openai.ts:176 OpenAIAgentsRuntime.run.execute vs SCIP external",
+        "count": 116,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/judge/src/fast.ts:39 describe (calls) → possible apps/desktop/src/main/hosts.ts:39 HostService.describe vs SCIP external",
+        "count": 37,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/store/src/index.ts:205 execute (calls) → possible packages/agent-runtime/src/openai.ts:182 OpenAIAgentsRuntime.run.execute vs SCIP external",
+        "count": 29,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/git/src/repo.ts:256 all (calls) → possible packages/store/src/sqlite.ts:28 Statement.all vs SCIP external",
+        "count": 29,
+        "sha": "b727ad2495e99cc45df8d22f413bff47339fd6a4"
+      },
+      {
+        "text": "packages/ui/src/review/BriefPage.tsx:163 label (calls) → possible packages/pipelines/test/pipelines.test.ts:280 label vs SCIP external",
+        "count": 26,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/ui/src/review/BriefPage.tsx:68 header (calls) → possible packages/indexer/src/outline.ts:309 header vs SCIP external",
+        "count": 9,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "src/adapter/cloudflare-workers/websocket.ts:43 Event (references) → possible src/jsx/types.ts:29 Event vs SCIP external",
+        "count": 9,
+        "sha": "b877827fccde0be4ee78457ae8b65db2436139f9"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:257 move (calls) → possible packages/ui/src/diff/DiffView.tsx:231 DiffView.move vs SCIP external",
+        "count": 8,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "src/helper/css/common.ts:63 Set (references) → possible src/context.ts:105 Set vs SCIP external",
+        "count": 8,
+        "sha": "ae401f080004872678100e890fd3398d3df09e67"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:245 Text (references) → possible packages/indexer/src/changeSet.ts:65 Text vs SCIP external",
+        "count": 7,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "packages/ui/src/review/BriefPage.tsx:216 p (calls) → possible packages/judge/src/http.ts:56 sane.p vs SCIP external",
+        "count": 7,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "src/request.test.ts:640 clone (calls) → possible src/client/types.ts:147 ClientResponse.clone vs SCIP external",
+        "count": 6,
+        "sha": "eb78ecaabe26baa8addc053cf8a94b5b7603c001"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:258 down (calls) → possible packages/ui/src/views/Review.tsx:1125 ReviewView.down vs SCIP external",
+        "count": 4,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:254 down (calls) → possible packages/ui/src/views/Review.tsx:1121 ReviewView.down vs SCIP external",
+        "count": 4,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:203 down (calls) → possible packages/ui/src/views/Review.tsx:822 ReviewView.down vs SCIP external",
+        "count": 4,
+        "sha": "537007c15504794a5c1d5a358124eb7bdddcf371"
+      },
+      {
+        "text": "src/adapter/cloudflare-workers/websocket.ts:43 onError (calls) → possible src/adapter/cloudflare-workers/websocket.test.ts:87 onError vs SCIP src/helper/websocket/index.ts:18",
+        "count": 4,
+        "sha": "b877827fccde0be4ee78457ae8b65db2436139f9"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:258 down (calls) → possible packages/ui/src/views/Review.tsx:1138 ReviewView.down vs SCIP external",
+        "count": 3,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "packages/agent-runtime/src/openai.ts:314 list (calls) → possible apps/desktop/src/main/explanations.ts:405 ExplanationService.list vs SCIP external",
+        "count": 2,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:202 move (calls) → possible packages/ui/src/diff/DiffView.tsx:229 DiffView.move vs SCIP external",
+        "count": 2,
+        "sha": "537007c15504794a5c1d5a358124eb7bdddcf371"
+      },
+      {
+        "text": "src/middleware/combine/index.test.ts:245 redirect (calls) → possible src/client/types.ts:146 ClientResponse.redirect vs SCIP src/context.ts:767",
+        "count": 2,
+        "sha": "afb2068c1c53a530528ac5f237e245793dd03c07"
+      }
+    ],
+    "resolved": [
+      {
+        "text": "apps/desktop/test/version.test.ts:6 nextVersion (read) → resolved apps/desktop/scripts/version.mjs:12 nextVersion vs SCIP external",
+        "count": 6,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "apps/desktop/test/version.test.ts:6 nextVersion (read) → resolved apps/desktop/scripts/version.mjs:16 nextVersion vs SCIP external",
+        "count": 6,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "apps/desktop/test/version.test.ts:6 prereleaseVersion (read) → resolved apps/desktop/scripts/version.mjs:31 prereleaseVersion vs SCIP external",
+        "count": 4,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "src/request.test.ts:643 formData (calls) → resolved src/request.ts:334 HonoRequest.formData vs SCIP external",
+        "count": 4,
+        "sha": "eb78ecaabe26baa8addc053cf8a94b5b7603c001"
+      },
+      {
+        "text": "apps/desktop/electron.vite.config.ts:8 bundleFiles (read) → resolved packages/indexer/grammars/bundle.mjs:44 bundleFiles vs SCIP external",
+        "count": 2,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "src/helper/css/index.ts:209 css (read) → resolved src/helper/css/index.ts:169 createCssContext.css vs SCIP src/helper/css/index.ts:218",
+        "count": 2,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/helper/css/index.ts:210 cx (read) → resolved src/helper/css/index.ts:173 createCssContext.cx vs SCIP src/helper/css/index.ts:219",
+        "count": 2,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/helper/css/index.ts:211 keyframes (read) → resolved src/helper/css/index.ts:180 createCssContext.keyframes vs SCIP src/helper/css/index.ts:220",
+        "count": 2,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/helper/css/index.ts:213 Style (read) → resolved src/helper/css/index.ts:192 createCssContext.Style vs SCIP src/helper/css/index.ts:222",
+        "count": 2,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      }
+    ],
+    "used by": [
+      {
+        "text": "packages/ui/src/views/Settings.tsx:288 used by → possible sane.p vs SCIP `index.d.ts`/React/JSX/IntrinsicElements#p.",
+        "count": 8,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/ui/src/review/ConnectionsPanel.tsx:205 used by → possible sane.p vs SCIP `index.d.ts`/React/JSX/IntrinsicElements#p.",
+        "count": 7,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/ui/src/review/BriefPage.tsx:216 used by → possible sane.p vs SCIP `index.d.ts`/React/JSX/IntrinsicElements#p.",
+        "count": 6,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/ui/src/review/ExplainPanel.tsx:93 used by → possible sane.p vs SCIP `index.d.ts`/React/JSX/IntrinsicElements#p.",
+        "count": 6,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/ui/src/App.tsx:73 used by → ambiguous createResolver.go vs SCIP src/`state.ts`/UIState#go().",
+        "count": 5,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "packages/ui/src/views/Review.tsx:812 used by → ambiguous createResolver.go vs SCIP src/`state.ts`/UIState#go().",
+        "count": 4,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "packages/git/src/run.ts:89 used by → possible ResizeHandle.end vs SCIP `stream.d.ts`/`\"stream\"`/Stream/Writable#end().",
+        "count": 2,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "apps/desktop/src/main/chatgpt.ts:180 used by → possible ResizeHandle.end vs SCIP `stream.d.ts`/`\"stream\"`/Stream/Writable#end().",
+        "count": 2,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "apps/desktop/src/main/index.ts:207 used by → ambiguous IndexerTransport.kill vs SCIP `electron.d.ts`/Electron/UtilityProcess#kill().",
+        "count": 2,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:203 used by → possible ReviewView.down vs SCIP types/`types.d.ts`/Keyboard#down().",
+        "count": 2,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "apps/desktop/e2e/app.spec.ts:205 used by → ambiguous ReviewView.up vs SCIP types/`types.d.ts`/Mouse#up().",
+        "count": 2,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "apps/desktop/e2e/errorReports.spec.ts:59 used by → possible ResizeHandle.end vs SCIP `stream.d.ts`/`\"stream\"`/Stream/Writable#end().",
+        "count": 1,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "packages/git/src/catFile.ts:51 used by → possible ResizeHandle.end vs SCIP `stream.d.ts`/`\"stream\"`/Stream/Writable#end().",
+        "count": 1,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "packages/ui/src/panels.ts:41 used by → possible memory.getItem vs SCIP lib/`lib.dom.d.ts`/Storage#getItem().",
+        "count": 1,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "evals/cases/two-features-ts/head/client/theme.ts:6 used by → possible memory.getItem vs SCIP nothing",
+        "count": 1,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "packages/ui/src/panels.ts:57 used by → possible memory.setItem vs SCIP lib/`lib.dom.d.ts`/Storage#setItem().",
+        "count": 1,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "evals/cases/two-features-ts/head/client/theme.ts:11 used by → possible memory.setItem vs SCIP nothing",
+        "count": 1,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "packages/ui/src/review/StepHeader.tsx:176 used by → possible sane.p vs SCIP `index.d.ts`/React/JSX/IntrinsicElements#p.",
+        "count": 1,
+        "sha": "b4ef074655c2414c196acff2cbbe880e6ce53537"
+      },
+      {
+        "text": "packages/ui/src/views/Review.tsx:830 used by → ambiguous ChatGPTAuth.current vs SCIP `index.d.ts`/React/RefObject#current.",
+        "count": 1,
+        "sha": "b727ad2495e99cc45df8d22f413bff47339fd6a4"
+      },
+      {
+        "text": "packages/ui/src/review/ConnectionsPanel.tsx:327 used by → ambiguous ExplanationService.code vs SCIP `index.d.ts`/React/JSX/IntrinsicElements#code.",
+        "count": 1,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      }
+    ],
+    "wrongly external": [
+      {
+        "text": "src/hono.test.ts:77 request (calls) → external vs SCIP src/hono-base.ts:503",
+        "count": 859,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "src/hono.test.ts:55 get (calls) → external vs SCIP src/hono-base.ts:104",
+        "count": 752,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "src/middleware/bearer-auth/index.test.ts:447 request (calls) → external vs SCIP src/hono-base.ts:518",
+        "count": 336,
+        "sha": "06a45bc3a639c1f9eea28e16370bc03447f0d7cb"
+      },
+      {
+        "text": "src/middleware/bearer-auth/index.test.ts:23 get (calls) → external vs SCIP src/hono-base.ts:119",
+        "count": 270,
+        "sha": "06a45bc3a639c1f9eea28e16370bc03447f0d7cb"
+      },
+      {
+        "text": "src/middleware/combine/index.test.ts:22 request (calls) → external vs SCIP src/hono-base.ts:501",
+        "count": 211,
+        "sha": "afb2068c1c53a530528ac5f237e245793dd03c07"
+      },
+      {
+        "text": "packages/ui/src/views/Review.tsx:249 set (calls) → external vs SCIP packages/ui/src/state.ts:78",
+        "count": 184,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "src/helper/css/index.test.tsx:88 h1 (calls) → external vs SCIP src/jsx/intrinsic-elements.ts:844",
+        "count": 109,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/helper/factory/index.ts:14 IntersectNonAnyTypes (read) → external vs SCIP src/types.ts:2767",
+        "count": 92,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "packages/ui/src/App.tsx:46 set (calls) → external vs SCIP packages/ui/src/state.ts:70",
+        "count": 71,
+        "sha": "537007c15504794a5c1d5a358124eb7bdddcf371"
+      },
+      {
+        "text": "src/helper/css/index.test.tsx:177 div (calls) → external vs SCIP src/jsx/intrinsic-elements.ts:834",
+        "count": 57,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/helper/css/index.test.tsx:590 body (calls) → external vs SCIP src/context.ts:681",
+        "count": 50,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/hono.test.ts:2479 set (calls) → external vs SCIP src/context.ts:550",
+        "count": 48,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "src/hono-base.ts:26 Schema (read) → external vs SCIP src/types.ts:2531",
+        "count": 43,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "packages/ui/src/views/Review.tsx:262 set (calls) → external vs SCIP packages/ui/src/state.ts:88",
+        "count": 40,
+        "sha": "7f2a6285380984948177819b0c4269b5c6a0cbda"
+      },
+      {
+        "text": "src/hono.test.ts:279 post (calls) → external vs SCIP src/hono-base.ts:105",
+        "count": 33,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "src/middleware/serve-static/index.test.ts:7 use (calls) → external vs SCIP src/hono-base.ts:113",
+        "count": 29,
+        "sha": "1e1207cabfcd154146bf6ac9fd6a0b646f7fc484"
+      },
+      {
+        "text": "src/hono.test.ts:1102 notFound (calls) → external vs SCIP src/hono-base.ts:294",
+        "count": 28,
+        "sha": "e9c01079a932ffdfa269c0011075ac43fd8a1035"
+      },
+      {
+        "text": "packages/ui/src/diff/DiffView.tsx:156 set (calls) → external vs SCIP packages/ui/src/state.ts:63",
+        "count": 23,
+        "sha": "3c517a8205c367fe4c653778d90a696e43640d27"
+      },
+      {
+        "text": "src/helper/css/index.test.tsx:573 html (calls) → external vs SCIP src/context.ts:740",
+        "count": 18,
+        "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52"
+      },
+      {
+        "text": "src/jsx/base.ts:15 HonoJSX (read) → external vs SCIP src/jsx/intrinsic-elements.ts:14",
+        "count": 17,
+        "sha": "43379d93e23abaaa54ff85f2ce64a149f50d4295"
+      }
+    ],
+    "locals": []
+  },
+  "timings": {
+    "prepareMs": 1150,
+    "scoreMs": 25238
+  }
+}

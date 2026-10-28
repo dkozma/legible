@@ -27,6 +27,11 @@ it("scores Connections against SCIP", async () => {
   if (entries.length === 0)
     throw new Error(`No corpus entry named "${only}" in evals/corpus.`)
   const label = process.env.EVAL_LABEL?.replace(/[^a-z0-9.-]+/gi, "-") ?? ""
+  const oracle = process.env.EVAL_ORACLE
+  if (oracle && oracle !== "nodeps")
+    throw new Error(
+      `EVAL_ORACLE can only be "nodeps" (SCIP without dependencies), not "${oracle}".`,
+    )
   // Vitest hides console.log from passing tests; progress goes to stderr.
   const log = (line: string) => process.stderr.write(`${line}\n`)
 
@@ -36,11 +41,11 @@ it("scores Connections against SCIP", async () => {
   for (const entry of entries) {
     log(`${entry.name}: preparing SCIP indexes`)
     let t = Date.now()
-    const prepared = await prepare(entry, log)
+    const prepared = await prepare(entry, log, { oracle: !!oracle })
     prepareMs += Date.now() - t
     log(`${entry.name}: scoring`)
     t = Date.now()
-    const run = await runEntry(prepared, log)
+    const run = await runEntry(prepared, log, !!oracle)
     scoreMs += Date.now() - t
     const s = entry.source
     runs.push({

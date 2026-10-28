@@ -68,6 +68,7 @@ EVAL_LABEL=after-locals pnpm evals:connections   # …-connections-typescript-af
 EVAL_CORPUS=hono pnpm evals:connections      # one corpus entry
 EVAL_REPO=~/src/app pnpm evals:connections   # local mode: any repository of yours
 EVAL_REPO=~/src/app EVAL_COMMITS=40 EVAL_INSTALL="npm ci --ignore-scripts" pnpm evals:connections
+EVAL_ORACLE=nodeps EVAL_LABEL=scip-nodeps pnpm evals:connections   # with SCIP built without dependencies laid over CodeIndex
 ```
 
 Scores Connections against [SCIP](https://github.com/sourcegraph/scip): `scip-typescript` runs the TypeScript type checker over each commit and records what every name refers to. That gives every use in a changed file a correct answer to score `CodeIndex` against. It measures the resolver, not a model, so it needs no keys, but it does need installed dependencies and network access: it runs on demand, not in `pnpm evals`, `pnpm test` or CI. TypeScript only for now; Python and Go would use the same harness with another indexer.
@@ -117,5 +118,7 @@ Alignment rules learned in the spike, which `score.ts` encodes: scip-typescript 
 | Used by precision / recall | 91% / 82% | 96% / 82% |
 
 True links that dropped to `possible` are few: 23 uses and 2 Used by sites are found only as `possible`. Most of the remaining Connections on locals are `external`. Some are properties of inline object types, which SCIP files as locals (hono's `c.var.echo()`). Others are type parameters in a generic list with a trailing comma, which this tree-sitter-typescript version doesn't parse.
+
+**SCIP without dependencies (`EVAL_ORACLE=nodeps`).** What a product pass could add when a Change Set loads: a second SCIP index of each commit and its parent with no `node_modules`, in a worktree under the system temp folder (TypeScript searches every parent folder for `node_modules`, and the build refuses to run if it finds one). `src/connections/workspace.ts` writes a `tsconfig.scip.json` beside each project that maps the workspace's own packages (pnpm, npm or yarn workspaces, lerna) and their subpath exports to source with `paths`, and drops `extends` bases that aren't installed. That index is laid over `CodeIndex` before scoring: where it names a definition we have a Symbol for, the use is `resolved` to it; where it names a local, the Connection is dropped; anything else keeps our answer. Used by adds its references the same way, except on import and export-from lines. Scoring is unchanged, against the indexes built with dependencies. `…-scip-nodeps.md` against `…-after-74.md`: Used by recall 82% → 96%, recall 89% → 94%, `resolved` precision 99% → 100%, no Connections on locals, about 4 s per index. Both sides are scip-typescript, so this measures what's lost without dependencies and what our Symbols cover, not independent accuracy.
 
 Commit a new result whenever a resolver change lands, with `EVAL_LABEL` naming the change.

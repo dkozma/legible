@@ -66,15 +66,19 @@ export function symbolPositions(repo: GitRepo, parsing: Parsing) {
   }
 }
 
+/** With `oracle`, each Change Set is scored with its no-dependency SCIP indexes laid over CodeIndex (see ScoreInput.oracle). */
 export async function runEntry(
   prepared: PreparedEntry,
   log: (line: string) => void = () => {},
+  oracle = false,
 ): Promise<EntryRun> {
   const out: EntryRun = { results: [], sites: [], usedBy: [] }
   const repo = await GitRepo.open(prepared.repoDir)
   const parsing = new Parsing()
   // Consecutive commits share an index: one's Head is the next one's Base.
   const loaded = new Map<string, Promise<ScipIndex>>()
+  // Two indexes per side with an oracle.
+  const cached = oracle ? 8 : 4
   const scipFor = (file: string, sha: string) => {
     let p = loaded.get(file)
     if (!p) {
@@ -84,7 +88,8 @@ export async function runEntry(
           (await repo.blobs().readPath(sha, path))?.toString("utf8") ?? null,
       )
       loaded.set(file, p)
-      if (loaded.size > 4) loaded.delete(loaded.keys().next().value as string)
+      if (loaded.size > cached)
+        loaded.delete(loaded.keys().next().value as string)
     }
     return p
   }
@@ -104,6 +109,14 @@ export async function runEntry(
       }
       if (c.skipped || !c.base || !c.head) {
         out.results.push({ ...base, skipped: c.skipped ?? "not indexed" })
+        continue
+      }
+      // Scored with an oracle, a commit without one would mix two measures.
+      if (oracle && !(c.oracle?.base && c.oracle.head)) {
+        out.results.push({
+          ...base,
+          skipped: "not indexed without dependencies",
+        })
         continue
       }
       const started = Date.now()
@@ -127,15 +140,26 @@ export async function runEntry(
         if (index.status.state === "error")
           throw new Error(`CodeIndex failed: ${index.status.error}`)
         const shaOf: Record<Side, string> = { base: c.parent, head: c.sha }
-        const [baseScip, headScip] = await Promise.all([
+        const [baseScip, headScip, baseOracle, headOracle] = await Promise.all([
           scipFor(c.base, c.parent),
           scipFor(c.head, c.sha),
+          oracle && c.oracle?.base ? scipFor(c.oracle.base, c.parent) : null,
+          oracle && c.oracle?.head ? scipFor(c.oracle.head, c.sha) : null,
         ])
         const scored = await scoreChangeSet({
           index,
           files: built.indexed,
           scip: { base: baseScip, head: headScip },
           symbolsIn: (side, path) => symbolsAt(shaOf[side], path),
+          ...(baseOracle && headOracle
+            ? {
+                oracle: { base: baseOracle, head: headOracle },
+                sourceOf: async (side: Side, path: string) =>
+                  (await repo.blobs().readPath(shaOf[side], path))?.toString(
+                    "utf8",
+                  ) ?? null,
+              }
+            : {}),
         })
         out.results.push({
           ...base,

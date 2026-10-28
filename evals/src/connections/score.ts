@@ -46,6 +46,8 @@ export interface SiteScore {
   candidates: number
   /** For a Connection with one target: it's SCIP's. For ambiguous: SCIP's is among the candidates. */
   correct: boolean
+  /** With an oracle: it replaced our answer with its target, or dropped our Connection on a local. */
+  oracle?: "resolved" | "dropped"
 }
 
 export interface Count {
@@ -100,6 +102,8 @@ export interface UsedBySite {
   correct: boolean
   /** What SCIP says is at the site. */
   scip: string
+  /** With an oracle: a site it added, or one of ours it confirmed. */
+  oracle?: "added" | "resolved"
 }
 
 export interface ScoreInput {
@@ -111,6 +115,28 @@ export interface ScoreInput {
     side: Side,
     path: string,
   ) => Promise<{ line: number; col: number }[] | null>
+  /**
+   * A second, weaker SCIP index per side (built without dependencies), laid
+   * over CodeIndex the way Legible could: where it names a definition we
+   * have a Symbol for, that's the answer (`resolved`); where it names a
+   * local, there's no Connection; anywhere else ours stands. Scored against
+   * `scip` like everything else.
+   */
+  oracle?: Record<Side, ScipIndex>
+  /** A file's text at one side; with an oracle, to leave its import statements out of Used by. */
+  sourceOf?: (side: Side, path: string) => Promise<string | null>
+}
+
+/** 0-based lines inside `import … from` and `export … from` statements. */
+function importLines(text: string): Set<number> {
+  const out = new Set<number>()
+  const re = /^[ \t]*(import|export)\b[^;]*?\bfrom\s*["'][^"']*["']/gm
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const first = text.slice(0, m.index).split("\n").length - 1
+    const last = first + m[0].split("\n").length - 1
+    for (let l = first; l <= last; l++) out.add(l)
+  }
+  return out
 }
 
 const inc = (r: Record<string, number>, k: string, n = 1) => {
@@ -213,6 +239,75 @@ export async function scoreChangeSet(input: ScoreInput): Promise<{
       return p.then((set) => set?.has(`${line}\0${col}`) ?? false)
     }
 
+    const oracle = input.oracle?.[side] ?? null
+    const oracleDefined = (s: string) => {
+      if (!oracle) return false
+      const owner = constructorClass(s)
+      return (
+        oracle.definitions.has(s) ||
+        (owner !== null && oracle.definitions.has(owner))
+      )
+    }
+    /** Our Symbol at a definition, or one standing in for it when its file isn't indexed: Legible would parse it. */
+    const symbolAtDefinition = async (d: {
+      path: string
+      line: number
+      col: number
+    }): Promise<CodeSymbol | null> => {
+      if (!(await representable(d.path, d.line, d.col))) return null
+      for (const s of [
+        ...index.symbolsAt(side, d.path),
+        ...index.symbolsAt("head", d.path),
+      ])
+        if (s.nameLine - 1 === d.line && s.nameCol === d.col) return s
+      return {
+        path: d.path,
+        nameLine: d.line + 1,
+        nameCol: d.col,
+        qualifiedName: "(parsed on demand)",
+      } as CodeSymbol
+    }
+    /** The oracle's answer at a use: Symbols to connect to, "none" on a local, or null to keep ours. */
+    const fromOracle = async (
+      file: string,
+      line: number,
+      col: number,
+    ): Promise<CodeSymbol[] | "none" | null> => {
+      if (!oracle) return null
+      const symbols = [
+        ...new Set(
+          oracle
+            .at(file, line, col)
+            .filter((o) => !(o.roles & DEFINITION))
+            .map((o) => o.symbol),
+        ),
+      ].filter(oracleDefined)
+      if (!symbols.length) return null
+      const found = new Map<string, CodeSymbol>()
+      for (const s of symbols) {
+        // Its own definition; a constructor without one is its class.
+        const owner = constructorClass(s)
+        for (const t of oracle.definitions.has(s) ? [s] : owner ? [owner] : [])
+          for (const d of oracle.definitions.get(t) ?? []) {
+            const sym = await symbolAtDefinition(d)
+            if (sym) found.set(posKey(sym.path, sym.nameLine, sym.nameCol), sym)
+          }
+      }
+      if (found.size) return [...found.values()]
+      return symbols.every(isLocalSymbol) ? "none" : null
+    }
+    const importsIn = new Map<string, Promise<Set<number>>>()
+    const isImport = (file: string, line: number) => {
+      let p = importsIn.get(file)
+      if (!p) {
+        p = (input.sourceOf?.(side, file) ?? Promise.resolve(null)).then((t) =>
+          t ? importLines(t) : new Set<number>(),
+        )
+        importsIn.set(file, p)
+      }
+      return p.then((lines) => lines.has(line))
+    }
+
     for (const f of input.files) {
       if (!f.language || familyOf(f.language) !== "js") continue
       const content = side === "base" ? f.base : f.head
@@ -256,13 +351,25 @@ export async function scoreChangeSet(input: ScoreInput): Promise<{
           : undefined
         const info = index.at(side, path, r.line + 1, r.col)
         const c: Connection | null = info.connection
-        const status = c ? c.status : "none"
+        let status = c ? c.status : "none"
+        let targets = info.targets
+        let single = c?.toId != null
+        const told = await fromOracle(path, r.line, r.col)
+        if (told === "none" && c) {
+          status = "none"
+          targets = []
+        } else if (Array.isArray(told)) {
+          single = told.length === 1
+          status = single ? "resolved" : "ambiguous"
+          targets = told
+        }
         // One target: it's SCIP's. Ambiguous: SCIP's is among the candidates.
-        const correct = !c
-          ? false
-          : c.status === "external"
-            ? category === "external"
-            : info.targets.some((t) => names(t, resolvable, expected))
+        const correct =
+          status === "none"
+            ? false
+            : status === "external"
+              ? category === "external"
+              : targets.some((t) => names(t, resolvable, expected))
         const site: SiteScore = {
           side,
           path,
@@ -273,9 +380,14 @@ export async function scoreChangeSet(input: ScoreInput): Promise<{
           scip: category,
           scipTarget: firstDef ? `${firstDef.path}:${firstDef.line + 1}` : null,
           ours: status,
-          target: describe(info.targets[0]),
-          candidates: c && !c.toId ? info.targets.length : 0,
+          target: describe(targets[0]),
+          candidates: status !== "none" && !single ? targets.length : 0,
           correct,
+          ...(told === "none" && c
+            ? { oracle: "dropped" as const }
+            : Array.isArray(told)
+              ? { oracle: "resolved" as const }
+              : {}),
         }
         sites.push(site)
         ours.set(`${r.line}\0${r.col}`, site)
@@ -293,7 +405,12 @@ export async function scoreChangeSet(input: ScoreInput): Promise<{
           inc(score.declarationsConnected, status)
         if (category === "repo" && status === "external")
           score.wronglyExternal++
-        if (expected.size && c && !c.toId && c.status !== "external") {
+        if (
+          expected.size &&
+          status !== "none" &&
+          !single &&
+          status !== "external"
+        ) {
           score.ambiguous.sites++
           if (correct) score.ambiguous.correct++
         }
@@ -351,29 +468,75 @@ export async function scoreChangeSet(input: ScoreInput): Promise<{
         const family = new Set<string>()
         for (const x of scipSymbols)
           for (const t of [x, ...(scip.related.get(x) ?? [])]) family.add(t)
+        // The oracle's own symbols for this Symbol, found the same way.
+        const oracleFamily = new Set<string>()
+        if (oracle) {
+          const atName = oracle.definedAt(s.path, s.nameLine - 1, s.nameCol)
+          const xs = atName.length
+            ? atName
+            : oracle
+                .at(s.path, s.nameLine - 1, s.nameCol)
+                .map((o) => o.symbol)
+                .filter((x) =>
+                  oracle.definitions.get(x)?.some((d) => d.path === s.path),
+                )
+          for (const x of xs)
+            for (const t of [x, ...(oracle.related.get(x) ?? [])])
+              oracleFamily.add(t)
+        }
         const listed = new Set<string>()
+        const list = (
+          file: string,
+          line: number,
+          col: number,
+          status: string,
+          via?: UsedBySite["oracle"],
+        ) => {
+          const occs = scip.at(file, line - 1, col)
+          const correct = occs.some(
+            (o) => !(o.roles & DEFINITION) && family.has(o.symbol),
+          )
+          count(score.usedBy.precision, status, correct)
+          listed.add(posKey(file, line - 1, col))
+          usedBySites.push({
+            side,
+            path: file,
+            line,
+            symbol: s.qualifiedName,
+            status,
+            correct,
+            scip: occs.length
+              ? occs.map((o) => shortSymbol(o.symbol)).join(", ")
+              : "nothing",
+            ...(via ? { oracle: via } : {}),
+          })
+        }
         for (const c of index.incomingOn(side, s.id)) {
           if (c.kind === "imports") continue
           for (const site of c.sites) {
-            const occs = scip.at(site.path, site.line - 1, site.col)
-            const correct = occs.some(
-              (o) => !(o.roles & DEFINITION) && family.has(o.symbol),
-            )
-            count(score.usedBy.precision, c.status, correct)
-            listed.add(posKey(site.path, site.line - 1, site.col))
-            usedBySites.push({
-              side,
-              path: site.path,
-              line: site.line,
-              symbol: s.qualifiedName,
-              status: c.status,
-              correct,
-              scip: occs.length
-                ? occs.map((o) => shortSymbol(o.symbol)).join(", ")
-                : "nothing",
-            })
+            if (oracle) {
+              // The oracle confirms it, names something else there, or says nothing.
+              const named = oracle
+                .at(site.path, site.line - 1, site.col)
+                .filter(
+                  (o) => !(o.roles & DEFINITION) && oracleDefined(o.symbol),
+                )
+              if (named.some((o) => oracleFamily.has(o.symbol))) {
+                list(site.path, site.line, site.col, "resolved", "resolved")
+                continue
+              }
+              if (named.length) continue
+            }
+            list(site.path, site.line, site.col, c.status)
           }
         }
+        // References only the oracle found, other than in import statements.
+        for (const x of oracleFamily)
+          for (const r of oracle?.references(x) ?? []) {
+            if (listed.has(posKey(r.path, r.line, r.col))) continue
+            if (await isImport(r.path, r.line)) continue
+            list(r.path, r.line + 1, r.col, "resolved", "added")
+          }
         const refs = new Set<string>()
         for (const x of family)
           for (const r of scip.references(x))
