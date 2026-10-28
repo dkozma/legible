@@ -1,0 +1,159 @@
+{
+  "label": "openai:defaults",
+  "date": "2026-10-28T01:30:37.651Z",
+  "cases": [
+    {
+      "name": "discounts-java",
+      "changedLines": 24,
+      "scores": {
+        "fragments": 6,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 1,
+        "grouping": 0.8,
+        "layerAccuracy": 0.6666666666666666,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 1,
+        "domainChangePrecision": 1,
+        "chaptersRight": true
+      },
+      "costUsd": 0.0716117,
+      "durationMs": 21894,
+      "model": "gpt-6.1-sol",
+      "judgeBackend": "fast:gpt-6-luna",
+      "error": null
+    },
+    {
+      "name": "inventory-py",
+      "changedLines": 15,
+      "scores": {
+        "fragments": 7,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 4,
+        "grouping": 0.5,
+        "layerAccuracy": 0.8333333333333334,
+        "unrequestedRecall": 1,
+        "unrequestedPrecision": 0.6666666666666666,
+        "domainChangeRecall": 1,
+        "domainChangePrecision": 1,
+        "chaptersRight": false
+      },
+      "costUsd": 0.0462254,
+      "durationMs": 21800,
+      "model": "gpt-6.1-sol",
+      "judgeBackend": "fast:gpt-6-luna",
+      "error": null
+    },
+    {
+      "name": "ports-rs",
+      "changedLines": 36,
+      "scores": {
+        "fragments": 9,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 3,
+        "grouping": 0.8421052631578948,
+        "layerAccuracy": 1,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 1,
+        "domainChangePrecision": 0.8,
+        "chaptersRight": true
+      },
+      "costUsd": 0.1180758,
+      "durationMs": 34686,
+      "model": "gpt-6.1-sol",
+      "judgeBackend": "fast:gpt-6-luna",
+      "error": null
+    },
+    {
+      "name": "ratelimit-go",
+      "changedLines": 68,
+      "scores": {
+        "fragments": 13,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 1,
+        "grouping": 0.835820895522388,
+        "layerAccuracy": 0,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 1,
+        "domainChangePrecision": 1,
+        "chaptersRight": true
+      },
+      "costUsd": 0.1224712,
+      "durationMs": 27294,
+      "model": "gpt-6.1-sol",
+      "judgeBackend": "fast:gpt-6-luna",
+      "error": null
+    },
+    {
+      "name": "refunds-ts",
+      "changedLines": 137,
+      "scores": {
+        "fragments": 36,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 7,
+        "grouping": 0.8936170212765957,
+        "layerAccuracy": 1,
+        "unrequestedRecall": 0,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 1,
+        "domainChangePrecision": 0.7142857142857143,
+        "chaptersRight": true
+      },
+      "costUsd": 0.2835925,
+      "durationMs": 58311,
+      "model": "gpt-6.1-sol",
+      "judgeBackend": "fast:gpt-6-luna",
+      "error": null
+    },
+    {
+      "name": "two-features-ts",
+      "changedLines": 58,
+      "scores": {
+        "fragments": 15,
+        "coverage": 1,
+        "dependencyViolations": 0,
+        "cycles": 0,
+        "steps": 4,
+        "grouping": 0.6415094339622641,
+        "layerAccuracy": 0.6,
+        "unrequestedRecall": null,
+        "unrequestedPrecision": null,
+        "domainChangeRecall": 1,
+        "domainChangePrecision": 0.75,
+        "chaptersRight": true
+      },
+      "costUsd": 0.1515821,
+      "durationMs": 39789,
+      "model": "gpt-6.1-sol",
+      "judgeBackend": "fast:gpt-6-luna",
+      "error": null
+    }
+  ],
+  "averages": {
+    "coverage": 1,
+    "dependencyViolations": 0,
+    "grouping": 0.7521754356531906,
+    "layerAccuracy": 0.6833333333333332,
+    "unrequestedRecall": 0.5,
+    "unrequestedPrecision": 0.6666666666666666,
+    "domainChangeRecall": 1,
+    "domainChangePrecision": 0.8773809523809524,
+    "costPer1kLines": 2.3478068047337275
+  },
+  "exitCriteria": {
+    "coverage": true,
+    "dependencyOrder": true
+  }
+}
