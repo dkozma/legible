@@ -11,6 +11,11 @@ import {
   type Judgment,
 } from "./types"
 
+/** Waits before each retry of a 429 or 5xx, unless Retry-After says otherwise. */
+const RETRY_DELAYS_MS = [1_000, 4_000]
+/** A longer Retry-After isn't worth waiting for: the fast tier answers instead. */
+const MAX_RETRY_WAIT_MS = 20_000
+
 async function post(
   fetchImpl: Fetch,
   url: string,
@@ -20,32 +25,77 @@ async function post(
   signal: AbortSignal,
   service: string,
 ): Promise<unknown> {
-  let res: Response
-  try {
-    res = await fetchImpl(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify(body),
-      signal,
-    })
-  } catch (e) {
-    if (signal.aborted) throw new JudgeError("Cancelled", "aborted")
-    throw new JudgeError(
-      `Couldn't reach ${service}: ${(e as Error).message}`,
-      "http",
-    )
+  for (let attempt = 0; ; attempt++) {
+    let res: Response
+    try {
+      res = await fetchImpl(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify(body),
+        signal,
+      })
+    } catch (e) {
+      if (signal.aborted) throw new JudgeError("Cancelled", "aborted")
+      throw new JudgeError(
+        `Couldn't reach ${service}: ${(e as Error).message}`,
+        "http",
+      )
+    }
+    if (res.status === 401 || res.status === 403)
+      throw new JudgeError(`${service} rejected the API key.`, "auth")
+    if (res.ok) return res.json()
+    const delay = retryDelay(res, attempt)
+    if (delay === null) {
+      const text = (await res.text().catch(() => "")).slice(0, 300)
+      const tries = attempt ? ` after ${attempt + 1} tries` : ""
+      throw new JudgeError(
+        `${service} answered ${res.status}${tries}: ${text}`,
+        "http",
+      )
+    }
+    await res.body?.cancel().catch(() => {})
+    await wait(delay, signal)
   }
-  if (res.status === 401 || res.status === 403)
-    throw new JudgeError(`${service} rejected the API key.`, "auth")
-  if (!res.ok) {
-    const text = (await res.text().catch(() => "")).slice(0, 300)
-    throw new JudgeError(`${service} answered ${res.status}: ${text}`, "http")
-  }
-  return res.json()
+}
+
+/**
+ * How long to wait before trying again, or null to give up. Only 429 and 5xx
+ * are retried, once per entry in RETRY_DELAYS_MS. Retry-After, in seconds or
+ * as a date, replaces the backoff when it's present.
+ */
+function retryDelay(res: Response, attempt: number): number | null {
+  if (res.status !== 429 && res.status < 500) return null
+  const backoff = RETRY_DELAYS_MS[attempt]
+  if (backoff === undefined) return null
+  const header = res.headers.get("retry-after")?.trim()
+  if (!header) return backoff
+  const seconds = Number(header)
+  const ms = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Date.parse(header) - Date.now()
+  if (Number.isNaN(ms)) return backoff
+  if (ms > MAX_RETRY_WAIT_MS) return null
+  return Math.max(0, ms)
+}
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const cancelled = () => reject(new JudgeError("Cancelled", "aborted"))
+    if (signal.aborted) return cancelled()
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", stop)
+      resolve()
+    }, ms)
+    const stop = () => {
+      clearTimeout(timer)
+      cancelled()
+    }
+    signal.addEventListener("abort", stop, { once: true })
+  })
 }
 
 /**

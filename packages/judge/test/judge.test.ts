@@ -8,7 +8,7 @@ import {
   type ToolContext,
 } from "@legible/agent-runtime"
 import type { GitRepo } from "@legible/git"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
   certainty,
@@ -59,6 +59,19 @@ function recordingFetch(body: unknown, status = 200) {
     return new Response(JSON.stringify(body), { status })
   }) as unknown as typeof fetch
   return { calls, fetchImpl }
+}
+
+/** Answers each call with the next status, then 200; `retryAfter` sets the header. */
+function sequenceFetch(statuses: number[], retryAfter?: string) {
+  let calls = 0
+  const fetchImpl = (async () => {
+    const status = statuses[calls++] ?? 200
+    return new Response(JSON.stringify({ answers: [] }), {
+      status,
+      headers: retryAfter ? { "Retry-After": retryAfter } : {},
+    })
+  }) as unknown as typeof fetch
+  return { calls: () => calls, fetchImpl }
 }
 
 const headersOf = (c: { init: RequestInit } | undefined) =>
@@ -205,6 +218,94 @@ describe("DecisionsBackend", () => {
   })
 })
 
+describe("retries", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("retry a 429 or 5xx with backoff, then answer", async () => {
+    vi.useFakeTimers()
+    const { calls, fetchImpl } = sequenceFetch([429, 503])
+    const judged = new DecisionsBackend("sk", fetchImpl).judge(req, { signal })
+    await vi.advanceTimersByTimeAsync(999)
+    expect(calls()).toBe(1)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(calls()).toBe(2)
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect((await judged).backend).toBe("decisions")
+    expect(calls()).toBe(3)
+  })
+
+  it("wait as long as Retry-After says, in seconds or as a date", async () => {
+    vi.useFakeTimers()
+    // HTTP dates have whole seconds.
+    vi.setSystemTime(new Date("2026-10-28T12:00:00Z"))
+    const seconds = sequenceFetch([429], "7")
+    const bySeconds = new JevBackend(
+      "k",
+      "jev-latest",
+      seconds.fetchImpl,
+    ).judge(req, { signal })
+    await vi.advanceTimersByTimeAsync(6_999)
+    expect(seconds.calls()).toBe(1)
+    await vi.advanceTimersByTimeAsync(1)
+    await bySeconds
+    expect(seconds.calls()).toBe(2)
+
+    const at = new Date(Date.now() + 3_000).toUTCString()
+    const date = sequenceFetch([503], at)
+    const byDate = new DecisionsBackend("sk", date.fetchImpl).judge(req, {
+      signal,
+    })
+    await vi.advanceTimersByTimeAsync(2_999)
+    expect(date.calls()).toBe(1)
+    await vi.advanceTimersByTimeAsync(1)
+    await byDate
+    expect(date.calls()).toBe(2)
+  })
+
+  it("give up after two retries, and say how many tries it took", async () => {
+    vi.useFakeTimers()
+    const { calls, fetchImpl } = sequenceFetch([500, 502, 503])
+    const failed = new DecisionsBackend("sk", fetchImpl)
+      .judge(req, { signal })
+      .catch((e: unknown) => e)
+    await vi.runAllTimersAsync()
+    expect(await failed).toMatchObject({
+      message: expect.stringContaining(
+        "OpenAI Decisions answered 503 after 3 tries",
+      ),
+    })
+    expect(calls()).toBe(3)
+  })
+
+  it("don't wait out a long Retry-After, or retry other errors", async () => {
+    const long = sequenceFetch([429], "120")
+    await expect(
+      new DecisionsBackend("sk", long.fetchImpl).judge(req, { signal }),
+    ).rejects.toThrow("OpenAI Decisions answered 429: ")
+    expect(long.calls()).toBe(1)
+    const bad = sequenceFetch([400])
+    await expect(
+      new DecisionsBackend("sk", bad.fetchImpl).judge(req, { signal }),
+    ).rejects.toThrow("OpenAI Decisions answered 400: ")
+    expect(bad.calls()).toBe(1)
+  })
+
+  it("stop waiting when cancelled", async () => {
+    vi.useFakeTimers()
+    const { calls, fetchImpl } = sequenceFetch([429])
+    const abort = new AbortController()
+    const failed = new DecisionsBackend("sk", fetchImpl)
+      .judge(req, { signal: abort.signal })
+      .catch((e: unknown) => e)
+    await vi.advanceTimersByTimeAsync(500)
+    abort.abort()
+    expect(await failed).toMatchObject({ code: "aborted" })
+    expect(calls()).toBe(1)
+  })
+})
+
 describe("FastTierBackend", () => {
   const answer = {
     q1: { choice: "unrequested", confidence: 0.9 },
@@ -267,7 +368,8 @@ describe("Judge", () => {
     runTask(router, new Scheduler(1), task, { signal, budgetUsd: 1 })
 
   it("falls back to the fast tier when an external backend fails, and says why", async () => {
-    const { fetchImpl } = recordingFetch({}, 500)
+    // A 400, which isn't retried: a 5xx would wait out the backoff first.
+    const { fetchImpl } = recordingFetch({}, 400)
     const judge = new Judge(
       [new JevBackend("k", "jev-latest", fetchImpl)],
       new FastTierBackend(run, ctx),
@@ -275,7 +377,7 @@ describe("Judge", () => {
     expect(judge.preferred.name).toBe("jev")
     const r = await judge.judge(req, { signal })
     expect(r.backend).toBe("fast")
-    expect(r.fallbackReason).toMatch(/TypeSafe failed .*500/)
+    expect(r.fallbackReason).toMatch(/TypeSafe failed .*400/)
   })
 
   it("rejects duplicate judgment names", async () => {
