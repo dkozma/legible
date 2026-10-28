@@ -60,6 +60,22 @@ export function App() {
           void qc.invalidateQueries({ queryKey: ["history", job.reviewId] })
         }
       }),
+      client.on("understanding.updated", (status) => {
+        const key = ["understanding", status.reviewId, status.iterationId]
+        const before = qc.getQueryData<typeof status>(key)
+        qc.setQueryData(key, status)
+        // Progress lines change often; only a stage finishing has something new to show.
+        const changed =
+          !before ||
+          before.state !== status.state ||
+          (Object.keys(status.stages) as (keyof typeof status.stages)[]).some(
+            (s) => before.stages[s].state !== status.stages[s].state,
+          )
+        if (!changed) return
+        for (const k of ["intent", "walkthrough", "brief"] as const)
+          void qc.invalidateQueries({ queryKey: [k, status.reviewId] })
+        void qc.invalidateQueries({ queryKey: ["spend"] })
+      }),
       client.on("review.changesAvailable", ({ reviewId, detail }) => {
         const s = useUI.getState()
         s.set({

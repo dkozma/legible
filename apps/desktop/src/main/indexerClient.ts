@@ -83,6 +83,9 @@ export class IndexerClient implements Indexer {
   source(...a: Parameters<Indexer["source"]>) {
     return this.call("source", a)
   }
+  fragmentGraph(...a: Parameters<Indexer["fragmentGraph"]>) {
+    return this.call("fragmentGraph", a)
+  }
   lookup(...a: Parameters<Indexer["lookup"]>) {
     return this.call("lookup", a)
   }

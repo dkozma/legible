@@ -1,0 +1,33 @@
+{
+  "description": "TypeScript: two independent features in one Change Set (CSV export of orders on the server, a dark theme on the client), so the Walkthrough should have two Chapters.",
+  "intent": {
+    "goal": "Add a CSV export of orders, and a dark theme.",
+    "requirements": [
+      "Admins can download orders as CSV",
+      "Users can switch between a light and a dark theme"
+    ]
+  },
+  "pullRequest": null,
+  "labels": {
+    "steps": [
+      ["server/exportOrders.ts", "server/routes.ts"],
+      ["client/ExportButton.tsx"],
+      ["client/theme.ts", "client/styles.css"],
+      ["client/App.tsx"]
+    ],
+    "layers": {
+      "server/exportOrders.ts": "backend",
+      "server/routes.ts": "api",
+      "client/ExportButton.tsx": "presentation",
+      "client/theme.ts": "client_data",
+      "client/styles.css": "presentation",
+      "client/App.tsx": "presentation"
+    },
+    "unrequested": [],
+    "domainChanges": [
+      "Orders can be downloaded as a CSV file",
+      "Users can switch to a dark theme, remembered between visits"
+    ],
+    "chapters": 2
+  }
+}

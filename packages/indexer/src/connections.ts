@@ -4,10 +4,13 @@
 // with `git grep -w`), and the Connections between them.
 //
 // Resolution (engineering plan §7.4): deterministic rules first (same file,
-// imports, the receiver's class or module, the same package), then the only
-// definition by that name in the indexed code ("likely"), else an Ambiguous
-// Connection with every candidate. Plain identifier uses ("reads") resolve
-// only by the deterministic rules, never by name alone.
+// imports, the receiver's class or module or declared type, the same
+// package), then the only definition by that name in the indexed code: "likely"
+// when something besides the name points at it (the file imports it, or the
+// receiver's declared type is its class), else "possible". Several candidates
+// make an Ambiguous Connection. Plain identifier uses ("reads") resolve only by
+// the deterministic rules, never by name alone, and uses of parameters and
+// locals are never Connections.
 
 import { createHash } from "node:crypto"
 
@@ -23,6 +26,8 @@ import type {
   ConnectionKind,
   ConnectionSite,
   ConnectionStatus,
+  FileChange,
+  FragmentGraph,
   IndexScope,
   IndexStatus,
   PositionInfo,
@@ -34,14 +39,19 @@ import type {
 import type { GitRepo } from "@legible/git"
 
 import type { IndexedFile } from "./changeSet"
+import { buildFragmentGraph } from "./fragmentGraph"
 import type { RawImport } from "./imports"
 import { GRAMMARS } from "./manifest"
 import type { Outline, RawReference } from "./outline"
 import type { Parsing } from "./parse"
 import {
   createResolver,
+  dirOf,
   familyOf,
+  goModulePath,
+  includeDirsFrom,
   type ModuleResolver,
+  type ModuleTarget,
   samePackage,
 } from "./resolve"
 import { symbolId, toCodeSymbols } from "./symbols"
@@ -93,13 +103,30 @@ const BUILTIN_METHODS = new Set(
   ),
 )
 
+/**
+ * Built-in and standard library types: a member use on a local declared as
+ * one (`name: string`, `items: Order[]`, `m := map…`) is external.
+ */
+const BUILTIN_TYPES = new Set(
+  "string number boolean bigint symbol object String Number Boolean Array ReadonlyArray Map ReadonlyMap Set ReadonlySet WeakMap WeakSet Promise Date RegExp Error Record Partial Required Readonly Pick Omit URL URLSearchParams Buffer Uint8Array str int float bool bytes bytearray dict list set frozenset tuple complex int8 int16 int32 int64 uint uint8 uint16 uint32 uint64 float32 float64 rune byte error".split(
+    " ",
+  ),
+)
+
+/** How many import hops from the using file still count as evidence for a by-name match. */
+const IMPORT_HOPS = 2
+
 /** Languages where a bare name never means a member of the enclosing class (members need `this.` or `self.`). */
 const MEMBERS_NEED_RECEIVER = new Set(["js", "python", "go", "rust", "php"])
+
+/** A TypeScript or JavaScript class field or property, which often holds a function (`get!: HandlerInterface`). */
+const jsMember = (s: CodeSymbol) =>
+  s.kind === "field" && s.parentId !== null && familyOf(s.language) === "js"
 
 function compatible(kind: RawReference["kind"], s: CodeSymbol): boolean {
   switch (kind) {
     case "calls":
-      return CALLABLE.has(s.kind)
+      return CALLABLE.has(s.kind) || jsMember(s)
     case "implements":
       return TYPE_LIKE.has(s.kind)
     case "references":
@@ -159,6 +186,11 @@ export class CodeIndex {
   /** Connection id for each use, by `${universe}\0${path}\0${line}\0${col}`. */
   private sites = new Map<string, string>()
   private connectionsById = new Map<string, Connection>()
+  /** Files each file reaches through imports, per side (see reachable). */
+  private reach: Record<Universe, Map<string, Set<string>>> = {
+    base: new Map(),
+    head: new Map(),
+  }
 
   constructor(private readonly input: CodeIndexInput) {
     const started = performance.now()
@@ -191,14 +223,21 @@ export class CodeIndex {
       repo.treeBlobs(headSha),
       repo.treeBlobs(baseSha),
     ])
-    const workspaces = files.some(
-      (f) => f.language && familyOf(f.language) === "js",
+    const languages = new Set(
+      files.flatMap((f) => (f.language ? [familyOf(f.language)] : [])),
     )
-      ? await this.workspaces(headBlobs)
-      : new Map()
+    const options = {
+      workspaces: languages.has("js")
+        ? await this.workspaces(headBlobs)
+        : new Map(),
+      goModules: languages.has("go")
+        ? await this.goModules(headBlobs)
+        : new Map(),
+      includeDirs: languages.has("c") ? await this.includeDirs(headBlobs) : [],
+    }
     this.resolvers = {
-      head: createResolver(headBlobs.keys(), workspaces),
-      base: createResolver(baseBlobs.keys(), workspaces),
+      head: createResolver(headBlobs.keys(), options),
+      base: createResolver(baseBlobs.keys(), options),
     }
 
     // Changed files, both sides.
@@ -227,7 +266,7 @@ export class CodeIndex {
           e.language,
           e.path,
           imp.module,
-        ))
+        ).files)
           if (!changed.has(p) && headBlobs.has(p)) wanted.add(p)
       if (samePackage(e.language)) {
         const dir = e.path.slice(0, e.path.lastIndexOf("/") + 1)
@@ -363,6 +402,55 @@ export class CodeIndex {
       }
     }
     return out
+  }
+
+  /** go.mod files: their directory and module path. */
+  private async goModules(blobs: Map<string, string>) {
+    const out = new Map<string, string>()
+    const mods = [...blobs]
+      .filter(([p]) => p === "go.mod" || p.endsWith("/go.mod"))
+      .slice(0, 50)
+    await this.input.repo.prefetchBlobs(mods.map(([, oid]) => oid))
+    for (const [path, oid] of mods) {
+      const buf = await this.input.repo.blobs().read(oid)
+      const module = buf ? goModulePath(buf.toString("utf8")) : null
+      if (module)
+        out.set(
+          path === "go.mod" ? "." : path.slice(0, -"/go.mod".length),
+          module,
+        )
+    }
+    return out
+  }
+
+  /** C and C++ include directories from compile_commands.json, when one is committed. */
+  private async includeDirs(blobs: Map<string, string>) {
+    const found = [...blobs]
+      .filter(
+        ([p]) =>
+          p === "compile_commands.json" || p.endsWith("/compile_commands.json"),
+      )
+      .slice(0, 5)
+    if (!found.length) return []
+    const repoDirs = new Set<string>()
+    for (const p of blobs.keys())
+      for (let d = dirOf(p); d !== "." && !repoDirs.has(d); d = dirOf(d))
+        repoDirs.add(d)
+    const out = new Set<string>()
+    for (const [, oid] of found) {
+      try {
+        const buf = await this.input.repo.blobs().read(oid)
+        if (!buf) continue
+        for (const d of includeDirsFrom(
+          JSON.parse(buf.toString("utf8")),
+          repoDirs,
+        ))
+          out.add(d)
+      } catch {
+        // Not JSON: no include directories from it.
+      }
+    }
+    return [...out]
   }
 
   private addChanged(f: IndexedFile, side: Side) {
@@ -501,7 +589,7 @@ export class CodeIndex {
         if (!imp.reexport) continue
         const via = imp.names.find((n) => n.local === name || n.local === "*")
         if (!via) continue
-        const files = (this.resolvers as Record<Universe, ModuleResolver>)[
+        const { files } = (this.resolvers as Record<Universe, ModuleResolver>)[
           u
         ].resolve(e.language, e.path, imp.module)
         out.push(
@@ -532,6 +620,87 @@ export class CodeIndex {
     return null
   }
 
+  /**
+   * A definition found through an import: certain when the import names one
+   * module; when several files fit the import, likely if only one of them
+   * has it, else ambiguous.
+   */
+  private through(
+    target: ModuleTarget,
+    found: CodeSymbol[],
+  ): Resolution | null {
+    if (!found.length) return null
+    if (!target.ambiguous)
+      return { status: "resolved", targets: found.slice(0, 1), module: null }
+    return new Set(found.map((s) => s.path)).size === 1
+      ? { status: "likely", targets: found.slice(0, 1), module: null }
+      : {
+          status: "ambiguous",
+          targets: found.slice(0, MAX_CANDIDATES),
+          module: null,
+        }
+  }
+
+  /** Members named `name` of a type: inside it, or (Go, Rust) declared beside it in its package. */
+  private members(u: Universe, type: CodeSymbol, name: string): CodeSymbol[] {
+    const own = (this.symbolsById.get(type.id)?.entry.symbols ?? []).filter(
+      (s) => s.parentId === type.id && s.name === name,
+    )
+    if (own.length) return own
+    const dir = dirOf(type.path)
+    return (this.byName[u].get(name) ?? []).filter(
+      (s) =>
+        s.qualifiedName === `${type.qualifiedName}.${name}` &&
+        dirOf(s.path) === dir,
+    )
+  }
+
+  /**
+   * A member use on a parameter or local with a declared type: `order: Order`
+   * makes `order.save()` Order.save; a library or built-in type makes it
+   * external. Null when the type is unknown or doesn't have the member.
+   */
+  private byType(u: Universe, e: Entry, r: RawReference): Resolution | null {
+    const t = r.receiverType
+    if (!t) return null
+    const dot = t.lastIndexOf(".")
+    const res = this.deterministic(
+      e.side,
+      e,
+      {
+        kind: "references",
+        name: t.slice(dot + 1),
+        line: r.line,
+        col: r.col,
+        endCol: r.endCol,
+        receiver: dot > 0 ? t.slice(0, dot) : null,
+        receiverLocal: false,
+        receiverType: null,
+        args: null,
+        owner: r.owner,
+      },
+      u,
+    )
+    if (res?.status === "external")
+      return { status: "external", targets: [], module: res.module }
+    const type = res?.targets.find((s) => TYPE_LIKE.has(s.kind))
+    if (type) {
+      const found = this.members(u, type, r.name).filter((s) =>
+        compatible(r.kind, s),
+      )
+      return found.length
+        ? {
+            status: res?.status === "resolved" ? "resolved" : "likely",
+            targets: found.slice(0, 1),
+            module: null,
+          }
+        : null
+    }
+    return BUILTIN_TYPES.has(t)
+      ? { status: "external", targets: [], module: null }
+      : null
+  }
+
   /** Resolution by deterministic rules only; null when none applies. */
   private deterministic(
     side: Side | "both",
@@ -547,6 +716,11 @@ export class CodeIndex {
       targets.length
         ? { status: "resolved", targets: targets.slice(0, 1), module: null }
         : null
+    const external = (module: string): Resolution => ({
+      status: "external",
+      targets: [],
+      module,
+    })
 
     if (r.receiver) {
       // this.x / self.x: a member of the enclosing class.
@@ -562,40 +736,31 @@ export class CodeIndex {
           )
         return null
       }
+      // A parameter or local: only its declared type says what it is.
+      if (r.receiverLocal) return this.byType(u, e, r)
       // Only the receiver as a whole names a module or class: `refunds.issue()`, not `refunds.client.issue()`.
       const head = r.receiver
       const imp = this.importFor(e, head)
       if (imp) {
         const spec = imp.names.find((n) => n.local === head)
-        const files = resolver.resolve(e.language, e.path, imp.module)
-        if (spec?.imported === "*") {
+        const target = resolver.resolve(e.language, e.path, imp.module)
+        if (!target.files.length) return external(imp.module)
+        if (spec?.imported === "*")
           // A namespace import: refunds.issue() is issue() in that module.
-          if (!files.length)
-            return { status: "external", targets: [], module: imp.module }
           return (
-            resolved(fits(this.exported(u, files, r.name))) ?? {
-              status: "external",
-              targets: [],
-              module: imp.module,
-            }
+            this.through(
+              target,
+              fits(this.exported(u, target.files, r.name)),
+            ) ?? external(imp.module)
           )
-        }
         // An imported class: AuditLog.write() is a member of AuditLog.
-        const type = this.exported(u, files, spec?.imported ?? head).find((s) =>
-          TYPE_LIKE.has(s.kind),
-        )
-        if (type) {
-          const te = this.symbolsById.get(type.id)?.entry
-          return resolved(
-            fits(
-              (te?.symbols ?? []).filter(
-                (s) => s.parentId === type.id && s.name === r.name,
-              ),
-            ),
-          )
-        }
-        if (!files.length)
-          return { status: "external", targets: [], module: imp.module }
+        const type = this.exported(
+          u,
+          target.files,
+          spec?.imported ?? head,
+        ).find((s) => TYPE_LIKE.has(s.kind))
+        if (type)
+          return this.through(target, fits(this.members(u, type, r.name)))
         return null
       }
       // A class defined in this file: Service.create().
@@ -637,36 +802,39 @@ export class CodeIndex {
     const imp = this.importFor(e, r.name)
     if (imp) {
       const spec = imp.names.find((n) => n.local === r.name)
-      const files = resolver.resolve(e.language, e.path, imp.module)
-      if (!files.length)
-        return { status: "external", targets: [], module: imp.module }
+      const target = resolver.resolve(e.language, e.path, imp.module)
+      if (!target.files.length) return external(imp.module)
+      // A namespace import's own name (`refunds` in `refunds.issue()`) is the module.
+      if (spec?.imported === "*")
+        return this.through(
+          target,
+          target.files.flatMap((f) => this.byPath[u].get(f)?.module ?? []),
+        )
       const found = fits(
         this.exported(
           u,
-          files,
+          target.files,
           spec?.imported === "default" ? r.name : (spec?.imported ?? r.name),
         ),
       )
-      if (found.length) return resolved(found)
-      if (spec?.imported === "default") {
+      if (found.length) return this.through(target, found)
+      if (spec?.imported === "default" && !target.ambiguous) {
         const def = this.byPath[u]
-          .get(files[0] as string)
+          .get(target.files[0] as string)
           ?.symbols.filter((s) => s.parentId === null && compatible(r.kind, s))
         if (def?.length === 1) return resolved(def)
       }
-      return { status: "external", targets: [], module: imp.module }
+      return external(imp.module)
     }
     // Wildcard imports and includes.
     for (const w of e.outline.imports) {
       if (!w.names.some((n) => n.local === "*")) continue
-      const found = fits(
-        this.exported(
-          u,
-          resolver.resolve(e.language, e.path, w.module),
-          r.name,
-        ),
+      const target = resolver.resolve(e.language, e.path, w.module)
+      const found = this.through(
+        target,
+        fits(this.exported(u, target.files, r.name)),
       )
-      if (found.length) return resolved(found)
+      if (found) return found
     }
     // The same Go or Java package.
     if (samePackage(e.language)) {
@@ -692,8 +860,13 @@ export class CodeIndex {
     if (r.receiver && !SELF.has(r.receiver) && BUILTIN_METHODS.has(r.name))
       return { status: "external", targets: [], module: null }
     const family = familyOf(e.language)
+    // A field is found through its receiver (`this.`, a declared type, an imported class), never by
+    // name: names like `id` and `type` are on every other interface.
     const pool = (this.byName[u].get(r.name) ?? []).filter(
-      (s) => familyOf(s.language) === family && compatible(r.kind, s),
+      (s) =>
+        familyOf(s.language) === family &&
+        compatible(r.kind, s) &&
+        !jsMember(s),
     )
     // A member use (`order.total()`) can only be a method or field, which Go declares outside its type.
     const candidates = r.receiver
@@ -705,23 +878,85 @@ export class CodeIndex {
     if (candidates.length === 0)
       return { status: "external", targets: [], module: null }
     const ranked = this.rank(e, r, candidates)
-    if (ranked.length === 1 && !this.truncated.has(r.name))
-      return { status: "likely", targets: ranked, module: null }
+    const common = this.truncated.has(r.name)
+    // The name alone is no evidence: likely only when the file can reach the definition, else possible.
+    const sure = (s: CodeSymbol): Resolution => ({
+      status: this.evident(u, e, r, s) ? "likely" : "possible",
+      targets: [s],
+      module: null,
+    })
+    if (ranked.length === 1 && !common) return sure(ranked[0] as CodeSymbol)
     // Arity can single out one candidate among several.
     if (r.args !== null) {
       const arity = ranked.filter((s) => this.params(s) === r.args)
       if (
         arity.length === 1 &&
         ranked.every((s) => this.params(s) !== null) &&
-        !this.truncated.has(r.name)
+        !common
       )
-        return { status: "likely", targets: arity, module: null }
+        return sure(arity[0] as CodeSymbol)
     }
+    // So can evidence: the one candidate the file reaches.
+    const evident = ranked.filter((s) => this.evident(u, e, r, s))
+    if (evident.length === 1 && !common)
+      return { status: "likely", targets: evident, module: null }
     return {
       status: "ambiguous",
       targets: ranked.slice(0, MAX_CANDIDATES),
       module: null,
     }
+  }
+
+  /**
+   * Something besides the name points at a by-name match: the receiver's
+   * declared type is its class, it's in the same file or Go/Java package, or
+   * the using file reaches its file through imports.
+   */
+  private evident(
+    u: Universe,
+    e: Entry,
+    r: RawReference,
+    s: CodeSymbol,
+  ): boolean {
+    if (r.receiverType) {
+      const container = s.qualifiedName.split(".").slice(-2, -1)[0]
+      if (container && container === r.receiverType.split(".").pop())
+        return true
+    }
+    if (s.path === e.path) return true
+    if (
+      samePackage(e.language) &&
+      s.language === e.language &&
+      dirOf(s.path) === dirOf(e.path)
+    )
+      return true
+    return this.reachable(u, e.path).has(s.path)
+  }
+
+  /** Files a file imports, directly or through up to IMPORT_HOPS - 1 more indexed files. */
+  private reachable(u: Universe, path: string): Set<string> {
+    const cached = this.reach[u].get(path)
+    if (cached) return cached
+    const resolver = (this.resolvers as Record<Universe, ModuleResolver>)[u]
+    const seen = new Set<string>()
+    let frontier = [path]
+    for (let hop = 0; hop < IMPORT_HOPS && frontier.length; hop++) {
+      const next: string[] = []
+      for (const p of frontier) {
+        const e = this.byPath[u].get(p)
+        if (!e) continue
+        for (const imp of e.outline.imports)
+          for (const f of resolver.resolve(e.language, e.path, imp.module)
+            .files)
+            if (!seen.has(f)) {
+              seen.add(f)
+              next.push(f)
+            }
+      }
+      frontier = next
+    }
+    this.reach[u].set(path, seen)
+    return seen
   }
 
   private params(s: CodeSymbol): number | null {
@@ -764,7 +999,9 @@ export class CodeIndex {
       site: ConnectionSite,
     ) => {
       const target =
-        res.status === "resolved" || res.status === "likely"
+        res.status === "resolved" ||
+        res.status === "likely" ||
+        res.status === "possible"
           ? (res.targets[0] as CodeSymbol)
           : null
       const targetKey = target
@@ -817,7 +1054,8 @@ export class CodeIndex {
       if (neighbor) continue
       const resolver = (this.resolvers as Record<Universe, ModuleResolver>)[u]
       for (const imp of e.outline.imports) {
-        const files = resolver.resolve(e.language, e.path, imp.module)
+        const target = resolver.resolve(e.language, e.path, imp.module)
+        const { files } = target
         for (const n of imp.names) {
           const site: ConnectionSite = {
             side: u,
@@ -839,17 +1077,28 @@ export class CodeIndex {
             continue
           }
           if (n.imported === "*") {
-            for (const f of files.slice(0, 1)) {
-              const target = this.byPath[u].get(f)?.module
-              if (target)
-                add(
-                  e.module,
-                  "imports",
-                  imp.module,
-                  { status: "resolved", targets: [target], module: null },
-                  site,
-                )
-            }
+            const modules = files.flatMap((f) => {
+              const m = this.byPath[u].get(f)?.module
+              return m ? [m] : []
+            })
+            if (modules.length)
+              add(
+                e.module,
+                "imports",
+                imp.module,
+                target.ambiguous && modules.length > 1
+                  ? {
+                      status: "ambiguous",
+                      targets: modules.slice(0, MAX_CANDIDATES),
+                      module: null,
+                    }
+                  : {
+                      status: "resolved",
+                      targets: modules.slice(0, 1),
+                      module: null,
+                    },
+                site,
+              )
             continue
           }
           const found = this.exported(
@@ -861,9 +1110,11 @@ export class CodeIndex {
             e.module,
             "imports",
             n.imported === "default" ? n.local : n.imported,
-            found.length
-              ? { status: "resolved", targets: found.slice(0, 1), module: null }
-              : { status: "external", targets: [], module: imp.module },
+            this.through(target, found) ?? {
+              status: "external",
+              targets: [],
+              module: imp.module,
+            },
             site,
           )
         }
@@ -885,6 +1136,39 @@ export class CodeIndex {
   }
 
   // ---- Queries ------------------------------------------------------------------
+
+  /** Fragment dependencies, reach and test links for the Walkthrough planner. */
+  fragmentGraph(files: FileChange[]): FragmentGraph {
+    return buildFragmentGraph(this, files)
+  }
+
+  /** Every Connection made on one side. */
+  connectionsOn(side: Side): Connection[] {
+    const out: Connection[] = []
+    for (const id of this.ids[side]) {
+      const c = this.connectionsById.get(`${side}\0${id}`)
+      if (c) out.push(c)
+    }
+    return out
+  }
+
+  /** Connections into a Symbol on one side. */
+  incomingOn(side: Side, id: string): Connection[] {
+    const s = this.symbol(id)
+    return s ? (this.incoming[side].get(this.canonical(s)) ?? []) : []
+  }
+
+  /** The id a Symbol has on Head when it was matched, else its own. */
+  canonicalId(id: string): string {
+    const s = this.symbol(id)
+    return s ? this.canonical(s) : id
+  }
+
+  /** Symbols of a changed file on one side, by path. */
+  symbolsAt(side: Side, path: string): CodeSymbol[] {
+    const e = this.byPath[side].get(path)
+    return e && e.side !== "both" ? e.symbols : []
+  }
 
   symbol(id: string): CodeSymbol | null {
     return this.symbolsById.get(id)?.symbol ?? null
@@ -1025,6 +1309,7 @@ export class CodeIndex {
       const all = this.forSymbol(id)
       if (!all) continue
       for (const c of [...all.uses, ...all.usedBy]) {
+        if (c.status === "possible") continue
         if (c.toId) related.add(c.toId)
         related.add(c.fromId)
         for (const cand of c.candidates) related.add(cand)
@@ -1109,7 +1394,8 @@ const STATUS_ORDER: Record<ConnectionStatus, number> = {
   resolved: 0,
   likely: 1,
   ambiguous: 2,
-  external: 3,
+  possible: 3,
+  external: 4,
 }
 const KIND_ORDER: Record<ConnectionKind, number> = {
   calls: 0,

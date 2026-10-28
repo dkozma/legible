@@ -1,4 +1,14 @@
-import type { ClaudeAuth, HostKind, ModelTier, Settings } from "@legible/domain"
+import {
+  type ClaudeAuth,
+  type HostKind,
+  type ModelInfo,
+  type ModelTier,
+  type OpenAIAuth,
+  type Provider,
+  type Settings,
+  TASK_TIER,
+  type TaskKind,
+} from "@legible/domain"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Loader2, RefreshCw, X } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
@@ -25,6 +35,8 @@ import { useUI } from "../state"
 const SECTIONS: [string, string][] = [
   ["providers", "Providers"],
   ["tiers", "Model tiers"],
+  ["judges", "Judgment models"],
+  ["understanding", "Walkthrough & Brief"],
   ["hosts", "Hosts & accounts"],
   ["spend", "Spend"],
   ["diff", "Diff viewer"],
@@ -34,10 +46,24 @@ const SECTIONS: [string, string][] = [
 ]
 
 const TIER_WORK: Record<ModelTier, string> = {
-  strong:
-    "Lenses, Verification, Change Requests, Scenario traces, Domain Changes (from M3–M5)",
-  mid: "Walkthrough, Change Brief, Conversations (from M3)",
-  fast: "Explanations",
+  strong: "Domain Changes; Lenses, Verification and Change Requests (M4–M5)",
+  mid: "Intent, Walkthrough; Conversations (M5)",
+  fast: "Explanations, judgments, Description Gap wording",
+}
+
+/** Kinds of work the user can give their own model (Advanced). */
+const TASK_LABEL: Partial<Record<TaskKind, string>> = {
+  explanation: "Explanations",
+  intent: "Intent",
+  walkthrough: "Walkthrough",
+  domain_changes: "Domain Changes",
+  wording: "Description Gap wording",
+  judgment: "Judgments (fast-tier fallback)",
+}
+
+const PROVIDER_NAME: Record<Provider, string> = {
+  anthropic: "Claude",
+  openai: "OpenAI",
 }
 
 const settingRow =
@@ -119,6 +145,8 @@ export function SettingsView({
             <div className="mx-auto flex max-w-[860px] flex-col gap-9">
               <Providers settings={settings.data} update={update} />
               <Tiers settings={settings.data} update={update} />
+              <Judges settings={settings.data} update={update} />
+              <Understanding settings={settings.data} update={update} />
               <Hosts />
               <Spend settings={settings.data} update={update} />
               <Section
@@ -461,7 +489,7 @@ function Providers({
     <Section
       id="providers"
       title="Providers"
-      description="Explanations run on Claude. Keys are stored in the OS keychain and passed to Claude only as environment variables."
+      description="Connect Claude, OpenAI, or both; each Model Tier picks one. Keys are stored in the OS keychain."
     >
       <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3.5">
         <Card aria-labelledby="claude-h" className="flex flex-col">
@@ -470,6 +498,13 @@ function Providers({
               Claude
             </h3>
             <Badge tone="secondary">Default</Badge>
+            <Switch
+              checked={settings.claude.enabled}
+              label="Use Claude"
+              onChange={(v) =>
+                update((s) => ({ ...s, claude: { ...s.claude, enabled: v } }))
+              }
+            />
           </div>
           <div className="flex flex-col gap-3.5 px-[18px] py-4">
             <label
@@ -677,18 +712,7 @@ function Providers({
           </div>
         </Card>
 
-        <Card aria-labelledby="oai-h" className="flex flex-col opacity-70">
-          <div className="flex items-center gap-2 px-[18px] pt-4">
-            <h3 className="grow text-base font-semibold" id="oai-h">
-              OpenAI
-            </h3>
-            <Badge tone="muted">Coming in M3</Badge>
-          </div>
-          <p className="px-[18px] py-4 text-sm text-muted-foreground">
-            Continue with ChatGPT or an OpenAI API key, with models chosen per
-            tier. Arrives with the Walkthrough and Change Brief.
-          </p>
-        </Card>
+        <OpenAICard settings={settings} update={update} />
       </div>
     </Section>
   )
@@ -719,6 +743,55 @@ function TextSetting({
   )
 }
 
+function ModelSelect({
+  models,
+  value,
+  connected,
+  label,
+  onChange,
+  allowDefault = false,
+}: {
+  models: ModelInfo[]
+  value: { provider: Provider; model: string } | null
+  connected: Record<Provider, boolean>
+  label: string
+  onChange: (v: { provider: Provider; model: string } | null) => void
+  allowDefault?: boolean
+}) {
+  return (
+    <Select
+      aria-label={label}
+      className="w-[240px]"
+      value={value ? `${value.provider}:${value.model}` : ""}
+      onChange={(e) => {
+        const [provider, ...rest] = e.target.value.split(":")
+        onChange(
+          provider
+            ? { provider: provider as Provider, model: rest.join(":") }
+            : null,
+        )
+      }}
+    >
+      {allowDefault && <option value="">Tier default</option>}
+      {(["anthropic", "openai"] as const).map((p) => (
+        <optgroup
+          key={p}
+          label={`${PROVIDER_NAME[p]}${connected[p] ? "" : " (not connected)"}`}
+        >
+          {models
+            .filter((m) => m.provider === p)
+            .map((m) => (
+              <option key={m.id} value={`${p}:${m.id}`}>
+                {m.displayName}
+                {m.status === "experimental" ? " (experimental)" : ""}
+              </option>
+            ))}
+        </optgroup>
+      ))}
+    </Select>
+  )
+}
+
 function Tiers({
   settings,
   update,
@@ -731,16 +804,48 @@ function Tiers({
     queryKey: ["models"],
     queryFn: () => client.call("models.list", {}),
   })
+  const [advanced, setAdvanced] = useState(
+    Object.keys(settings.tasks).length > 0,
+  )
+  const connected = {
+    anthropic: settings.claude.enabled,
+    openai: settings.openai.enabled,
+  }
+  const onlyOpenAI = !connected.anthropic && connected.openai
   return (
     <Section
       id="tiers"
       title="Model tiers"
-      description="Each kind of agent work runs on a tier. Pick any Claude model for each."
+      description="Each kind of agent work runs on a tier, and each tier on any connected provider's model. Tiers don't have to share a provider."
     >
+      {onlyOpenAI && settings.tiers.mid.provider === "anthropic" && (
+        <Callout tone="ask" className="flex items-center gap-2 px-3 py-2">
+          <span className="grow text-sm">
+            Claude is off, so work falls back to OpenAI's defaults.
+          </span>
+          <Button
+            size="xs"
+            onClick={() =>
+              update((s) => ({
+                ...s,
+                tiers: {
+                  strong: { provider: "openai", model: "gpt-6-astra" },
+                  mid: { provider: "openai", model: "gpt-6.1-sol" },
+                  fast: { provider: "openai", model: "gpt-6-luna" },
+                },
+              }))
+            }
+          >
+            Use OpenAI for every tier
+          </Button>
+        </Callout>
+      )}
       <Card>
         {(["fast", "mid", "strong"] as const).map((tier) => {
           const current = settings.tiers[tier]
-          const info = models.data?.find((m) => m.id === current.model)
+          const info = models.data?.find(
+            (m) => m.id === current.model && m.provider === current.provider,
+          )
           return (
             <div key={tier} className={settingRow}>
               <div className="flex min-w-60 grow flex-col gap-0.5">
@@ -761,36 +866,369 @@ function Tiers({
                   {"$".repeat(info.costRank)}
                 </span>
               )}
-              <Select
-                aria-label={`${tier} tier model`}
-                className="w-[220px]"
-                value={current.model}
-                onChange={(e) =>
-                  update((s) => ({
-                    ...s,
-                    tiers: {
-                      ...s.tiers,
-                      [tier]: { provider: "anthropic", model: e.target.value },
-                    },
-                  }))
+              <ModelSelect
+                models={models.data ?? []}
+                value={current}
+                connected={connected}
+                label={`${tier} tier model`}
+                onChange={(v) =>
+                  v &&
+                  update((s) => ({ ...s, tiers: { ...s.tiers, [tier]: v } }))
                 }
-              >
-                {(models.data ?? []).map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.displayName}
-                    {m.status === "experimental" ? " (experimental)" : ""}
-                  </option>
-                ))}
-              </Select>
+              />
             </div>
           )
         })}
       </Card>
+      <button
+        type="button"
+        className="self-start text-sm text-muted-foreground hover:text-foreground"
+        aria-expanded={advanced}
+        onClick={() => setAdvanced((v) => !v)}
+      >
+        {advanced ? "▾" : "▸"} Advanced: a model for one kind of work
+      </button>
+      {advanced && (
+        <Card>
+          {(Object.keys(TASK_LABEL) as TaskKind[]).map((kind) => (
+            <div key={kind} className={settingRow}>
+              <div className="flex min-w-60 grow flex-col gap-0.5">
+                <span className="text-sm">{TASK_LABEL[kind]}</span>
+                <span className="text-xs text-muted-foreground">
+                  Tier: {TASK_TIER[kind]}
+                </span>
+              </div>
+              <ModelSelect
+                models={models.data ?? []}
+                value={settings.tasks[kind] ?? null}
+                connected={connected}
+                allowDefault
+                label={`${TASK_LABEL[kind]} model`}
+                onChange={(v) =>
+                  update((s) => {
+                    const tasks = { ...s.tasks }
+                    if (v) tasks[kind] = v
+                    else delete tasks[kind]
+                    return { ...s, tasks }
+                  })
+                }
+              />
+            </div>
+          ))}
+        </Card>
+      )}
       <p className="px-0.5 text-xs text-muted-foreground">
-        Recommended models are the defaults Legible is tuned for; experimental
-        ones aren't evaluated yet. Explanations aim for under five seconds on
-        the fast tier.
+        Recommended models passed Legible's evals for their tier; experimental
+        ones haven't yet. Every OpenAI model is experimental until the evals run
+        on it. Explanations aim for under five seconds on the fast tier.
       </p>
+    </Section>
+  )
+}
+
+function OpenAICard({
+  settings,
+  update,
+}: {
+  settings: Settings
+  update: (fn: (s: Settings) => Settings) => void
+}) {
+  const client = useClient()
+  const qc = useQueryClient()
+  const status = useQuery({
+    queryKey: ["runtimeStatus", "openai"],
+    queryFn: () => client.call("runtime.status", { provider: "openai" }),
+    enabled: settings.openai.enabled,
+  })
+  const account = useQuery({
+    queryKey: ["openaiAccount"],
+    queryFn: () => client.call("openai.account", {}),
+  })
+  const signIn = useMutation({
+    mutationFn: () => client.call("openai.signIn", {}),
+    onSuccess: (a) => {
+      qc.setQueryData(["openaiAccount"], a)
+      void qc.invalidateQueries({ queryKey: ["runtimeStatus"] })
+    },
+    onError: (e: Error) => useUI.getState().toast(e.message),
+  })
+  const signOut = useMutation({
+    mutationFn: () => client.call("openai.signOut", {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["openaiAccount"] })
+      void qc.invalidateQueries({ queryKey: ["runtimeStatus"] })
+    },
+  })
+  const auth = settings.openai.auth
+  const setAuth = (a: OpenAIAuth) =>
+    update((s) => ({ ...s, openai: { ...s.openai, auth: a } }))
+  const on = settings.openai.enabled
+  return (
+    <Card aria-labelledby="oai-h" className="flex flex-col">
+      <div className="flex items-center gap-2 px-[18px] pt-4">
+        <h3 className="grow text-base font-semibold" id="oai-h">
+          OpenAI
+        </h3>
+        {on && status.data && (
+          <Badge tone={status.data.ready ? "ok" : "elevated"}>
+            {status.data.ready ? "Connected" : "Not ready"}
+          </Badge>
+        )}
+        <Switch
+          checked={on}
+          label="Use OpenAI"
+          onChange={(v) =>
+            update((s) => ({ ...s, openai: { ...s.openai, enabled: v } }))
+          }
+        />
+      </div>
+      <div
+        className={cn(
+          "flex flex-col gap-3.5 px-[18px] py-4",
+          !on && "pointer-events-none opacity-60",
+        )}
+      >
+        <label
+          className={cn(
+            "flex cursor-pointer flex-col gap-2 rounded-lg border bg-inset p-3",
+            auth === "chatgpt" && "border-ring",
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Radio
+              name="openai-auth"
+              checked={auth === "chatgpt"}
+              onChange={() => setAuth("chatgpt")}
+            />
+            <span className="grow text-sm font-semibold">
+              Continue with ChatGPT
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Uses your ChatGPT Plus or Pro plan through OpenAI's sign-in for
+            open-source apps. Tokens stay in the keychain.
+          </p>
+          {auth === "chatgpt" &&
+            (!account.data?.available ? (
+              <span className="text-xs text-muted-foreground">
+                This build can't sign in with ChatGPT yet: it needs the client
+                id OpenAI registers for Legible. Use an API key for now.
+              </span>
+            ) : account.data.signedIn ? (
+              <span className="flex items-center gap-2 text-xs">
+                <Check className="size-3" />
+                <span className="grow">
+                  Signed in
+                  {account.data.email ? ` as ${account.data.email}` : ""}
+                  {account.data.plan ? ` · ${account.data.plan}` : ""}
+                </span>
+                <Button
+                  variant="muted"
+                  size="xs"
+                  onClick={() => signOut.mutate()}
+                >
+                  Sign out
+                </Button>
+              </span>
+            ) : (
+              <Button
+                size="sm"
+                className="self-start"
+                disabled={signIn.isPending}
+                onClick={() => signIn.mutate()}
+              >
+                {signIn.isPending && <Loader2 className="animate-spin" />}
+                Continue with ChatGPT
+              </Button>
+            ))}
+        </label>
+        <div
+          className={cn(
+            "flex flex-col gap-2.5 rounded-lg border bg-inset p-3",
+            auth === "api-key" && "border-ring",
+          )}
+        >
+          <label className="flex cursor-pointer items-center gap-2">
+            <Radio
+              name="openai-auth"
+              checked={auth === "api-key"}
+              onChange={() => setAuth("api-key")}
+            />
+            <span className="grow text-sm font-semibold">OpenAI API key</span>
+          </label>
+          {auth === "api-key" && (
+            <SecretField
+              name="openai-api-key"
+              placeholder="sk-…"
+              label="OpenAI API key"
+            />
+          )}
+        </div>
+        {on && status.data && !status.data.ready && (
+          <span className="text-xs text-muted-foreground">
+            {status.data.detail}
+          </span>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+function Judges({
+  settings,
+  update,
+}: {
+  settings: Settings
+  update: (fn: (s: Settings) => Settings) => void
+}) {
+  const j = settings.judge
+  return (
+    <Section
+      id="judges"
+      title="Judgment models"
+      description="Legible makes many small pick-one and yes/no judgments: Scope tagging, Description Gap checks, Risk signals. A judgment model makes them faster, cheaper and better calibrated. Without one, the fast tier's model judges."
+    >
+      <Card>
+        <div className={settingRow}>
+          <div className="flex min-w-60 grow flex-col gap-0.5">
+            <span className="text-sm font-semibold">TypeSafe Jev</span>
+            <span className="text-xs text-muted-foreground">
+              Sends Step names and narratives, file paths, changed Symbol names,
+              the Intent, and the PR title and description to api.typesafe.ai.
+              Never the code itself.
+            </span>
+          </div>
+          <Switch
+            checked={j.jev.enabled}
+            label="Use TypeSafe Jev"
+            onChange={(v) =>
+              update((s) => ({
+                ...s,
+                judge: { ...s.judge, jev: { ...s.judge.jev, enabled: v } },
+              }))
+            }
+          />
+        </div>
+        {j.jev.enabled && (
+          <div className={cn(settingRow, "flex-col items-stretch")}>
+            <SecretField
+              name="typesafe-api-key"
+              placeholder="TypeSafe API key"
+              label="TypeSafe API key"
+            />
+            <TextSetting
+              label="Model (pin a version to keep thresholds stable)"
+              value={j.jev.model}
+              onCommit={(v) =>
+                update((s) => ({
+                  ...s,
+                  judge: {
+                    ...s.judge,
+                    jev: { ...s.judge.jev, model: v || "jev-latest" },
+                  },
+                }))
+              }
+            />
+          </div>
+        )}
+        <div className={settingRow}>
+          <div className="flex min-w-60 grow flex-col gap-0.5">
+            <span className="text-sm font-semibold">OpenAI Decisions</span>
+            <span className="text-xs text-muted-foreground">
+              Uses your OpenAI API key and sends the same as above to OpenAI.
+            </span>
+          </div>
+          <Switch
+            checked={j.decisions.enabled}
+            label="Use OpenAI Decisions"
+            onChange={(v) =>
+              update((s) => ({
+                ...s,
+                judge: { ...s.judge, decisions: { enabled: v } },
+              }))
+            }
+          />
+        </div>
+        {j.jev.enabled && j.decisions.enabled && (
+          <div className={settingRow}>
+            <span className="grow text-sm">Ask first</span>
+            <Tabs label="Judge order" className="h-7 p-0.5">
+              {(["jev", "decisions"] as const).map((b) => (
+                <Tab
+                  key={b}
+                  selected={j.order[0] === b}
+                  className="px-2"
+                  onClick={() =>
+                    update((s) => ({
+                      ...s,
+                      judge: {
+                        ...s.judge,
+                        order: [b, b === "jev" ? "decisions" : "jev"],
+                      },
+                    }))
+                  }
+                >
+                  {b === "jev" ? "TypeSafe" : "OpenAI Decisions"}
+                </Tab>
+              ))}
+            </Tabs>
+          </div>
+        )}
+      </Card>
+    </Section>
+  )
+}
+
+function Understanding({
+  settings,
+  update,
+}: {
+  settings: Settings
+  update: (fn: (s: Settings) => Settings) => void
+}) {
+  return (
+    <Section
+      id="understanding"
+      title="Walkthrough & Brief"
+      description="When a Review opens, Legible works out its Intent, plans a Walkthrough, and writes the Change Brief."
+    >
+      <Card>
+        <div className={settingRow}>
+          <div className="flex min-w-60 grow flex-col gap-0.5">
+            <span className="text-sm font-semibold">Build automatically</span>
+            <span className="text-xs text-muted-foreground">
+              Off: build them from the Brief when you want them.
+            </span>
+          </div>
+          <Switch
+            checked={settings.understanding.auto}
+            label="Build automatically"
+            onChange={(v) =>
+              update((s) => ({ ...s, understanding: { auto: v } }))
+            }
+          />
+        </div>
+        <div className={settingRow}>
+          <div className="flex min-w-60 grow flex-col gap-0.5">
+            <span className="text-sm font-semibold">
+              Read Agent Transcripts
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Finds the Claude Code (~/.claude/projects) and Codex
+              (~/.codex/sessions) sessions run in the repository's folder while
+              it changed, and reads their prompts, plans and corrections as
+              Intent. Nothing else in those folders is read.
+            </span>
+          </div>
+          <Switch
+            checked={settings.intent.readTranscripts}
+            label="Read Agent Transcripts"
+            onChange={(v) =>
+              update((s) => ({ ...s, intent: { readTranscripts: v } }))
+            }
+          />
+        </div>
+      </Card>
     </Section>
   )
 }
@@ -964,6 +1402,25 @@ function Spend({
               update((s) => ({
                 ...s,
                 spend: { ...s.spend, explanationCapUsd: v },
+              }))
+            }
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="grow text-sm">
+            Cap per Walkthrough and Brief (one Iteration)
+          </span>
+          <NumberField
+            value={settings.spend.understandingCapUsd}
+            min={0.05}
+            max={50}
+            step={0.25}
+            prefix="$"
+            label="Cap per Walkthrough and Brief"
+            onCommit={(v) =>
+              update((s) => ({
+                ...s,
+                spend: { ...s.spend, understandingCapUsd: v },
               }))
             }
           />

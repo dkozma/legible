@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto"
 
 import type { AgentTask, ToolContext } from "@legible/agent-runtime"
-import { READ_TOOLS } from "@legible/agent-runtime"
+import { READ_TOOLS, untrusted } from "@legible/agent-runtime"
 import {
   CONNECTION_VERB,
   CONNECTION_VERB_IN,
@@ -211,11 +211,6 @@ export function renderTargetDiff(
   return { text: out.join("\n"), truncated }
 }
 
-function untrusted(label: string, text: string) {
-  // Neutralize any untrusted tag inside the data, in any case or spacing, so it can't end the block early.
-  return `<untrusted source="${label}">\n${text.replace(/<(\s*\/?\s*untrusted)/gi, "&lt;$1")}\n</untrusted>`
-}
-
 export function explanationPrompt(input: ExplanationInput): string {
   const { text, truncated } = renderTargetDiff(input)
   const f = input.file
@@ -308,8 +303,9 @@ export function explanationCacheKey(
 
 /**
  * Connection changes as prompt lines: what a Symbol now uses or no longer
- * uses, and who now uses it or stopped. With `connectionId`, that Connection
- * comes first, whether or not it changed.
+ * uses, and who now uses it or stopped. Possible Connections (a name match
+ * and nothing else) aren't facts, so they're left out. With `connectionId`,
+ * that Connection comes first, whether or not it changed.
  */
 export function describeConnections(
   all: SymbolConnections,
@@ -327,8 +323,10 @@ export function describeConnections(
       : c.status === "ambiguous"
         ? ` (ambiguous: ${c.candidates.length} candidates)`
         : c.status === "likely"
-          ? " (likely: the only definition by that name)"
-          : ""
+          ? " (likely, not certain)"
+          : c.status === "possible"
+            ? " (possible: only the name matches)"
+            : ""
   const out: string[] = []
   const focus = [...all.uses, ...all.usedBy].find((c) => c.id === connectionId)
   if (focus) {
@@ -345,14 +343,15 @@ export function describeConnections(
   }
   const whole = all.symbol.change === "added" || all.symbol.change === "removed"
   for (const c of all.uses) {
-    if (!c.change || whole || c.id === connectionId) continue
+    if (!c.change || whole || c.id === connectionId || c.status === "possible")
+      continue
     const verb = CONNECTION_VERB[c.kind]
     out.push(
       `${c.change === "added" ? "Now" : "No longer"} ${verb} ${name(c.toId, c.name)}${status(c)}`,
     )
   }
   for (const c of all.usedBy) {
-    if (!c.change || c.id === connectionId) continue
+    if (!c.change || c.id === connectionId || c.status === "possible") continue
     const verb = CONNECTION_VERB_IN[c.kind]
     out.push(
       `${c.change === "added" ? "Now" : "No longer"} ${verb} ${name(c.fromId, "?")}`,

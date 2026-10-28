@@ -4,13 +4,15 @@
 import { randomUUID } from "node:crypto"
 
 import type { AgentEvent } from "@legible/agent-runtime"
-import type { RuntimeStatus } from "@legible/domain"
+import type { Provider, RuntimeStatus } from "@legible/domain"
 
 import {
   createAgentHost,
   type ExplanationRunInput,
   type FromHost,
   type HostConfig,
+  type PipelineName,
+  type Pipelines,
   type RunResultMessage,
   type ToHost,
 } from "./agentHostCore"
@@ -63,7 +65,9 @@ export class AgentHostClient {
         this.runs.delete(id)
       }
       for (const [id, resolve] of this.statusWaiters) {
-        resolve(unavailable("The agent host stopped unexpectedly."))
+        resolve(
+          unavailable("anthropic", "The agent host stopped unexpectedly."),
+        )
         this.statusWaiters.delete(id)
       }
     })
@@ -77,36 +81,50 @@ export class AgentHostClient {
     this.ensure().post({ type: "configure", config })
   }
 
-  status(): Promise<RuntimeStatus> {
+  status(provider: Provider = "anthropic"): Promise<RuntimeStatus> {
     const reqId = randomUUID()
     return new Promise((resolve) => {
       this.statusWaiters.set(reqId, resolve)
-      this.ensure().post({ type: "status", reqId })
+      this.ensure().post({ type: "status", reqId, provider })
       // `claude --version` and `auth status` each have their own timeout; this is a backstop.
       setTimeout(() => {
         if (!this.statusWaiters.delete(reqId)) return
-        resolve(unavailable("Checking Claude took too long."))
+        resolve(
+          unavailable(
+            provider,
+            `Checking ${provider === "openai" ? "OpenAI" : "Claude"} took too long.`,
+          ),
+        )
       }, 30_000)
     })
+  }
+
+  run<P extends PipelineName>(
+    pipeline: P,
+    input: Pipelines[P]["input"],
+    budgetUsd: number,
+    onEvent: (e: AgentEvent) => void = () => undefined,
+  ): {
+    runId: string
+    done: Promise<RunResultMessage & { output: Pipelines[P]["output"] }>
+  } {
+    const runId = randomUUID()
+    // The host answers each pipeline with its own output type.
+    const done = new Promise<
+      RunResultMessage & { output: Pipelines[P]["output"] }
+    >((resolve, reject) => {
+      this.runs.set(runId, { resolve, reject, onEvent })
+    })
+    this.ensure().post({ type: "run", runId, pipeline, input, budgetUsd })
+    return { runId, done }
   }
 
   runExplanation(
     input: ExplanationRunInput,
     budgetUsd: number,
     onEvent: (e: AgentEvent) => void,
-  ): { runId: string; done: Promise<RunResultMessage> } {
-    const runId = randomUUID()
-    const done = new Promise<RunResultMessage>((resolve, reject) => {
-      this.runs.set(runId, { resolve, reject, onEvent })
-    })
-    this.ensure().post({
-      type: "run",
-      runId,
-      pipeline: "explanation",
-      input,
-      budgetUsd,
-    })
-    return { runId, done }
+  ) {
+    return this.run("explanation", input, budgetUsd, onEvent)
   }
 
   cancel(runId: string) {
@@ -137,10 +155,10 @@ export class AgentHostClient {
   }
 }
 
-function unavailable(detail: string): RuntimeStatus {
+function unavailable(provider: Provider, detail: string): RuntimeStatus {
   return {
-    provider: "anthropic",
-    auth: "claude-code",
+    provider,
+    auth: provider === "openai" ? "api-key" : "claude-code",
     ready: false,
     detail,
     executablePath: null,

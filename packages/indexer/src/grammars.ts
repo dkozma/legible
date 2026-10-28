@@ -99,6 +99,8 @@ export interface LoadedGrammar {
   highlightRank: number[]
   /** Upstream tags plus Legible's own definitions and references. */
   tags: Query | null
+  /** Local scopes and the names bound in them; null for a language without them. */
+  locals: Query | null
   /**
    * Changes whenever parse results for this language could: the grammar
    * package's version and a hash of every query's text (upstream, nested
@@ -189,15 +191,18 @@ export class Grammars {
         )
       }
     }
-    const extraTags = (
-      await Promise.all(
-        spec.legible.map(async (path) => {
-          const q = await src.readQuery(path)
-          if (q === null) throw new Error(`Missing query ${path}`)
-          return q
-        }),
-      )
-    ).join("\n")
+    const own = async (paths: string[]) =>
+      (
+        await Promise.all(
+          paths.map(async (path) => {
+            const q = await src.readQuery(path)
+            if (q === null) throw new Error(`Missing query ${path}`)
+            return q
+          }),
+        )
+      ).join("\n")
+    const extraTags = await own(spec.legible)
+    const localsSource = await own(spec.locals)
     const highlightSource = await text(spec.highlights)
     const tagsSource = `${await text(spec.tags)}\n${extraTags}`
     const highlights = query(highlightSource, "highlights")
@@ -205,6 +210,8 @@ export class Grammars {
       .update(highlightSource)
       .update("\0")
       .update(tagsSource)
+      .update("\0")
+      .update(localsSource)
       .digest("hex")
       .slice(0, 12)
     return {
@@ -215,6 +222,7 @@ export class Grammars {
         ? patternSpecificity(highlights, highlightSource)
         : [],
       tags: query(tagsSource, "tags"),
+      locals: query(localsSource, "locals"),
       version: `${spec.wasm.pkg}@${await src.version(spec.wasm.pkg, spec.wasm.via)}+q${queries}`,
     }
   }

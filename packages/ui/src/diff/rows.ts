@@ -55,6 +55,16 @@ export type Row =
       lmoved: boolean
       rmoved: boolean
     }
+  | {
+      /** A change that belongs to another Step, shown folded in a Step's diff. */
+      k: "elsewhere"
+      fileId: string
+      chunk: number
+      stepId: string
+      label: string
+      unrequested: boolean
+      lines: number
+    }
   | { k: "end" }
 
 export type CollapsedReason =
@@ -74,6 +84,7 @@ export const ROW_HEIGHT: Record<Row["k"], number> = {
   hunk: 24,
   gap: 24,
   frag: 28,
+  elsewhere: 28,
   line: 20,
   pair: 20,
   end: 64,
@@ -90,6 +101,20 @@ export interface RowOptions {
   expandedFrags: ReadonlySet<string>
   /** Lines revealed from each edge of a hidden unchanged region. */
   gapReveal: ReadonlyMap<string, number>
+  /** Show one Step: only its files, with other Steps' changes folded. */
+  step?: StepFocus | null
+}
+
+/** The part of a Change Set one Step covers. */
+export interface StepFocus {
+  fileIds: ReadonlySet<string>
+  /** Whether a change chunk belongs to this Step. */
+  owns(fileId: string, chunk: DiffChunk): boolean
+  /** The Step another change chunk belongs to. */
+  other(
+    fileId: string,
+    chunk: DiffChunk,
+  ): { stepId: string; label: string; unrequested: boolean } | null
 }
 
 export interface NavPoint {
@@ -114,7 +139,8 @@ export function collapsedReason(
 ): CollapsedReason | null {
   if (opts.collapsedFiles.has(file.id)) return "user"
   if (opts.expandedFiles.has(file.id)) return null
-  if (opts.viewed.has(file.id)) return "viewed"
+  // A Step's viewed mark is its own; its files stay open.
+  if (opts.viewed.has(file.id) && !opts.step) return "viewed"
   if (file.binary) return "binary"
   if (file.collapse) return file.collapse
   if (!file.chunks.some((c) => c.kind === "change")) return "unchanged"
@@ -150,7 +176,10 @@ export function buildRows(
   const hunks: NavPoint[] = []
   const files: { fileId: string; row: number }[] = []
 
-  summary.files.forEach((file, fi) => {
+  const shown = opts.step
+    ? summary.files.filter((f) => opts.step?.fileIds.has(f.id))
+    : summary.files
+  shown.forEach((file, fi) => {
     files.push({ fileId: file.id, row: rows.length })
     rows.push({ k: "file", fileId: file.id, first: fi === 0 })
     const reason = collapsedReason(file, opts)
@@ -286,6 +315,19 @@ export function buildRows(
       if (blockChunk < 0) blockChunk = ci
       blockLastChunk = ci
       extend(c.baseStart, c.baseEnd, c.headStart, c.headEnd)
+      if (opts.step && !opts.step.owns(file.id, c)) {
+        const other = opts.step.other(file.id, c)
+        block.push({
+          k: "elsewhere",
+          fileId: file.id,
+          chunk: ci,
+          stepId: other?.stepId ?? "",
+          label: other?.label ?? "Another Step",
+          unrequested: other?.unrequested ?? false,
+          lines: c.baseEnd - c.baseStart + (c.headEnd - c.headStart),
+        })
+        return
+      }
       if (frag && frag.kind === "structural" && frag.proof) {
         const expanded = opts.expandedFrags.has(frag.id)
         block.push({

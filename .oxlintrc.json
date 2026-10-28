@@ -74,6 +74,7 @@
     "**/dist/**",
     "**/release/**",
     "fixtures/.generated/**",
+    "evals/cases/**",
     "docs/design/**"
   ],
   "overrides": [

@@ -39,6 +39,10 @@ export interface RawReference {
   endCol: number
   /** For member uses (`a.b()`): the receiver's text when it's a name or dotted names (`this`, `this.items`), else "?". */
   receiver: string | null
+  /** The receiver is a parameter or local (`order` in `order.total()`), not a module or class. */
+  receiverLocal: boolean
+  /** That local's declared type, when it has one: `order: Order`, `new Order()`, `&Order{}` → "Order". */
+  receiverType: string | null
   /** Argument count at a call site. */
   args: number | null
   /** Index of the innermost Symbol containing the use, or -1. */
@@ -100,11 +104,16 @@ export function extractOutline(
   language: string,
   tree: Tree,
   tags: Query | null,
+  locals: Query | null = null,
 ): Outline {
   const root = tree.rootNode
   const defs: (RawSymbol & { start: number; end: number; pattern: number })[] =
     []
-  const refs: (RawReference & { pattern: number; offset: number })[] = []
+  const refs: (RawReference & {
+    pattern: number
+    offset: number
+    type: boolean
+  })[] = []
   const defNames = new Set<number>()
 
   if (tags) {
@@ -164,10 +173,13 @@ export function extractOutline(
           col: nameNode.startPosition.column,
           endCol: nameNode.endPosition.column,
           receiver: receiverOf(nameNode),
+          receiverLocal: false,
+          receiverType: null,
           args: kind === "calls" ? argCount(ref.node) : null,
           owner: -1,
           pattern: m.patternIndex,
           offset: nameNode.startIndex,
+          type: nameNode.type === "type_identifier",
         })
       }
     }
@@ -221,12 +233,29 @@ export function extractOutline(
       a.col - b.col ||
       REFERENCE_RANK[a.kind] - REFERENCE_RANK[b.kind],
   )
+  const bindings = locals ? localBindings(root, locals, defNames) : null
+  const fromStart = !SCOPE_WIDE.has(language)
   const references: RawReference[] = []
+  let lastLine = -1
+  let lastCol = -1
   for (const r of refs) {
-    const last = references[references.length - 1]
-    if (last && last.line === r.line && last.col === r.col) continue
+    if (r.line === lastLine && r.col === lastCol) continue
+    lastLine = r.line
+    lastCol = r.col
     if (defNames.has(r.offset)) continue
-    const { pattern: _p, offset, ...rest } = r
+    const { pattern: _p, offset, type, ...rest } = r
+    if (bindings) {
+      // A use of a parameter, local or type parameter is never a Connection.
+      if (rest.receiver === null) {
+        if (bindingAt(bindings, rest.name, offset, fromStart, type)) continue
+      } else {
+        const b = bindingAt(bindings, rest.receiver, offset, fromStart)
+        if (b) {
+          rest.receiverLocal = true
+          rest.receiverType = b.type
+        }
+      }
+    }
     rest.owner = innermost(symbols, offset)
     references.push(rest)
   }
@@ -236,6 +265,189 @@ export function extractOutline(
     references,
     imports: extractImports(language, root),
   }
+}
+
+/**
+ * Languages where a binding covers its whole scope, uses before it included
+ * (`let`/`const`, Python locals, comprehension variables that follow their
+ * body). Elsewhere (Go's `:=`) a binding starts where it's declared.
+ */
+const SCOPE_WIDE = new Set(["typescript", "tsx", "javascript", "python"])
+
+interface Binding {
+  /** The scope's byte range. */
+  start: number
+  end: number
+  /** Where the name is bound. */
+  at: number
+  /** A type parameter (`<T>`), which only type names can mean, rather than a value. */
+  typeParameter: boolean
+  type: string | null
+}
+
+/**
+ * Names bound in local scopes, from a locals query's @local.scope and
+ * @local.definition captures. A binding that is itself a Symbol (a nested
+ * `const helper = () => …`) isn't one: uses of it resolve to the Symbol.
+ */
+function localBindings(
+  root: Node,
+  locals: Query,
+  symbolNames: Set<number>,
+): Map<string, Binding[]> {
+  const scopes = new Set<number>()
+  const names: Node[] = []
+  const typeParameters = new Set<number>()
+  for (const c of locals.captures(root)) {
+    if (c.name === "local.scope") scopes.add(c.node.id)
+    else if (c.name === "local.definition") names.push(c.node)
+    else if (c.name === "local.definition.type") {
+      names.push(c.node)
+      typeParameters.add(c.node.id)
+    }
+  }
+  const out = new Map<string, Binding[]>()
+  for (const n of names) {
+    if (symbolNames.has(n.startIndex)) continue
+    let scope = n.parent
+    while (scope && !scopes.has(scope.id)) scope = scope.parent
+    // Outside every local scope: a module-level name.
+    if (!scope) continue
+    const b: Binding = {
+      start: scope.startIndex,
+      end: scope.endIndex,
+      at: n.startIndex,
+      typeParameter: typeParameters.has(n.id),
+      type: declaredType(n),
+    }
+    const list = out.get(n.text)
+    if (list) list.push(b)
+    else out.set(n.text, [b])
+  }
+  return out
+}
+
+/** The innermost binding of `name` in scope at `offset`, if any: a type parameter for a type name, else a value. */
+function bindingAt(
+  bindings: Map<string, Binding[]>,
+  name: string,
+  offset: number,
+  fromStart: boolean,
+  isType = false,
+): Binding | null {
+  let best: Binding | null = null
+  for (const b of bindings.get(name) ?? [])
+    if (
+      b.typeParameter === isType &&
+      b.start <= offset &&
+      offset < b.end &&
+      (!fromStart || b.at <= offset) &&
+      (!best || b.start >= best.start)
+    )
+      best = b
+  return best
+}
+
+/** The type a local is declared with or constructed as; null when the code doesn't say. */
+function declaredType(name: Node): string | null {
+  const p = name.parent
+  if (!p) return null
+  switch (p.type) {
+    // TypeScript parameters; Python typed parameters; Go parameters and `var`.
+    case "required_parameter":
+    case "optional_parameter":
+    case "typed_parameter":
+    case "typed_default_parameter":
+    case "parameter_declaration":
+    case "variadic_parameter_declaration":
+    case "var_spec":
+      return typeName(p.childForFieldName("type"))
+    case "variable_declarator": {
+      const value = p.childForFieldName("value")
+      return (
+        typeName(p.childForFieldName("type")) ??
+        (value?.type === "new_expression"
+          ? simpleName(value.childForFieldName("constructor"))
+          : null)
+      )
+    }
+    // Python: `order: Order = …`, or `order = Order(…)` (classes are capitalized).
+    case "assignment": {
+      if (p.childForFieldName("left")?.id !== name.id) return null
+      const value = p.childForFieldName("right")
+      const callee =
+        value?.type === "call"
+          ? simpleName(value.childForFieldName("function"))
+          : null
+      return (
+        typeName(p.childForFieldName("type")) ??
+        (callee && /^[A-Z]/.test(callee.split(".").pop() ?? "") ? callee : null)
+      )
+    }
+    // Go: `order := &Order{}`.
+    case "expression_list": {
+      const decl = p.parent
+      if (decl?.type !== "short_var_declaration") return null
+      const i = p.namedChildren.findIndex((c) => c?.id === name.id)
+      let value = decl.childForFieldName("right")?.namedChildren[i] ?? null
+      if (value?.type === "unary_expression")
+        value = value.childForFieldName("operand")
+      return value?.type === "composite_literal"
+        ? typeName(value.childForFieldName("type"))
+        : null
+    }
+    default:
+      return null
+  }
+}
+
+/** The named type in a type expression: `Order | null` → Order, `*Order` → Order, `Promise<Order>` → Promise, `Order[]` → Array. */
+function typeName(t: Node | null): string | null {
+  if (!t) return null
+  switch (t.type) {
+    case "type_annotation":
+    case "type":
+    case "pointer_type":
+    case "parenthesized_type":
+      return typeName(t.namedChildren[0] ?? null)
+    case "union_type":
+      for (const c of t.namedChildren)
+        if (
+          c &&
+          c.type !== "literal_type" &&
+          !/^(null|undefined|void)$/.test(c.text)
+        )
+          return typeName(c)
+      return null
+    // Python `Order | None`.
+    case "binary_operator":
+      return typeName(t.childForFieldName("left"))
+    case "generic_type":
+      return typeName(t.childForFieldName("name") ?? t.namedChildren[0] ?? null)
+    // Python `Optional[Order]`, `list[Order]`.
+    case "subscript": {
+      const outer = simpleName(t.childForFieldName("value"))
+      return outer === "Optional" || outer === "typing.Optional"
+        ? typeName(t.childForFieldName("subscript"))
+        : outer
+    }
+    case "array_type":
+    case "slice_type":
+      return "Array"
+    case "type_identifier":
+    case "identifier":
+    case "predefined_type":
+    case "nested_type_identifier":
+    case "qualified_type":
+    case "attribute":
+      return simpleName(t)
+    default:
+      return null
+  }
+}
+
+function simpleName(n: Node | null): string | null {
+  return n && SIMPLE_RECEIVER.test(n.text) ? n.text : null
 }
 
 const BINDING_PARENT = /declarator|parameter|pattern|for_in_clause|catch_clause/
@@ -356,6 +568,8 @@ const SIMPLE_RECEIVER = /^[A-Za-z_$@][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/
 function receiverOf(name: Node): string | null {
   const parent = name.parent
   if (!parent) return null
+  // `tiers[t]`: an index is a plain use, not a member.
+  if (/subscript|index_expression/.test(parent.type)) return null
   // The name must be the member part of a member expression, not its object.
   const object =
     parent.childForFieldName("object") ??

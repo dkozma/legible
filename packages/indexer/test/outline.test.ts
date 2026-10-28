@@ -229,6 +229,51 @@ public class RefundService extends Base {
     ])
   })
 
+  it("TypeScript: class fields, interface and object type properties, namespaces", async () => {
+    const o = await outline(
+      "typescript",
+      `export class Hono {
+  get!: Handler
+  #routes = []
+  request = (path: string) => this.get(path)
+}
+
+interface Props {
+  onRetry?: () => void
+  label: string
+}
+
+type Options = { root: string }
+
+export function load(opts: { inline: boolean }) {}
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      h1: Props
+    }
+  }
+}
+`,
+    )
+    expect(defs(o)).toEqual([
+      "class Hono 1-5",
+      "field Hono.get 2-2",
+      "field Hono.#routes 3-3",
+      "method Hono.request 4-4",
+      "interface Props 7-10",
+      "field Props.onRetry 8-8",
+      "field Props.label 9-9",
+      "type Options 12-12",
+      "field Options.root 12-12",
+      "function load 14-14",
+      "module JSX 17-21",
+      "interface JSX.IntrinsicElements 18-20",
+      "field JSX.IntrinsicElements.h1 19-19",
+    ])
+    expect(uses(o, "calls")).toEqual(["calls this.get@4 in Hono.request"])
+  })
+
   it("Structural tier: definitions without references", async () => {
     const o = await outline(
       "yaml",

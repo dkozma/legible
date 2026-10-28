@@ -14,7 +14,7 @@ import { languageTier } from "./manifest"
 import { extractOutline, type Outline } from "./outline"
 
 /** Bumped when what extractOutline or highlightTree produce changes. */
-const EXTRACT_VERSION = 4
+const EXTRACT_VERSION = 5
 
 /** Files longer than this are diffed but not highlighted or indexed. */
 export const MAX_PARSE_LINES = 20_000
@@ -100,7 +100,7 @@ export class Parsing {
               ? highlightLines(req.language, req.lines)
               : null,
         outline: grammar.tags
-          ? extractOutline(grammar.language, tree, grammar.tags)
+          ? extractOutline(grammar.language, tree, grammar.tags, grammar.locals)
           : EMPTY_OUTLINE,
         hasErrors: tree.rootNode.hasError,
       }

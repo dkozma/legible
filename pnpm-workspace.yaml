@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - evals
 # electron-builder packages node_modules as-is; a flat layout keeps it simple.
 nodeLinker: hoisted
 # Which dependencies may run install scripts. The tree-sitter grammars would

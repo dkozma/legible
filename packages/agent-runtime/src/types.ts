@@ -2,20 +2,15 @@ import type {
   ClaudeAuth,
   ModelInfo,
   ModelTier,
+  OpenAIAuth,
   Provider,
   RuntimeStatus,
+  TaskKind,
 } from "@legible/domain"
 import type { GitRepo } from "@legible/git"
 import type { z } from "zod"
 
-export type TaskKind =
-  | "explanation"
-  | "question"
-  | "lens"
-  | "verification"
-  | "change_request"
-  | "conversation"
-  | "judgment"
+export type { TaskKind } from "@legible/domain"
 
 /** What a task's tools can read: the Review's repository at Base and Head. */
 export interface ToolContext {
@@ -115,4 +110,15 @@ export interface ClaudeRuntimeConfig {
   scratchDir: string
   /** Path to the SDK's bundled binary when it can't be found automatically (packaged apps). */
   bundledExecutable: string | null
+}
+
+export interface OpenAIRuntimeConfig {
+  auth: OpenAIAuth
+  apiKey: string | null
+  /** Continue with ChatGPT: an access token main keeps fresh, and the account it belongs to. */
+  chatgpt: {
+    accessToken: string
+    accountId: string | null
+    baseURL: string
+  } | null
 }

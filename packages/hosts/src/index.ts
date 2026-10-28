@@ -289,6 +289,48 @@ export async function getPullRequest(
   }
 }
 
+export interface IssueInfo {
+  title: string
+  body: string
+  url: string
+}
+
+/** An issue a Pull Request links to, for its Intent. */
+export async function getIssue(
+  ref: Pick<PullRequestRef, "host" | "hostname" | "project">,
+  number: number,
+  token: string | null,
+  fetchImpl: Fetch = fetch,
+): Promise<IssueInfo> {
+  const base = apiBase(ref)
+  if (ref.host === "github") {
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "Legible",
+    }
+    if (token) headers.Authorization = `Bearer ${token}`
+    const i = await getJson<{
+      title: string
+      body: string | null
+      html_url: string
+    }>(`${base}/repos/${ref.project}/issues/${number}`, headers, fetchImpl)
+    return { title: i.title, body: i.body ?? "", url: i.html_url }
+  }
+  const headers: Record<string, string> = { "User-Agent": "Legible" }
+  if (token) headers.Authorization = `Bearer ${token}`
+  const i = await getJson<{
+    title: string
+    description: string | null
+    web_url: string
+  }>(
+    `${base}/projects/${encodeURIComponent(ref.project)}/issues/${number}`,
+    headers,
+    fetchImpl,
+  )
+  return { title: i.title, body: i.description ?? "", url: i.web_url }
+}
+
 /** Who a token belongs to, for the Settings account list. */
 export async function whoAmI(
   host: HostKind,

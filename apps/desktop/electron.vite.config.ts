@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import { resolve } from "node:path"
 
 import tailwindcss from "@tailwindcss/vite"
@@ -22,8 +23,20 @@ function grammars(): Plugin {
   }
 }
 
+/** The commit this build is from, for the About panel; `-dirty` when tracked files had uncommitted changes (Vite writes an untracked copy of this config while loading it). */
+function commit(): string {
+  const git = (...args: string[]) =>
+    execFileSync("git", args, { cwd: __dirname, encoding: "utf8" }).trim()
+  try {
+    return `${git("rev-parse", "--short", "HEAD")}${git("status", "--porcelain", "--untracked-files=no") ? "-dirty" : ""}`
+  } catch {
+    return "unknown"
+  }
+}
+
 export default defineConfig({
   main: {
+    define: { "import.meta.env.MAIN_VITE_COMMIT": JSON.stringify(commit()) },
     plugins: [externalizeDepsPlugin(), grammars()],
     build: {
       rollupOptions: {

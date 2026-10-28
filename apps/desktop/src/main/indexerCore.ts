@@ -5,6 +5,8 @@
 
 import type {
   CodeSymbol,
+  FileChange,
+  FragmentGraph,
   IndexStatus,
   PositionInfo,
   Side,
@@ -65,6 +67,8 @@ export interface Indexer {
     col: number,
   ): Promise<PositionInfo>
   source(key: IndexKey, symbolId: string): Promise<SymbolSource | null>
+  /** Fragment dependencies, reach and test links, for the Walkthrough. */
+  fragmentGraph(key: IndexKey, files: FileChange[]): Promise<FragmentGraph>
   /** The Symbols code spans in prose (Explanations) refer to, best first. */
   lookup(
     key: IndexKey,
@@ -194,6 +198,9 @@ export function createIndexer(config: IndexerConfig): Indexer {
     },
     async lookup(k, names, near) {
       return (await ready(k)).lookup(names, near)
+    },
+    async fragmentGraph(k, files) {
+      return (await ready(k)).fragmentGraph(files)
     },
     dispose() {
       for (const r of repos.values()) r.close()

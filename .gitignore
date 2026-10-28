@@ -14,3 +14,5 @@ fixtures/.generated/
 !.env.example
 apps/desktop/release/
 apps/desktop/test-results/
+evals/.cache/
+evals/results/*.json

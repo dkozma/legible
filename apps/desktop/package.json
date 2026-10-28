@@ -23,9 +23,11 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.310",
+    "@openai/agents": "0.20.0",
     "@sentry/electron": "8.3.0",
     "electron-updater": "^6.8.11",
     "kysely": "^0.29.7",
+    "openai": "7.32.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -36,6 +38,7 @@
     "@legible/hosts": "workspace:*",
     "@legible/indexer": "workspace:*",
     "@legible/ipc": "workspace:*",
+    "@legible/judge": "workspace:*",
     "@legible/pipelines": "workspace:*",
     "@legible/store": "workspace:*",
     "@legible/ui": "workspace:*",

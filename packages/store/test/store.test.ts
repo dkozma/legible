@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { DEFAULT_SETTINGS, type Explanation } from "@legible/domain"
+import {
+  DEFAULT_SETTINGS,
+  type Explanation,
+  type Intent,
+  type Walkthrough,
+} from "@legible/domain"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { Store } from "../src/index"
@@ -174,5 +179,107 @@ describe("Store", () => {
     expect(spend.reviewUsd).toBeCloseTo(0.02)
     expect(spend.monthByProvider.anthropic).toBeCloseTo(0.02)
     expect(spend.runsThisMonth).toBe(1)
+  })
+  it("keeps Intents, Walkthroughs, Briefs, viewed Steps and agent outputs", async () => {
+    const repo = await store.upsertRepo({
+      displayName: "r",
+      gitDir: "/w/.git",
+      workTree: "/w",
+      remoteUrl: null,
+      host: null,
+    })
+    const review = await store.createReview({
+      repoId: repo.id,
+      title: "t",
+      sourceKind: "refs",
+      baseRef: "main",
+      headRef: "f",
+      prUrl: null,
+      prNumber: null,
+      mode: "author",
+      intentText: null,
+    })
+    const i1 = await store.addIteration({
+      reviewId: review.id,
+      kind: "refs",
+      baseSha: "a",
+      headSha: "b",
+      headTree: null,
+    })
+    const i2 = await store.addIteration({
+      reviewId: review.id,
+      kind: "refs",
+      baseSha: "a",
+      headSha: "c",
+      headTree: null,
+    })
+
+    const intent: Intent = {
+      reviewId: review.id,
+      goal: "Partial refunds",
+      requirements: [{ id: "R1", statement: "Refund part of an order" }],
+      sources: [{ kind: "user", label: "Your words", ref: null }],
+      inferred: false,
+      confirmed: true,
+      corrections: [],
+      howToTest: [],
+      provider: null,
+      model: null,
+      sourceKey: null,
+      updatedAt: new Date().toISOString(),
+    }
+    await store.saveIntent(intent)
+    await store.saveIntent({ ...intent, goal: "Partial refunds, 60 days" })
+    expect((await store.getIntent(review.id))?.goal).toBe(
+      "Partial refunds, 60 days",
+    )
+
+    await store.setTranscriptChoice(review.id, "claude-code:s1", false)
+    await store.setTranscriptChoice(review.id, "claude-code:s1", true)
+    expect(
+      (await store.transcriptChoices(review.id)).get("claude-code:s1"),
+    ).toBe(true)
+
+    const w = (iterationId: string): Walkthrough => ({
+      reviewId: review.id,
+      iterationId,
+      steps: [],
+      chapters: [],
+      sittings: [],
+      edges: [],
+      fallbackReason: null,
+      validation: {
+        fragments: 0,
+        repairedMissing: 0,
+        removedDuplicates: 0,
+        dependencyViolations: 0,
+        cycles: 0,
+      },
+      provider: "anthropic",
+      model: "m",
+      promptVersion: iterationId,
+      costUsd: 0,
+      createdAt: new Date().toISOString(),
+    })
+    await store.saveWalkthrough(w(i1.id))
+    await store.saveWalkthrough(w(i2.id))
+    expect((await store.getWalkthrough(review.id, i2.id))?.iterationId).toBe(
+      i2.id,
+    )
+    expect(
+      (await store.previousWalkthrough(review.id, i2.seq))?.iterationId,
+    ).toBe(i1.id)
+    await store.clearUnderstanding(review.id, i2.id)
+    expect(await store.getWalkthrough(review.id, i2.id)).toBeNull()
+
+    await store.setStepsViewed(review.id, ["s1", "s2"], true)
+    await store.setStepsViewed(review.id, ["s1"], false)
+    expect(await store.viewedSteps(review.id)).toEqual(["s2"])
+
+    await store.saveCachedOutput("j1", review.id, "judgment", "m", [{ p: 0.9 }])
+    expect((await store.getCachedOutput("j1"))?.body).toEqual([{ p: 0.9 }])
+    // Gone with its Review.
+    await store.deleteReview(review.id)
+    expect(await store.getCachedOutput("j1")).toBeNull()
   })
 })

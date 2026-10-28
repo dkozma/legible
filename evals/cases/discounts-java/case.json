@@ -1,0 +1,34 @@
+{
+  "description": "Java: tiered discounts and a loyalty bonus. Unrequested: the discount now applies to shipping too.",
+  "intent": {
+    "goal": "Give bigger discounts on bigger orders, plus a bonus for loyalty members.",
+    "requirements": [
+      "Orders over $100 get 10% off and orders over $250 get 15% off",
+      "Loyalty members get an extra 5% off"
+    ]
+  },
+  "pullRequest": {
+    "title": "Tiered discounts and loyalty bonus",
+    "body": "Orders over $250 now get 15% off (over $100 stays 10%). Loyalty members get an extra 5%."
+  },
+  "labels": {
+    "steps": [
+      ["src/main/java/shop/Order.java"],
+      [
+        "src/main/java/shop/Discounts.java",
+        "src/test/java/shop/DiscountsTest.java"
+      ]
+    ],
+    "layers": {
+      "src/main/java/shop/Order.java": "data_model",
+      "src/main/java/shop/Discounts.java": "backend"
+    },
+    "unrequested": [],
+    "domainChanges": [
+      "Orders over $250 get 15% off; over $100 still 10%",
+      "Loyalty members get an extra 5% off",
+      "The discount now applies to shipping as well as items"
+    ],
+    "chapters": 1
+  }
+}

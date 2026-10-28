@@ -259,6 +259,44 @@ export const ClaudeAuth = z.enum([
 ])
 export type ClaudeAuth = z.infer<typeof ClaudeAuth>
 
+/** "Continue with ChatGPT" (a plan-backed sign-in) or an OpenAI API key. */
+export const OpenAIAuth = z.enum(["chatgpt", "api-key"])
+export type OpenAIAuth = z.infer<typeof OpenAIAuth>
+
+/**
+ * Kinds of agent work. Each runs on its Model Tier unless Settings override
+ * the model for that kind.
+ */
+export const TaskKind = z.enum([
+  "explanation",
+  "intent",
+  "walkthrough",
+  "domain_changes",
+  "wording",
+  "judgment",
+  "question",
+  "lens",
+  "verification",
+  "change_request",
+  "conversation",
+])
+export type TaskKind = z.infer<typeof TaskKind>
+
+/** The tier each kind of work runs on by default (product plan §7.15). */
+export const TASK_TIER: Record<TaskKind, ModelTier> = {
+  explanation: "fast",
+  intent: "mid",
+  walkthrough: "mid",
+  domain_changes: "strong",
+  wording: "fast",
+  judgment: "fast",
+  question: "mid",
+  lens: "strong",
+  verification: "strong",
+  change_request: "strong",
+  conversation: "mid",
+}
+
 export interface ModelInfo {
   provider: Provider
   id: string
@@ -268,6 +306,9 @@ export interface ModelInfo {
   outputPrice: number | null
   contextWindow: number | null
   status: "recommended" | "experimental"
+  /** Whether the model can return structured output and call tools; every catalog model can. */
+  structuredOutput: boolean
+  toolUse: boolean
   /** Relative cost, 1–3, for the "$" badges. */
   costRank: 1 | 2 | 3
   tiers: ModelTier[]
@@ -280,7 +321,7 @@ export interface TierAssignment {
 
 export interface RuntimeStatus {
   provider: Provider
-  auth: ClaudeAuth
+  auth: ClaudeAuth | OpenAIAuth
   ready: boolean
   /** e.g. "Claude Code 2.1.310 at /usr/local/bin/claude" */
   detail: string
@@ -354,11 +395,20 @@ export type ConnectionKind = z.infer<typeof ConnectionKind>
 
 /**
  * resolved: by a deterministic rule (same file, an import, the receiver's
- * class). likely: the only definition by that name in the indexed code.
- * ambiguous: several candidates (an Ambiguous Connection). external: no
- * definition in the indexed code, e.g. a library.
+ * class or declared type). likely: the only fitting definition by that name
+ * in the indexed code, which the using file reaches through its imports or
+ * names as the receiver's type. possible: the only definition by that name,
+ * with nothing else pointing at it; shown greyed out and left out of the
+ * Fragment graph and Explanations. ambiguous: several candidates (an
+ * Ambiguous Connection). external: no definition in the indexed code, e.g. a
+ * library.
  */
-export type ConnectionStatus = "resolved" | "likely" | "ambiguous" | "external"
+export type ConnectionStatus =
+  | "resolved"
+  | "likely"
+  | "possible"
+  | "ambiguous"
+  | "external"
 
 /** Where a Connection is made. Line is 1-based, columns 0-based. */
 export interface ConnectionSite {
@@ -374,7 +424,7 @@ export interface Connection {
   id: string
   kind: ConnectionKind
   fromId: string
-  /** The target when resolved or likely; null when ambiguous or external. */
+  /** The target when resolved, likely or possible; null when ambiguous or external. */
   toId: string | null
   /** The name as written where it's used. */
   name: string
@@ -434,6 +484,49 @@ export interface SymbolSource {
   firstLine: number
   lines: string[]
   tokens: LineTokens[] | null
+}
+
+/** A Fragment's place in the code graph, for planning the Walkthrough. */
+export interface FragmentNode {
+  fragmentId: string
+  fileId: string
+  path: string
+  /** Changed Symbols the Fragment touches, innermost first: on Head, or on Base for removed code. */
+  symbols: {
+    id: string
+    qualifiedName: string
+    kind: SymbolKind
+    change: SymbolChange
+  }[]
+  /** In a test file. */
+  test: boolean
+  /**
+   * Code outside the Fragment that uses what it changes: directly, and within
+   * three hops. An Ambiguous Connection counts 1/n for each of its n
+   * candidates, a possible one not at all; rounded.
+   */
+  callers: number
+  blastRadius: number
+}
+
+/** `to` uses a Symbol `from` changes, so `from` reads first. */
+export interface FragmentEdge {
+  from: string
+  to: string
+  /** The Symbol's qualified name. */
+  via: string
+  /**
+   * Through a resolved Connection: the Walkthrough must order `from` first.
+   * Otherwise (only likely Connections) a hint the planner may follow.
+   */
+  hard: boolean
+}
+
+export interface FragmentGraph {
+  nodes: FragmentNode[]
+  edges: FragmentEdge[]
+  /** Test Fragment id → the Fragments whose behavior it verifies. */
+  tests: Record<string, string[]>
 }
 
 // ---------------------------------------------------------------------------
@@ -538,6 +631,305 @@ export interface SpendSummary {
 }
 
 // ---------------------------------------------------------------------------
+// Intent
+
+export const IntentSourceKind = z.enum([
+  "pull_request",
+  "issue",
+  "transcript",
+  "user",
+  "inferred",
+])
+export type IntentSourceKind = z.infer<typeof IntentSourceKind>
+
+/** Where an Intent came from, as shown beside it ("PR #482 description"). */
+export interface IntentSource {
+  kind: IntentSourceKind
+  label: string
+  /** An Agent Transcript's id or an issue's URL. */
+  ref: string | null
+}
+
+export interface Requirement {
+  /** Short and stable within the Intent: "R1", "R2"… */
+  id: string
+  statement: string
+}
+
+export const Requirement = z.object({
+  id: z.string().min(1).max(20),
+  statement: z.string().min(1).max(2000),
+})
+
+export interface Intent {
+  reviewId: string
+  goal: string
+  requirements: Requirement[]
+  sources: IntentSource[]
+  /** Reconstructed from the code alone: show it for correction. */
+  inferred: boolean
+  /** The user confirmed or edited it. Edited Intents are never regenerated. */
+  confirmed: boolean
+  /** Corrections the user gave the agent in its Agent Transcript, quoted. */
+  corrections: string[]
+  /** "How to test" from the Pull Request description, when it has one. */
+  howToTest: string[]
+  provider: Provider | null
+  model: string | null
+  /** Hash of the sources it was made from; a change means it's out of date. Null once the user edits it. */
+  sourceKey: string | null
+  updatedAt: string
+}
+
+export const AgentTool = z.enum(["claude-code", "codex"])
+export type AgentTool = z.infer<typeof AgentTool>
+
+/** An agent session found on this machine that may have produced the Change Set. */
+export interface TranscriptCandidate {
+  /** Stable: tool and session id. */
+  id: string
+  tool: AgentTool
+  startedAt: string
+  endedAt: string
+  branch: string | null
+  /** The first prompt, shortened. */
+  title: string
+  prompts: number
+  corrections: number
+  /** Why it matched: "same folder · branch feature/x · during the commits". */
+  match: string
+  /** Used as an Intent source. */
+  selected: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Walkthrough
+
+export const Layer = z.enum([
+  "data_model",
+  "backend",
+  "api",
+  "client_data",
+  "presentation",
+  "chores",
+])
+export type Layer = z.infer<typeof Layer>
+
+export const LAYER_LABEL: Record<Layer, string> = {
+  data_model: "Data model",
+  backend: "Backend logic",
+  api: "API surface",
+  client_data: "Client data",
+  presentation: "Presentation",
+  chores: "Chores",
+}
+
+export const Scope = z.enum(["requested", "supporting", "unrequested"])
+export type Scope = z.infer<typeof Scope>
+
+export const RiskLevel = z.enum(["low", "elevated", "critical"])
+export type RiskLevel = z.infer<typeof RiskLevel>
+
+export interface Risk {
+  level: RiskLevel
+  /** Short and concrete: "payments · 5 callers". */
+  reasons: string[]
+}
+
+/** A Fragment as a Step holds it: enough to find its lines without the Change Set. */
+export interface StepFragment {
+  fragmentId: string
+  fileId: string
+  path: string
+  kind: Fragment["kind"]
+  /** 1-based inclusive line ranges; null when the Fragment has no lines on that side. */
+  baseRange: [number, number] | null
+  headRange: [number, number] | null
+  additions: number
+  deletions: number
+  /** In a test file. */
+  test: boolean
+  /** Generated, lockfile, vendored or binary. */
+  collapsed: boolean
+}
+
+export interface Step {
+  /** Stable: derived from its Fragment ids, so it survives Iterations where they didn't change. */
+  id: string
+  name: string
+  /** 1–3 sentences tied to the Intent. */
+  narrative: string
+  layer: Layer
+  /** Null until judged. */
+  scope: Scope | null
+  /** The judgment was below its threshold: shown as "likely". */
+  scopeLikely: boolean
+  requirementIds: string[]
+  risk: Risk
+  fragments: StepFragment[]
+  additions: number
+  deletions: number
+  /** Earlier Steps whose definitions this one uses. */
+  dependsOn: string[]
+  chapterId: string | null
+  /** Merged, split, moved or renamed by the user. */
+  userEdited: boolean
+}
+
+export interface Chapter {
+  id: string
+  name: string
+  summary: string
+}
+
+export interface Sitting {
+  /** 1-based. */
+  index: number
+  stepIds: string[]
+  /** Changed lines, Structural ones weighted low. */
+  lines: number
+  minutes: number
+  chapterId: string | null
+}
+
+export interface WalkthroughValidation {
+  fragments: number
+  /** Fragments the model left out, put in an "Other changes" Step. */
+  repairedMissing: number
+  /** Fragments the model put in two Steps; the first kept them. */
+  removedDuplicates: number
+  /** Step order breaking a dependency between different Steps. Always 0 after validation. */
+  dependencyViolations: number
+  /** Groups of Steps that depend on each other, which no order can satisfy. */
+  cycles: number
+}
+
+export interface Walkthrough {
+  reviewId: string
+  iterationId: string
+  /** In reading order. */
+  steps: Step[]
+  /** Empty unless the Change Set holds several independent features. */
+  chapters: Chapter[]
+  sittings: Sitting[]
+  /** Fragment dependencies (`to` uses what `from` changes), kept so edits can be re-validated. */
+  edges: { from: string; to: string }[]
+  validation: WalkthroughValidation
+  /** Set when no model could plan and Steps were made by file instead. */
+  fallbackReason: string | null
+  provider: Provider | null
+  model: string | null
+  promptVersion: string
+  costUsd: number
+  createdAt: string
+}
+
+/** A user's change to a Walkthrough. Edits persist with the Review. */
+export const StepEdit = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("rename"),
+    stepId: z.string(),
+    name: z.string().min(1).max(200),
+  }),
+  z.object({
+    kind: z.literal("merge"),
+    stepId: z.string(),
+    /** Merged into stepId, which keeps its place. */
+    otherId: z.string(),
+  }),
+  z.object({
+    kind: z.literal("split"),
+    stepId: z.string(),
+    /** The first Fragment of the new Step; it and the ones after it move. */
+    fragmentId: z.string(),
+  }),
+  z.object({
+    kind: z.literal("moveFragment"),
+    fragmentId: z.string(),
+    toStepId: z.string(),
+  }),
+  z.object({
+    kind: z.literal("move"),
+    stepId: z.string(),
+    direction: z.enum(["up", "down"]),
+  }),
+])
+export type StepEdit = z.infer<typeof StepEdit>
+
+// ---------------------------------------------------------------------------
+// Change Brief
+
+export interface DomainChange {
+  id: string
+  /** In the domain's own words: "Refunds are allowed up to 60 days after purchase". */
+  statement: string
+  /** The old rule, "30 days"; null for a new rule. */
+  before: string | null
+  after: string
+  fragmentIds: string[]
+  stepIds: string[]
+  /** Stated in the Pull Request title or description. Null without one. */
+  inDescription: boolean | null
+  /** The judgment was below its threshold. */
+  inDescriptionLikely: boolean
+}
+
+export interface ComponentFile {
+  fileId: string
+  path: string
+  risk: RiskLevel
+  structural: boolean
+  stepIds: string[]
+}
+
+export interface ChangeBrief {
+  reviewId: string
+  iterationId: string
+  domainChanges: DomainChange[]
+  /** Null without a Pull Request description to compare against. */
+  descriptionGap: {
+    domainChangeIds: string[]
+    /** Wording the author could add. */
+    suggestion: string | null
+  } | null
+  /** Requirements no code implements. */
+  uncoveredRequirementIds: string[]
+  /** Touched files by Layer, in Walkthrough order. */
+  components: { layer: Layer; files: ComponentFile[] }[]
+  howToTest: { fromSource: string[]; suggested: string[] }
+  /** Set when finding Domain Changes failed; the rest of the Brief still stands. */
+  domainChangesError: string | null
+  /** Spent on this Iteration's Intent, Walkthrough and Brief so far, rebuilds included; the spend cap applies to it. */
+  costUsd: number
+  createdAt: string
+}
+
+export const UnderstandingStage = z.enum([
+  "intent",
+  "walkthrough",
+  "scope",
+  "brief",
+])
+export type UnderstandingStage = z.infer<typeof UnderstandingStage>
+
+export type StageState = "pending" | "running" | "done" | "error" | "skipped"
+
+/** Progress of building a Review's Intent, Walkthrough and Change Brief. */
+export interface UnderstandingStatus {
+  reviewId: string
+  iterationId: string
+  state: "idle" | "running" | "done" | "error" | "cancelled"
+  stages: Record<
+    UnderstandingStage,
+    { state: StageState; detail: string | null }
+  >
+  /** Latest progress line. */
+  progress: string | null
+  error: string | null
+  costUsd: number
+}
+
+// ---------------------------------------------------------------------------
 // Settings
 
 export const EditorChoice = z.enum(["vscode", "cursor", "zed", "idea", "env"])
@@ -546,8 +938,15 @@ export type EditorChoice = z.infer<typeof EditorChoice>
 export const Theme = z.enum(["system", "dark", "light"])
 export type Theme = z.infer<typeof Theme>
 
+const TierChoice = z.object({ provider: Provider, model: z.string() })
+
+export const JudgeBackendName = z.enum(["jev", "decisions"])
+export type JudgeBackendName = z.infer<typeof JudgeBackendName>
+
 export const Settings = z.object({
   claude: z.object({
+    /** Off when the user connects only OpenAI. */
+    enabled: z.boolean(),
     auth: ClaudeAuth,
     /** Override for the `claude` executable; null = resolve from the login shell's PATH. */
     executablePath: z.string().nullable(),
@@ -555,14 +954,37 @@ export const Settings = z.object({
     vertex: z.object({ projectId: z.string(), region: z.string() }),
     foundry: z.object({ resource: z.string() }),
   }),
+  openai: z.object({
+    enabled: z.boolean(),
+    auth: OpenAIAuth,
+  }),
   tiers: z.object({
-    strong: z.object({ provider: Provider, model: z.string() }),
-    mid: z.object({ provider: Provider, model: z.string() }),
-    fast: z.object({ provider: Provider, model: z.string() }),
+    strong: TierChoice,
+    mid: TierChoice,
+    fast: TierChoice,
+  }),
+  /** Advanced: a model for one kind of work, instead of its tier's. */
+  tasks: z.partialRecord(TaskKind, TierChoice),
+  /** Typed judgments (ADR 0005). Without an enabled backend, the fast tier judges. */
+  judge: z.object({
+    jev: z.object({ enabled: z.boolean(), model: z.string() }),
+    decisions: z.object({ enabled: z.boolean() }),
+    /** First enabled backend wins. */
+    order: z.array(JudgeBackendName),
+  }),
+  intent: z.object({
+    /** Read local Claude Code and Codex sessions to find the Change Set's Agent Transcript. */
+    readTranscripts: z.boolean(),
+  }),
+  understanding: z.object({
+    /** Build the Intent, Walkthrough and Change Brief when a Review opens. */
+    auto: z.boolean(),
   }),
   spend: z.object({
     /** Hard cap per Explanation run. */
     explanationCapUsd: z.number().positive(),
+    /** Cap for building one Iteration's Intent, Walkthrough and Change Brief. */
+    understandingCapUsd: z.number().positive(),
     /** Agent Review cap, used from M5. */
     agentReviewCapUsd: z.number().positive(),
   }),
@@ -590,18 +1012,32 @@ export type Settings = z.infer<typeof Settings>
 
 export const DEFAULT_SETTINGS: Settings = {
   claude: {
+    enabled: true,
     auth: "claude-code",
     executablePath: null,
     bedrock: { region: "us-east-1", profile: "" },
     vertex: { projectId: "", region: "global" },
     foundry: { resource: "" },
   },
+  openai: { enabled: false, auth: "api-key" },
   tiers: {
     strong: { provider: "anthropic", model: "claude-opus-5-5" },
     mid: { provider: "anthropic", model: "claude-sonnet-5-5" },
     fast: { provider: "anthropic", model: "claude-haiku-5-5" },
   },
-  spend: { explanationCapUsd: 0.5, agentReviewCapUsd: 5 },
+  tasks: {},
+  judge: {
+    jev: { enabled: false, model: "jev-latest" },
+    decisions: { enabled: false },
+    order: ["jev", "decisions"],
+  },
+  intent: { readTranscripts: true },
+  understanding: { auto: true },
+  spend: {
+    explanationCapUsd: 0.5,
+    understandingCapUsd: 2,
+    agentReviewCapUsd: 5,
+  },
   agents: { concurrency: 6 },
   diff: { layout: "unified", ignoreWhitespace: false, contextLines: 3 },
   hosts: [],
@@ -612,7 +1048,12 @@ export const DEFAULT_SETTINGS: Settings = {
 
 /** Secrets live only in the OS keychain (Electron safeStorage), never in SQLite. */
 export const SecretName = z.union([
-  z.enum(["anthropic-api-key", "foundry-api-key"]),
+  z.enum([
+    "anthropic-api-key",
+    "foundry-api-key",
+    "openai-api-key",
+    "typesafe-api-key",
+  ]),
   z.string().regex(/^host-token:[a-z0-9.-]+(:\d+)?$/i),
 ])
 export type SecretName = z.infer<typeof SecretName>

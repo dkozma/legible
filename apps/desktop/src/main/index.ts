@@ -9,6 +9,7 @@ import {
   type ClaudeRuntimeConfig,
   DEFAULT_TIERS,
   MODEL_CATALOG,
+  type OpenAIRuntimeConfig,
 } from "@legible/agent-runtime"
 import {
   DEFAULT_SETTINGS,
@@ -45,7 +46,8 @@ import {
   inProcessTransport,
   type Transport,
 } from "./agentHostClient"
-import type { FromHost } from "./agentHostCore"
+import type { FromHost, HostConfig } from "./agentHostCore"
+import { ChatGPTAuth, chatgptConfig } from "./chatgpt"
 import { openInEditor } from "./editor"
 import {
   errorReportingActive,
@@ -66,6 +68,7 @@ import type { FromIndexer, Indexer } from "./indexerCore"
 import { ReviewService, UserError } from "./reviews"
 import { SecretStore } from "./secrets"
 import { loadShellEnv } from "./shellEnv"
+import { UnderstandingService } from "./understanding"
 
 const here = dirname(fileURLToPath(import.meta.url))
 const requireHere = createRequire(import.meta.url)
@@ -73,6 +76,8 @@ const requireHere = createRequire(import.meta.url)
 if (process.env.LEGIBLE_USER_DATA)
   app.setPath("userData", resolve(process.env.LEGIBLE_USER_DATA))
 app.setName("Legible")
+// macOS shows it beside the version: "Version 2026.1028.1 (5dcf777)".
+app.setAboutPanelOptions({ version: import.meta.env.MAIN_VITE_COMMIT })
 // Before anything else can fail, and before ready for native crashes.
 initErrorReporting()
 
@@ -100,6 +105,8 @@ let store: Store
 let secrets: SecretStore
 let reviews: ReviewService
 let explanations: ExplanationService
+let understanding: UnderstandingService
+let chatgpt: ChatGPTAuth
 let hosts: HostService
 let agentHost: AgentHostClient
 let indexer: Indexer
@@ -178,11 +185,61 @@ function claudeConfig(s: Settings): ClaudeRuntimeConfig {
   }
 }
 
-function configureAgents(s: Settings) {
+async function openaiConfig(s: Settings): Promise<OpenAIRuntimeConfig | null> {
+  if (!s.openai.enabled) return null
+  if (s.openai.auth === "chatgpt") {
+    const t = await chatgpt.current()
+    // Reconfigure before the access token expires; current() refreshes it.
+    clearTimeout(chatgptTimer)
+    if (t)
+      chatgptTimer = setTimeout(
+        () => void getSettings().then(configureAgents),
+        Math.max(60_000, t.expiresAt - Date.now() - 4 * 60_000),
+      )
+    return {
+      auth: "chatgpt",
+      apiKey: null,
+      chatgpt: t
+        ? {
+            accessToken: t.accessToken,
+            accountId: t.accountId,
+            baseURL: t.baseURL,
+          }
+        : null,
+    }
+  }
+  return {
+    auth: "api-key",
+    apiKey: secrets.get("openai-api-key"),
+    chatgpt: null,
+  }
+}
+let chatgptTimer: ReturnType<typeof setTimeout> | undefined
+
+/** External Judge backends that are on and have a key, in the user's order. */
+function judgeConfig(s: Settings): HostConfig["judge"] {
+  const out: HostConfig["judge"] = []
+  for (const name of s.judge.order) {
+    if (name === "jev" && s.judge.jev.enabled) {
+      const apiKey = secrets.get("typesafe-api-key")
+      if (apiKey) out.push({ name, apiKey, model: s.judge.jev.model })
+    }
+    if (name === "decisions" && s.judge.decisions.enabled) {
+      const apiKey = secrets.get("openai-api-key")
+      if (apiKey) out.push({ name, apiKey })
+    }
+  }
+  return out
+}
+
+async function configureAgents(s: Settings) {
   agentHost.configure({
-    claude: claudeConfig(s),
+    claude: s.claude.enabled ? claudeConfig(s) : null,
+    openai: await openaiConfig(s),
     tiers: { ...DEFAULT_TIERS, ...s.tiers },
+    tasks: s.tasks,
     concurrency: s.agents.concurrency,
+    judge: judgeConfig(s),
     fake:
       process.env.LEGIBLE_FAKE_AGENT === "fail"
         ? "fail"
@@ -245,7 +302,7 @@ const handlers: Handlers = {
   "settings.save": async ({ settings }) => {
     const saved = await store.saveSettings(settings)
     settingsCache = saved
-    configureAgents(saved)
+    await configureAgents(saved)
     setErrorReportingEnabled(saved.privacy.crashReports)
     return saved
   },
@@ -256,10 +313,10 @@ const handlers: Handlers = {
   },
   "secrets.set": async ({ name, value }) => {
     await secrets.set(name, value)
-    configureAgents(await getSettings())
+    await configureAgents(await getSettings())
     return { ok: true }
   },
-  "runtime.status": () => agentHost.status(),
+  "runtime.status": ({ provider }) => agentHost.status(provider ?? "anthropic"),
   "models.list": async () => MODEL_CATALOG,
   "repo.pick": async () => {
     const opts = {
@@ -401,6 +458,49 @@ const handlers: Handlers = {
       : await dialog.showMessageBox(box)
     if (r.response !== 0) return { ok: false }
     await shell.openExternal(url)
+    return { ok: true }
+  },
+  "understanding.status": ({ reviewId, iterationId }) =>
+    understanding.status(reviewId, iterationId),
+  "understanding.run": ({ reviewId, iterationId, rebuild }) =>
+    understanding.run(reviewId, iterationId, rebuild),
+  "understanding.cancel": async ({ reviewId, iterationId }) => {
+    understanding.cancel(reviewId, iterationId)
+    return { ok: true }
+  },
+  "intent.get": ({ reviewId }) => store.getIntent(reviewId),
+  "intent.save": ({ reviewId, goal, requirements }) =>
+    understanding.saveIntent(reviewId, { goal, requirements }),
+  "intent.confirm": ({ reviewId }) => understanding.confirmIntent(reviewId),
+  "intent.reset": async ({ reviewId }) => {
+    await understanding.resetIntent(reviewId)
+    return { ok: true }
+  },
+  "transcripts.list": ({ reviewId }) => understanding.transcripts(reviewId),
+  "transcripts.set": async ({ reviewId, transcriptId, selected }) => {
+    await understanding.setTranscript(reviewId, transcriptId, selected)
+    return { ok: true }
+  },
+  "walkthrough.get": ({ reviewId, iterationId }) =>
+    store.getWalkthrough(reviewId, iterationId),
+  "walkthrough.edit": ({ reviewId, iterationId, edit }) =>
+    understanding.editStep(reviewId, iterationId, edit),
+  "brief.get": ({ reviewId, iterationId }) =>
+    store.getBrief(reviewId, iterationId),
+  "steps.viewed": ({ reviewId }) => store.viewedSteps(reviewId),
+  "steps.setViewed": async ({ reviewId, stepIds, viewed }) => {
+    await store.setStepsViewed(reviewId, stepIds, viewed)
+    return { ok: true }
+  },
+  "openai.account": async () => chatgpt.account(),
+  "openai.signIn": async () => {
+    const account = await chatgpt.signIn()
+    await configureAgents(await getSettings())
+    return account
+  },
+  "openai.signOut": async () => {
+    await chatgpt.signOut()
+    await configureAgents(await getSettings())
     return { ok: true }
   },
 }
@@ -688,7 +788,32 @@ if (!app.requestSingleInstanceLock()) {
       )
       const initial = await getSettings().catch(() => DEFAULT_SETTINGS)
       setErrorReportingEnabled(initial.privacy.crashReports)
-      configureAgents(initial)
+      chatgpt = new ChatGPTAuth(secrets, chatgptConfig(), (url) =>
+        shell.openExternal(url),
+      )
+      await configureAgents(initial)
+      understanding = new UnderstandingService(
+        store,
+        reviews,
+        indexer,
+        agentHost,
+        hosts,
+        getSettings,
+        (status) => send("understanding.updated", status),
+        (err, stage, code) =>
+          reportError(err, {
+            level: ["auth", "not_installed", "budget"].includes(code)
+              ? "warning"
+              : "error",
+            tags: { task: "understanding", stage, "agent.code": code },
+            fingerprint: [
+              "understanding",
+              stage,
+              code,
+              err.message.replace(/\d+/g, "N").slice(0, 120),
+            ],
+          }),
+      )
       explanations = new ExplanationService(
         store,
         reviews,

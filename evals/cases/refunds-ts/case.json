@@ -1,0 +1,51 @@
+{
+  "description": "The M0 refund fixture: partial refunds and a 60-day window across migration, service, API, client and UI, with an Unrequested audit change, a moved helper, a formatting-only file and a lockfile bump.",
+  "generator": "fixtures/make-refund-repo.mjs",
+  "intent": {
+    "goal": "Let support staff refund part of an order, and extend the refund window to 60 days.",
+    "requirements": [
+      "Support staff can refund part of an order, up to what remains to be refunded",
+      "Refunds are allowed up to 60 days after purchase"
+    ]
+  },
+  "pullRequest": {
+    "title": "Partial refunds and a 60-day window",
+    "body": "Support can now refund part of an order, up to the remaining balance. The refund window goes from 30 to 60 days."
+  },
+  "labels": {
+    "steps": [
+      [
+        "db/migrations/0008_partial_refunds.sql",
+        "src/refunds/RefundRepository.ts"
+      ],
+      ["src/refunds/RefundPolicy.ts"],
+      [
+        "src/refunds/RefundService.ts@13-60",
+        "src/refunds/RefundService.test.ts"
+      ],
+      ["src/api/refunds.ts"],
+      ["src/client/refundStore.ts", "src/ui/RefundDialog.tsx"],
+      ["package.json", "pnpm-lock.yaml", "README.md", "src/config/limits.ts"]
+    ],
+    "layers": {
+      "db/migrations/0008_partial_refunds.sql": "data_model",
+      "src/refunds/RefundRepository.ts": "data_model",
+      "src/refunds/RefundPolicy.ts": "backend",
+      "src/refunds/RefundService.ts": "backend",
+      "src/api/refunds.ts": "api",
+      "src/client/refundStore.ts": "client_data",
+      "src/ui/RefundDialog.tsx": "presentation",
+      "package.json": "chores",
+      "pnpm-lock.yaml": "chores",
+      "README.md": "chores"
+    },
+    "unrequested": ["src/audit/RefundAuditSubscriber.ts"],
+    "domainChanges": [
+      "Refunds can be partial, up to the remaining balance",
+      "Refunds are allowed up to 60 days after purchase, was 30",
+      "Refund audit entries no longer record the operator",
+      "Shipping is refunded only with the final refund"
+    ],
+    "chapters": 1
+  }
+}

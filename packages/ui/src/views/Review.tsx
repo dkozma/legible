@@ -6,6 +6,7 @@ import type {
   ExplanationTarget,
   FileChange,
   FileDiff,
+  StepEdit,
   SymbolConnections,
 } from "@legible/domain"
 import {
@@ -18,6 +19,7 @@ import {
   ArrowLeft,
   BookOpen,
   ChevronLeft,
+  ListChecks,
   Network,
   ChevronRight,
   Loader2,
@@ -41,6 +43,7 @@ import {
   Tabs,
   Titlebar,
 } from "../components/ui"
+import { ResizeHandle } from "../components/ResizeHandle"
 import { useClient } from "../context"
 import { type DiffActions, DiffLoading, DiffView } from "../diff/DiffView"
 import {
@@ -50,9 +53,14 @@ import {
   rowAt,
   rowForLine,
 } from "../diff/rows"
+import { BriefPage } from "../review/BriefPage"
 import { ConnectionsPanel, symbolLabel } from "../review/ConnectionsPanel"
 import { ExplainPanel } from "../review/ExplainPanel"
 import { FileTree } from "../review/FileTree"
+import { StepHeader } from "../review/StepHeader"
+import { stepAt, stepFocus } from "../review/steps"
+import { WalkthroughList, WalkthroughProgress } from "../review/WalkthroughList"
+import { CENTER_MIN, clampPanel, PANEL_LIMITS } from "../panels"
 import { useUI } from "../state"
 
 const HEAD_ROOM = 64
@@ -64,6 +72,17 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   const qc = useQueryClient()
   const ui = useUI()
   const scrollRef = useRef<HTMLDivElement>(null)
+  // The panels' remembered widths, shown smaller when the window can't fit them with the diff.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [bodyWidth, setBodyWidth] = useState(Number.POSITIVE_INFINITY)
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setBodyWidth(el.clientWidth))
+    ro.observe(el)
+    setBodyWidth(el.clientWidth)
+    return () => ro.disconnect()
+  }, [])
   const scrollTop = useRef(0)
   const [topFile, setTopFile] = useState<string | null>(null)
 
@@ -109,6 +128,63 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     queryFn: () => client.call("runtime.status", {}),
     staleTime: 60_000,
   })
+  const iterIds = { reviewId, iterationId: iterationId ?? "" }
+  const understanding = useQuery({
+    queryKey: ["understanding", reviewId, iterationId],
+    queryFn: () => client.call("understanding.status", iterIds),
+    enabled: Boolean(iterationId),
+  })
+  const intent = useQuery({
+    queryKey: ["intent", reviewId],
+    queryFn: () => client.call("intent.get", { reviewId }),
+  })
+  const walkthrough = useQuery({
+    queryKey: ["walkthrough", reviewId, iterationId],
+    queryFn: () => client.call("walkthrough.get", iterIds),
+    enabled: Boolean(iterationId),
+  })
+  const brief = useQuery({
+    queryKey: ["brief", reviewId, iterationId],
+    queryFn: () => client.call("brief.get", iterIds),
+    enabled: Boolean(iterationId),
+  })
+  const transcripts = useQuery({
+    queryKey: ["transcripts", reviewId],
+    queryFn: () => client.call("transcripts.list", { reviewId }),
+    staleTime: 60_000,
+  })
+  const stepsViewedQ = useQuery({
+    queryKey: ["stepsViewed", reviewId],
+    queryFn: () => client.call("steps.viewed", { reviewId }),
+  })
+  const w = walkthrough.data ?? null
+  const stepsViewed = useMemo(
+    () => new Set(stepsViewedQ.data ?? []),
+    [stepsViewedQ.data],
+  )
+  const activeStep =
+    ui.page === "diff" && ui.stepId
+      ? (w?.steps.find((x) => x.id === ui.stepId) ?? null)
+      : null
+  const stepView = useMemo(
+    () => (w && activeStep ? stepFocus(w, activeStep.id) : null),
+    [w, activeStep],
+  )
+
+  // Build the Intent, Walkthrough and Brief when the Review opens, once per Iteration.
+  const started = useRef<string | null>(null)
+  useEffect(() => {
+    if (!iterationId || !settings.data || !understanding.data) return
+    if (started.current === iterationId) return
+    started.current = iterationId
+    if (settings.data.understanding.auto && understanding.data.state === "idle")
+      client
+        .call("understanding.run", { ...iterIds, rebuild: "none" })
+        .then((st) =>
+          qc.setQueryData(["understanding", reviewId, iterationId], st),
+        )
+        .catch((e: Error) => useUI.getState().toast(e.message))
+  })
 
   const files = cs.data?.files ?? NO_FILES
 
@@ -123,8 +199,10 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
         collapsedFiles: ui.collapsedFiles,
         expandedFrags: ui.expandedFrags,
         gapReveal: ui.gapReveal,
+        step: stepView,
       }),
     [
+      stepView,
       cs.data,
       ui.layout,
       settings.data?.diff.contextLines,
@@ -196,6 +274,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           {
             reviewId,
             px: scrollTop.current,
+            stepId: s.page === "diff" ? s.stepId : null,
             symbolId: s.focusSymbol?.symbolId ?? null,
             label: s.focusSymbol?.label ?? null,
           },
@@ -217,13 +296,73 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     [model.offsets, scrollToPx],
   )
 
+  /** A line to scroll to once the model shows it: after switching Steps, the rows change first. */
+  const pending = useRef<{
+    fileId: string
+    side: "base" | "head"
+    line: number
+  } | null>(null)
+  // Bumped with each queued scroll, for when switching pages leaves the rows as they were.
+  const [pendingTick, setPendingTick] = useState(0)
+  useEffect(() => {
+    const p = pending.current
+    if (!p) return
+    pending.current = null
+    const f = model.files.find((x) => x.fileId === p.fileId)
+    const row =
+      p.line < 0 ? (f?.row ?? -1) : rowForLine(model, p.fileId, p.side, p.line)
+    if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
+  }, [model, pendingTick])
+
+  /** Shows a file's line (0-based; -1 for the file) in the diff, switching Steps when another holds it. */
+  const reveal = useCallback(
+    (fileId: string, side: "base" | "head", line: number): boolean => {
+      const s = useUI.getState()
+      const row =
+        line < 0
+          ? (model.files.find((x) => x.fileId === fileId)?.row ?? -1)
+          : rowForLine(model, fileId, side, line)
+      if (row >= 0 && s.page === "diff") {
+        s.scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
+        return true
+      }
+      const file = files.find((x) => x.id === fileId)
+      if (!file) return false
+      const holder = w && line >= 0 ? stepAt(w, file, side, line + 1) : null
+      pending.current = { fileId, side, line }
+      setPendingTick((t) => t + 1)
+      s.set({ page: "diff", stepId: holder?.id ?? null })
+      return true
+    },
+    [model, files, w],
+  )
+
   const openFile = useCallback(
     (fileId: string) => {
+      pushTrail()
+      const s = useUI.getState()
+      s.set({ activeFileId: fileId })
       const f = model.files.find((x) => x.fileId === fileId)
-      if (f) scrollToRow(f.row, true)
-      useUI.getState().set({ activeFileId: fileId })
+      if (f && s.page === "diff" && !s.stepId) {
+        scrollToRow(f.row)
+        return
+      }
+      // From the Brief or a Step: the whole Change Set, at that file.
+      pending.current = { fileId, side: "head", line: -1 }
+      setPendingTick((t) => t + 1)
+      s.set({ page: "diff", stepId: null, sidebar: "files" })
     },
-    [model.files, scrollToRow],
+    [model.files, scrollToRow, pushTrail],
+  )
+
+  const openStep = useCallback(
+    (stepId: string) => {
+      pushTrail()
+      const s = useUI.getState()
+      s.set({ page: "diff", stepId, sidebar: "walkthrough", selection: null })
+      s.scroll(0)
+    },
+    [pushTrail],
   )
 
   const moveHunk = (dir: 1 | -1) => {
@@ -295,28 +434,26 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
   /** Shows a Symbol in the panel and scrolls to it when the diff draws its line. Joins the Trail. */
   const goToSymbol = (sym: CodeSymbol, opts: { keepPanel?: boolean } = {}) => {
     const f = fileOf(sym.side, sym.path)
-    const row = f ? rowForLine(model, f.id, sym.side, sym.nameLine - 1) : -1
     pushTrail()
+    const shown = f ? reveal(f.id, sym.side, sym.nameLine - 1) : false
     useUI.getState().set({
       focusSymbol: { symbolId: sym.id, label: symbolLabel(sym) },
       // From an Explanation, stay on it when the diff shows the code; otherwise the
       // Connections panel shows the code instead.
-      ...(opts.keepPanel && row >= 0 ? {} : { panel: "connections" as const }),
+      ...(opts.keepPanel && shown ? {} : { panel: "connections" as const }),
     })
-    if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
   }
 
   /** Goes to where a Connection is made: the using line, with its Symbol in the panel. */
   const goToSite = (site: ConnectionSite, from: CodeSymbol | null) => {
     const f = fileOf(site.side, site.path)
-    const row = f ? rowForLine(model, f.id, site.side, site.line - 1) : -1
     pushTrail()
     if (from)
       useUI.getState().set({
         focusSymbol: { symbolId: from.id, label: symbolLabel(from) },
         panel: "connections",
       })
-    if (row >= 0) useUI.getState().scroll((model.offsets[row] ?? 0) - HEAD_ROOM)
+    if (f) reveal(f.id, site.side, site.line - 1)
   }
 
   const inspect = (
@@ -360,8 +497,14 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           return
         }
         const [only] = at.targets
-        if (only && at.targets.length === 1) goToSymbol(only)
-        else if (at.targets.length > 1 && at.symbol) {
+        if (only && at.targets.length === 1) {
+          goToSymbol(only)
+          if (at.connection?.status === "possible")
+            s.toast(
+              `A guess: only the name ${at.connection.name} matches this definition.`,
+              "info",
+            )
+        } else if (at.targets.length > 1 && at.symbol) {
           s.set({
             focusSymbol: {
               symbolId: at.symbol.id,
@@ -558,6 +701,133 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     viewedMut.mutate({ fileIds: [fileId], on })
   }
 
+  const stepViewedMut = useMutation({
+    mutationFn: ({ stepIds, on }: { stepIds: string[]; on: boolean }) =>
+      client.call("steps.setViewed", { reviewId, stepIds, viewed: on }),
+    onMutate: ({ stepIds, on }) => {
+      qc.setQueryData<string[]>(["stepsViewed", reviewId], (old = []) =>
+        on
+          ? [...new Set([...old, ...stepIds])]
+          : old.filter((x) => !stepIds.includes(x)),
+      )
+    },
+    onError: (e: Error) => {
+      useUI.getState().toast(e.message)
+      void qc.invalidateQueries({ queryKey: ["stepsViewed", reviewId] })
+    },
+  })
+  const toggleStepViewed = (stepId: string) =>
+    stepViewedMut.mutate({ stepIds: [stepId], on: !stepsViewed.has(stepId) })
+
+  const editStep = useMutation({
+    mutationFn: (edit: StepEdit) =>
+      client.call("walkthrough.edit", { ...iterIds, edit }),
+    onSuccess: (next, edit) => {
+      qc.setQueryData(["walkthrough", reviewId, iterationId], next)
+      void qc.invalidateQueries({ queryKey: ["brief", reviewId] })
+      // Follow the edited Step: a merge or split gives it a new id.
+      const s = useUI.getState()
+      if (
+        edit.kind !== "rename" &&
+        s.stepId &&
+        !next.steps.some((x) => x.id === s.stepId)
+      ) {
+        const at = next.steps.find((x) =>
+          x.fragments.some(
+            (f) => activeStep?.fragments[0]?.fragmentId === f.fragmentId,
+          ),
+        )
+        s.set({ stepId: at?.id ?? null })
+      }
+    },
+    onError: (e: Error) => useUI.getState().toast(e.message),
+  })
+
+  const runUnderstanding = (
+    rebuild: "none" | "all" | "intent" | "walkthrough" | "brief",
+  ) => {
+    if (!iterationId) return
+    client
+      .call("understanding.run", { ...iterIds, rebuild })
+      .then((st) =>
+        qc.setQueryData(["understanding", reviewId, iterationId], st),
+      )
+      .catch((e: Error) => useUI.getState().toast(e.message))
+  }
+  const afterIntent = async () => {
+    await qc.invalidateQueries({ queryKey: ["intent", reviewId] })
+    // Scope and the Brief follow the Intent.
+    runUnderstanding("brief")
+  }
+  const briefActions = {
+    openStep,
+    openFile,
+    startSitting: (index: number) => {
+      const st = w?.sittings.find((x) => x.index === index)
+      const first =
+        st?.stepIds.find((id) => !stepsViewed.has(id)) ?? st?.stepIds[0]
+      if (first) openStep(first)
+    },
+    rebuild: runUnderstanding,
+    cancel: () => {
+      if (iterationId)
+        client
+          .call("understanding.cancel", iterIds)
+          .catch((e: Error) => useUI.getState().toast(e.message))
+    },
+    saveIntent: (goal: string, requirements: string[]) =>
+      client
+        .call("intent.save", {
+          reviewId,
+          goal,
+          requirements: requirements
+            .map((r) => r.trim())
+            .filter(Boolean)
+            .map((statement, i) => ({ id: `R${i + 1}`, statement })),
+        })
+        .then(afterIntent)
+        .catch((e: Error) => useUI.getState().toast(e.message)),
+    confirmIntent: () =>
+      client
+        .call("intent.confirm", { reviewId })
+        .then(afterIntent)
+        .catch((e: Error) => useUI.getState().toast(e.message)),
+    resetIntent: () =>
+      client
+        .call("intent.reset", { reviewId })
+        .then(async () => {
+          await qc.invalidateQueries({ queryKey: ["intent", reviewId] })
+          runUnderstanding("intent")
+        })
+        .catch((e: Error) => useUI.getState().toast(e.message)),
+    setTranscript: (id: string, selected: boolean) =>
+      client
+        .call("transcripts.set", { reviewId, transcriptId: id, selected })
+        .then(async () => {
+          await qc.invalidateQueries({ queryKey: ["transcripts", reviewId] })
+          runUnderstanding("intent")
+        })
+        .catch((e: Error) => useUI.getState().toast(e.message)),
+  }
+
+  /** Next or previous Step; across Chapters with `chapter`. */
+  const moveStep = (dir: 1 | -1, chapter = false) => {
+    if (!w?.steps.length) return false
+    const i = activeStep ? w.steps.indexOf(activeStep) : -1
+    if (chapter) {
+      const cur = activeStep?.chapterId ?? null
+      const next =
+        dir === 1
+          ? w.steps.find((x, k) => k > i && x.chapterId !== cur)
+          : w.steps.findLast((x, k) => k < i && x.chapterId !== cur)
+      if (next) openStep(next.id)
+      return true
+    }
+    const next = w.steps[i < 0 ? 0 : i + dir]
+    if (next) openStep(next.id)
+    return true
+  }
+
   const openInEditor = (path: string, line: number) => {
     client
       .call("editor.open", { reviewId, path, line })
@@ -588,6 +858,7 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     toggleViewed,
     inspect,
     canOpenInEditor: Boolean(review.data?.repo.workTree),
+    openStep,
   }
 
   const jumpToExplanation = (e: Explanation) => {
@@ -643,9 +914,12 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     const here = {
       reviewId,
       px: scrollTop.current,
+      stepId: s.page === "diff" ? s.stepId : null,
       symbolId: s.focusSymbol?.symbolId ?? null,
       label: s.focusSymbol?.label ?? null,
     }
+    if ((loc.stepId ?? null) !== (s.page === "diff" ? s.stepId : null))
+      s.set({ page: "diff", stepId: loc.stepId ?? null })
     s.set({
       focusSymbol:
         loc.symbolId && loc.label
@@ -683,18 +957,59 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       run: () => moveHunk(-1),
     },
     {
-      id: "next-file",
-      title: "Next file",
+      id: "next",
+      title: "Next Step (or file)",
       group: "Move",
       keys: ["n"],
-      run: () => moveFile(1),
+      run: () => {
+        if (!(ui.page === "diff" && ui.stepId && moveStep(1))) moveFile(1)
+      },
     },
     {
-      id: "prev-file",
-      title: "Previous file",
+      id: "prev",
+      title: "Previous Step (or file)",
       group: "Move",
       keys: ["p"],
-      run: () => moveFile(-1),
+      run: () => {
+        if (!(ui.page === "diff" && ui.stepId && moveStep(-1))) moveFile(-1)
+      },
+    },
+    {
+      id: "next-chapter",
+      title: "Next Chapter",
+      group: "Move",
+      keys: ["shift+n"],
+      enabled: () => Boolean(w?.chapters.length),
+      run: () => moveStep(1, true),
+    },
+    {
+      id: "brief",
+      title: "Change Brief",
+      group: "View",
+      keys: ["b"],
+      run: () => useUI.getState().set({ page: "brief" }),
+    },
+    {
+      id: "start-sitting",
+      title: "Start the next Sitting",
+      group: "Move",
+      keys: ["enter"],
+      paletteHidden: true,
+      enabled: () => useUI.getState().page === "brief" && Boolean(w),
+      run: () => {
+        const st =
+          w?.sittings.find((x) =>
+            x.stepIds.some((id) => !stepsViewed.has(id)),
+          ) ?? w?.sittings[0]
+        if (st) briefActions.startSitting(st.index)
+      },
+    },
+    {
+      id: "rebuild",
+      title: "Rebuild the Walkthrough and Brief",
+      group: "Act",
+      keys: [],
+      run: () => runUnderstanding("all"),
     },
     {
       id: "trail-back",
@@ -736,10 +1051,17 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
     },
     {
       id: "viewed",
-      title: "Mark file viewed",
+      title: "Mark Step (or file) viewed",
       group: "Act",
       keys: ["v"],
       run: () => {
+        if (activeStep) {
+          const seen = stepsViewed.has(activeStep.id)
+          toggleStepViewed(activeStep.id)
+          // Marking a Step viewed moves on to the next one.
+          if (!seen) moveStep(1)
+          return
+        }
         const id = currentFileId()
         if (id) toggleViewed(id)
       },
@@ -880,6 +1202,20 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
       .catch(() => undefined)
   }, [client, reviewId])
 
+  // Each panel can grow until the diff would get narrower than CENTER_MIN.
+  const leftMax = clampPanel(
+    "left",
+    PANEL_LIMITS.left.max,
+    bodyWidth - ui.panels.right - CENTER_MIN,
+  )
+  const leftWidth = clampPanel("left", ui.panels.left, leftMax)
+  const rightMax = clampPanel(
+    "right",
+    PANEL_LIMITS.right.max,
+    bodyWidth - leftWidth - CENTER_MIN,
+  )
+  const rightWidth = clampPanel("right", ui.panels.right, rightMax)
+
   const job = ui.activeJobId ? (ui.jobs[ui.activeJobId] ?? null) : null
   const viewedCount = files.filter((f) => viewed.has(f.id)).length
   const changes = ui.changesAvailable[reviewId]
@@ -929,6 +1265,27 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
           <ChevronRight className="size-3 shrink-0" />
           <b className="truncate font-medium text-foreground">{r?.title}</b>
         </nav>
+        <Tabs label="Review page" className="h-7 p-0.5">
+          <Tab
+            selected={ui.page === "brief"}
+            className="px-2"
+            onClick={() => ui.set({ page: "brief" })}
+          >
+            Brief
+          </Tab>
+          <Tab
+            selected={ui.page === "diff"}
+            className="px-2"
+            onClick={() => {
+              if (ui.page === "diff") return
+              if (!ui.stepId && w?.steps[0] && ui.sidebar === "walkthrough")
+                openStep(w.steps[0].id)
+              else ui.set({ page: "diff" })
+            }}
+          >
+            Changes
+          </Tab>
+        </Tabs>
         {r && (
           <Badge tone="outline">
             {r.mode === "author" ? "Author mode" : "Reviewer mode"}
@@ -1028,140 +1385,250 @@ export function ReviewView({ reviewId }: { reviewId: string }) {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-auto">
+      <div ref={bodyRef} className="flex min-h-0 flex-auto">
         <aside
-          aria-label="Files"
-          className="flex min-h-0 w-[296px] shrink-0 flex-col border-r bg-sidebar"
+          aria-label="Walkthrough and files"
+          className="relative flex min-h-0 shrink-0 flex-col border-r bg-sidebar"
+          style={{ width: leftWidth }}
         >
-          <div className="flex items-center gap-2 px-3.5 pt-3 pb-2">
-            <span className="grow text-sm font-semibold">Files</span>
-            <span className="text-xs text-muted-foreground">
-              {files.length} changed ·{" "}
-              <span className="text-ok">+{cs.data?.additions ?? 0}</span>{" "}
-              <span className="text-critical">−{cs.data?.deletions ?? 0}</span>
-            </span>
-          </div>
-          <div className="flex-auto overflow-auto px-1.5 pb-2">
-            <FileTree
-              files={files}
-              viewed={viewed}
-              activeFileId={topFile}
-              onOpen={openFile}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5 border-t px-4 py-3">
-            <div className="flex items-center text-xs">
-              <span className="grow text-muted-foreground">Change Set</span>
-              <span>
-                {viewedCount} of {files.length} files viewed
+          <ResizeHandle
+            label="Resize sidebar"
+            edge="right"
+            value={leftWidth}
+            min={PANEL_LIMITS.left.min}
+            max={leftMax}
+            defaultValue={PANEL_LIMITS.left.default}
+            onResize={(px) => ui.setPanel("left", px)}
+            onCommit={(px) => ui.setPanel("left", px, true)}
+          />
+          <div
+            role="tablist"
+            className="flex shrink-0 items-stretch gap-0.5 border-b px-2"
+          >
+            <LineTab
+              selected={ui.sidebar === "walkthrough"}
+              onClick={() => ui.set({ sidebar: "walkthrough" })}
+            >
+              <ListChecks />
+              Walkthrough
+            </LineTab>
+            <LineTab
+              selected={ui.sidebar === "files"}
+              onClick={() => ui.set({ sidebar: "files" })}
+            >
+              Files
+              <span className="text-xs text-muted-foreground">
+                {files.length}
               </span>
-            </div>
-            <Progress
-              value={files.length ? (viewedCount / files.length) * 100 : 0}
-            />
+            </LineTab>
           </div>
+          {ui.sidebar === "walkthrough" ? (
+            <>
+              <div className="flex-auto overflow-auto pt-2">
+                <WalkthroughList
+                  walkthrough={w}
+                  status={understanding.data ?? null}
+                  viewed={stepsViewed}
+                  activeStepId={activeStep?.id ?? null}
+                  onOpen={openStep}
+                  onBuild={() => runUnderstanding("walkthrough")}
+                />
+              </div>
+              {w && (
+                <WalkthroughProgress walkthrough={w} viewed={stepsViewed} />
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 px-3.5 pt-3 pb-2">
+                <span className="grow text-sm font-semibold">Files</span>
+                <span className="text-xs text-muted-foreground">
+                  {files.length} changed ·{" "}
+                  <span className="text-ok">+{cs.data?.additions ?? 0}</span>{" "}
+                  <span className="text-critical">
+                    −{cs.data?.deletions ?? 0}
+                  </span>
+                </span>
+              </div>
+              <div className="flex-auto overflow-auto px-1.5 pb-2">
+                <FileTree
+                  files={files}
+                  viewed={viewed}
+                  activeFileId={topFile}
+                  onOpen={openFile}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 border-t px-4 py-3">
+                <div className="flex items-center text-xs">
+                  <span className="grow text-muted-foreground">Change Set</span>
+                  <span>
+                    {viewedCount} of {files.length} files viewed
+                  </span>
+                </div>
+                <Progress
+                  value={files.length ? (viewedCount / files.length) * 100 : 0}
+                />
+              </div>
+            </>
+          )}
         </aside>
 
-        <section aria-label="Diff" className="flex min-w-0 flex-auto flex-col">
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b px-3.5 py-2">
-            {r?.intentText && (
-              <span
-                className="max-w-[420px] truncate text-sm"
-                title={r.intentText}
-              >
-                {r.intentText.split("\n")[0]}
-              </span>
-            )}
-            {cs.data && cs.data.moves.length > 0 && (
-              <Badge tone="ask">
-                {cs.data.moves.length} moved{" "}
-                {cs.data.moves.length === 1 ? "block" : "blocks"}
-              </Badge>
-            )}
-            <span className="grow" />
-            <Button
-              variant="muted"
-              size="sm"
-              onClick={() => runExplain(selectionTarget())}
-              title="Explain (e)"
-            >
-              <BookOpen />
-              Explain
-              <Kbd keys={["e"]} />
-            </Button>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Switch
-                checked={ui.ignoreWhitespace}
-                label="Hide whitespace changes"
-                onChange={(v) => ui.set({ ignoreWhitespace: v })}
-              />
-              Hide whitespace
-            </span>
-            <Tabs label="Diff layout" className="h-7 p-0.5">
-              <Tab
-                selected={ui.layout === "unified"}
-                className="px-2"
-                onClick={() => ui.set({ layout: "unified" })}
-              >
-                Unified
-              </Tab>
-              <Tab
-                selected={ui.layout === "split"}
-                className="px-2"
-                onClick={() => ui.set({ layout: "split" })}
-              >
-                Split
-              </Tab>
-            </Tabs>
-          </div>
-          {cs.isError ? (
-            <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
-              <span className="text-sm">{cs.error.message}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => ui.go({ name: "home" })}
-              >
-                <ArrowLeft />
-                All Reviews
-              </Button>
-            </div>
-          ) : !cs.data ? (
-            <DiffLoading />
-          ) : files.length === 0 ? (
-            <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
-              <span className="text-base font-semibold text-foreground">
-                No changes
-              </span>
-              <span className="text-sm">
-                Base and Head are identical
-                {r?.sourceKind === "working_tree"
-                  ? ". Changes you or an agent make here will show up as a refresh."
-                  : "."}
-              </span>
-            </div>
-          ) : (
-            <DiffView
-              summary={cs.data}
-              model={model}
-              diffs={diffs}
-              viewed={viewed}
-              actions={actions}
-              scrollRef={scrollRef}
-              onScrollTop={(px, fileId) => {
-                scrollTop.current = px
-                setTopFile((prev) => (prev === fileId ? prev : fileId))
-                updateNear(px)
-              }}
+        {ui.page === "brief" && r ? (
+          <section
+            aria-label="Change Brief"
+            className="flex min-w-0 flex-auto flex-col"
+          >
+            <BriefPage
+              review={r}
+              summary={cs.data ?? null}
+              intent={intent.data ?? null}
+              walkthrough={w}
+              brief={brief.data ?? null}
+              status={understanding.data ?? null}
+              transcripts={transcripts.data ?? []}
+              viewedSteps={stepsViewed}
+              actions={briefActions}
             />
-          )}
-        </section>
+          </section>
+        ) : (
+          <section
+            aria-label="Diff"
+            className="flex min-w-0 flex-auto flex-col"
+          >
+            {activeStep && w && (
+              <StepHeader
+                key={activeStep.id}
+                walkthrough={w}
+                step={activeStep}
+                intent={intent.data ?? null}
+                viewed={stepsViewed}
+                onToggleViewed={() => toggleStepViewed(activeStep.id)}
+                onOpen={openStep}
+                onEdit={(edit) => editStep.mutate(edit)}
+                busy={understanding.data?.state === "running"}
+              />
+            )}
+            <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b px-3.5 py-2">
+              {!activeStep && (intent.data?.goal ?? r?.intentText) && (
+                <span
+                  className="max-w-[420px] min-w-0 flex-[1_1_0] truncate text-sm"
+                  title={intent.data?.goal ?? r?.intentText ?? ""}
+                >
+                  {intent.data?.goal ?? r?.intentText?.split("\n")[0]}
+                </span>
+              )}
+              {activeStep && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => ui.set({ stepId: null })}
+                  title="Show the whole Change Set"
+                >
+                  All changes
+                </Button>
+              )}
+              {cs.data && cs.data.moves.length > 0 && (
+                <Badge tone="ask">
+                  {cs.data.moves.length} moved{" "}
+                  {cs.data.moves.length === 1 ? "block" : "blocks"}
+                </Badge>
+              )}
+              <span className="grow" />
+              <Button
+                variant="muted"
+                size="sm"
+                onClick={() => runExplain(selectionTarget())}
+                title="Explain (e)"
+              >
+                <BookOpen />
+                Explain
+                <Kbd keys={["e"]} />
+              </Button>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Switch
+                  checked={ui.ignoreWhitespace}
+                  label="Hide whitespace changes"
+                  onChange={(v) => ui.set({ ignoreWhitespace: v })}
+                />
+                Hide whitespace
+              </span>
+              <Tabs label="Diff layout" className="h-7 p-0.5">
+                <Tab
+                  selected={ui.layout === "unified"}
+                  className="px-2"
+                  onClick={() => ui.set({ layout: "unified" })}
+                >
+                  Unified
+                </Tab>
+                <Tab
+                  selected={ui.layout === "split"}
+                  className="px-2"
+                  onClick={() => ui.set({ layout: "split" })}
+                >
+                  Split
+                </Tab>
+              </Tabs>
+            </div>
+            {cs.isError ? (
+              <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
+                <span className="text-sm">{cs.error.message}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => ui.go({ name: "home" })}
+                >
+                  <ArrowLeft />
+                  All Reviews
+                </Button>
+              </div>
+            ) : !cs.data ? (
+              <DiffLoading />
+            ) : files.length === 0 ? (
+              <div className="flex flex-auto flex-col items-center justify-center gap-2.5 p-6 text-center text-muted-foreground">
+                <span className="text-base font-semibold text-foreground">
+                  No changes
+                </span>
+                <span className="text-sm">
+                  Base and Head are identical
+                  {r?.sourceKind === "working_tree"
+                    ? ". Changes you or an agent make here will show up as a refresh."
+                    : "."}
+                </span>
+              </div>
+            ) : (
+              <DiffView
+                summary={cs.data}
+                model={model}
+                diffs={diffs}
+                viewed={viewed}
+                actions={actions}
+                scrollRef={scrollRef}
+                onScrollTop={(px, fileId) => {
+                  scrollTop.current = px
+                  setTopFile((prev) => (prev === fileId ? prev : fileId))
+                  updateNear(px)
+                }}
+              />
+            )}
+          </section>
+        )}
 
         <aside
           aria-label="Context"
-          className="flex min-h-0 w-[360px] shrink-0 flex-col border-l bg-panel"
+          className="relative flex min-h-0 shrink-0 flex-col border-l bg-panel"
+          style={{ width: rightWidth }}
           data-testid="context-panel"
         >
+          <ResizeHandle
+            label="Resize context panel"
+            edge="left"
+            value={rightWidth}
+            min={PANEL_LIMITS.right.min}
+            max={rightMax}
+            defaultValue={PANEL_LIMITS.right.default}
+            onResize={(px) => ui.setPanel("right", px)}
+            onCommit={(px) => ui.setPanel("right", px, true)}
+          />
           {runtime.data && !runtime.data.ready && (
             <Callout tone="elevated" className="mx-3 mt-3 px-2.5 py-2 text-sm">
               {runtime.data.detail}.{" "}

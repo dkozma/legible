@@ -3,6 +3,7 @@
 // domain operations, never arbitrary paths, commands or URLs to fetch.
 
 import {
+  type ChangeBrief,
   type ChangeSetSummary,
   type CodeSymbol,
   type Explanation,
@@ -12,9 +13,12 @@ import {
   type HostAccount,
   HostKind,
   type IndexStatus,
+  type Intent,
   type Iteration,
   type ModelInfo,
   type PositionInfo,
+  Provider,
+  Requirement,
   type ReviewSummary,
   type RuntimeStatus,
   SecretName,
@@ -22,8 +26,12 @@ import {
   Side,
   Source,
   type SpendSummary,
+  StepEdit,
   type SymbolConnections,
   type SymbolSource,
+  type TranscriptCandidate,
+  type UnderstandingStatus,
+  type Walkthrough,
 } from "@legible/domain"
 import { z } from "zod"
 
@@ -63,6 +71,14 @@ export interface ChangeCheck {
   detail: string | null
 }
 
+export interface ChatGPTAccount {
+  /** This build can sign in with ChatGPT (it has a registered client id). */
+  available: boolean
+  signedIn: boolean
+  email: string | null
+  plan: string | null
+}
+
 export const requests = {
   "app.info": z.object({}),
   "settings.get": z.object({}),
@@ -72,7 +88,7 @@ export const requests = {
     name: SecretName,
     value: z.string().max(10_000).nullable(),
   }),
-  "runtime.status": z.object({}),
+  "runtime.status": z.object({ provider: Provider.optional() }),
   "models.list": z.object({}),
   "repo.pick": z.object({}),
   "repo.inspect": z.object({ path: z.string().min(1).max(4096) }),
@@ -166,6 +182,43 @@ export const requests = {
   }),
   "hosts.disconnect": z.object({ hostname: z.string().min(1).max(255) }),
   "link.open": z.object({ url: z.string().url().max(4096) }),
+  "understanding.status": z.object({ reviewId: id, iterationId: id }),
+  "understanding.run": z.object({
+    reviewId: id,
+    iterationId: id,
+    rebuild: z.enum(["none", "all", "intent", "walkthrough", "brief"]),
+  }),
+  "understanding.cancel": z.object({ reviewId: id, iterationId: id }),
+  "intent.get": z.object({ reviewId: id }),
+  "intent.save": z.object({
+    reviewId: id,
+    goal: z.string().min(1).max(4000),
+    requirements: z.array(Requirement).max(30),
+  }),
+  "intent.confirm": z.object({ reviewId: id }),
+  "intent.reset": z.object({ reviewId: id }),
+  "transcripts.list": z.object({ reviewId: id }),
+  "transcripts.set": z.object({
+    reviewId: id,
+    transcriptId: z.string().min(1).max(300),
+    selected: z.boolean(),
+  }),
+  "walkthrough.get": z.object({ reviewId: id, iterationId: id }),
+  "walkthrough.edit": z.object({
+    reviewId: id,
+    iterationId: id,
+    edit: StepEdit,
+  }),
+  "brief.get": z.object({ reviewId: id, iterationId: id }),
+  "steps.viewed": z.object({ reviewId: id }),
+  "steps.setViewed": z.object({
+    reviewId: id,
+    stepIds: z.array(id).max(10_000),
+    viewed: z.boolean(),
+  }),
+  "openai.account": z.object({}),
+  "openai.signIn": z.object({}),
+  "openai.signOut": z.object({}),
 } as const satisfies Record<Channel, z.ZodType>
 
 export type Req<C extends Channel> = z.infer<(typeof requests)[C]>
@@ -209,10 +262,28 @@ export interface Responses {
   "hosts.connect": HostAccount
   "hosts.disconnect": { ok: true }
   "link.open": { ok: boolean }
+  "understanding.status": UnderstandingStatus
+  "understanding.run": UnderstandingStatus
+  "understanding.cancel": { ok: true }
+  "intent.get": Intent | null
+  "intent.save": Intent
+  "intent.confirm": Intent | null
+  "intent.reset": { ok: true }
+  "transcripts.list": TranscriptCandidate[]
+  "transcripts.set": { ok: true }
+  "walkthrough.get": Walkthrough | null
+  "walkthrough.edit": Walkthrough
+  "brief.get": ChangeBrief | null
+  "steps.viewed": string[]
+  "steps.setViewed": { ok: true }
+  "openai.account": ChatGPTAccount
+  "openai.signIn": ChatGPTAccount
+  "openai.signOut": { ok: true }
 }
 
 export interface Events extends Record<EventName, unknown> {
   "job.updated": ExplanationJob
+  "understanding.updated": UnderstandingStatus
   "review.changesAvailable": { reviewId: string; detail: string }
   "app.openReview": { reviewId: string }
   "app.command": { command: string }

@@ -93,4 +93,51 @@ export const MIGRATIONS: string[] = [
     state_json TEXT NOT NULL
   );
   `,
+  // 2 — M3: Intent, Walkthrough, Change Brief, and a cache of agent outputs
+  `
+  CREATE TABLE intents (
+    review_id TEXT PRIMARY KEY REFERENCES reviews(id) ON DELETE CASCADE,
+    body_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE transcript_choices (
+    review_id TEXT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    transcript_id TEXT NOT NULL,
+    selected INTEGER NOT NULL,
+    PRIMARY KEY (review_id, transcript_id)
+  );
+
+  CREATE TABLE walkthroughs (
+    review_id TEXT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    iteration_id TEXT NOT NULL REFERENCES iterations(id) ON DELETE CASCADE,
+    body_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (review_id, iteration_id)
+  );
+
+  CREATE TABLE briefs (
+    review_id TEXT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    iteration_id TEXT NOT NULL REFERENCES iterations(id) ON DELETE CASCADE,
+    body_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (review_id, iteration_id)
+  );
+
+  CREATE TABLE viewed_steps (
+    review_id TEXT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    step_id TEXT NOT NULL,
+    viewed_at TEXT NOT NULL,
+    PRIMARY KEY (review_id, step_id)
+  );
+
+  CREATE TABLE agent_outputs (
+    cache_key TEXT PRIMARY KEY,
+    review_id TEXT REFERENCES reviews(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    model TEXT NOT NULL,
+    body_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ]

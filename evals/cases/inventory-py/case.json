@@ -1,0 +1,37 @@
+{
+  "description": "Python: a per-item safety stock moves the reorder point, through model, service, API and tests. Unrequested: restocking is silently capped.",
+  "intent": {
+    "goal": "Reorder earlier by giving each item a safety stock.",
+    "requirements": [
+      "Each item has a safety stock, 0 unless set",
+      "An item needs reordering when its quantity falls below its reorder level plus its safety stock",
+      "The reorder endpoint reports the safety stock"
+    ]
+  },
+  "pullRequest": {
+    "title": "Safety stock for reorder points",
+    "body": "Adds a per-item safety stock. Items are flagged for reorder when quantity drops below reorder level + safety stock.\n\n## How to test\n- Set safety stock 5 on an item with reorder level 10 and quantity 12\n- Check /items/<sku>/reorder"
+  },
+  "labels": {
+    "steps": [
+      ["inventory/models.py"],
+      ["inventory/service.py@4-5", "tests/test_service.py"],
+      ["inventory/api.py"],
+      ["requirements.txt"]
+    ],
+    "layers": {
+      "inventory/models.py": "data_model",
+      "inventory/service.py": "backend",
+      "inventory/api.py": "api",
+      "requirements.txt": "chores"
+    },
+    "unrequested": ["inventory/service.py@8-13"],
+    "domainChanges": [
+      "Items have a safety stock that defaults to 0",
+      "An item needs reordering below its reorder level plus safety stock",
+      "Restocking is capped at 1000 units",
+      "The reorder endpoint returns the safety stock"
+    ],
+    "chapters": 1
+  }
+}

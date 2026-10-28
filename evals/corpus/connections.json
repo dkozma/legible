@@ -1,0 +1,36 @@
+[
+  {
+    "name": "legible",
+    "source": "self",
+    "commits": [
+      "6782c6a",
+      "d777c9f",
+      "7f2a628",
+      "b4ef074",
+      "48e52bc",
+      "340de6b",
+      "537007c",
+      "b727ad2",
+      "78c41ec",
+      "3968d87",
+      "18b758a",
+      "33010da",
+      "3c517a8",
+      "979f183",
+      "74cc4ec"
+    ],
+    "install": "pnpm install --frozen-lockfile --prefer-offline --ignore-scripts",
+    "perCommitInstall": true
+  },
+  {
+    "name": "hono",
+    "source": {
+      "url": "https://github.com/honojs/hono",
+      "rev": "bac5c4a8bcd76b165428ce757e1185753c7935bd"
+    },
+    "commits": 30,
+    "install": "pnpm install --frozen-lockfile --prefer-offline --ignore-scripts",
+    "perCommitInstall": false,
+    "projects": ["tsconfig.spec.json"]
+  }
+]
