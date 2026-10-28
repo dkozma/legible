@@ -202,7 +202,8 @@ describe("code spans in Explanations", () => {
     expect(found["src/refunds/RefundPolicy.ts"]!.map((s) => s.kind)).toEqual([
       "module",
     ])
-    expect(names("amountCents")).toEqual([])
+    // A property of an interface is a Symbol.
+    expect(names("amountCents")).toEqual(["RefundRecord.amountCents"])
   })
 
   it("ranks the explained file first when names repeat", () => {
@@ -629,6 +630,38 @@ describe("false positives the resolver doesn't make", () => {
       expect(connectionsOf(ix, "app/cart.py", "Cart.checkout").uses).toEqual([
         "+ calls Cart.total resolved",
       ])
+    } finally {
+      done()
+    }
+  })
+
+  it("resolves class fields and properties through their receiver, never by name", async () => {
+    const { index: ix, done } = await indexChange(
+      {
+        "src/app.ts":
+          "export class App {\n  get!: (path: string) => void\n  id = 1\n}\n",
+        "src/props.ts": "export interface Props {\n  id: string\n}\n",
+        "src/use.ts": 'import { App } from "./app"\n',
+      },
+      {
+        "src/app.ts":
+          'export class App {\n  get!: (path: string) => void\n  id = 1\n\n  start() {\n    this.get("/")\n    return this.id\n  }\n}\n',
+        "src/use.ts":
+          'import { App } from "./app"\n\nexport function serve(app: App, x: any) {\n  app.get("/")\n  x.get("/")\n  return x.id\n}\n',
+      },
+    )
+    try {
+      expect(connectionsOf(ix, "src/app.ts", "App.start").uses).toEqual([
+        "+ calls App.get resolved",
+        "+ references App.id resolved",
+      ])
+      // A declared type finds the field; an `any` receiver doesn't guess one.
+      const serve = connectionsOf(ix, "src/use.ts", "serve").uses
+      expect(serve).toContain("+ calls App.get resolved")
+      expect(serve.filter((u) => /\bid\b|Props/.test(u))).toEqual([])
+      expect(
+        serve.filter((u) => / likely| possible| ambiguous/.test(u)),
+      ).toEqual([])
     } finally {
       done()
     }

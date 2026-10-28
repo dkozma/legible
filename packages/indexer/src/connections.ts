@@ -119,10 +119,14 @@ const IMPORT_HOPS = 2
 /** Languages where a bare name never means a member of the enclosing class (members need `this.` or `self.`). */
 const MEMBERS_NEED_RECEIVER = new Set(["js", "python", "go", "rust", "php"])
 
+/** A TypeScript or JavaScript class field or property, which often holds a function (`get!: HandlerInterface`). */
+const jsMember = (s: CodeSymbol) =>
+  s.kind === "field" && s.parentId !== null && familyOf(s.language) === "js"
+
 function compatible(kind: RawReference["kind"], s: CodeSymbol): boolean {
   switch (kind) {
     case "calls":
-      return CALLABLE.has(s.kind)
+      return CALLABLE.has(s.kind) || jsMember(s)
     case "implements":
       return TYPE_LIKE.has(s.kind)
     case "references":
@@ -856,8 +860,13 @@ export class CodeIndex {
     if (r.receiver && !SELF.has(r.receiver) && BUILTIN_METHODS.has(r.name))
       return { status: "external", targets: [], module: null }
     const family = familyOf(e.language)
+    // A field is found through its receiver (`this.`, a declared type, an imported class), never by
+    // name: names like `id` and `type` are on every other interface.
     const pool = (this.byName[u].get(r.name) ?? []).filter(
-      (s) => familyOf(s.language) === family && compatible(r.kind, s),
+      (s) =>
+        familyOf(s.language) === family &&
+        compatible(r.kind, s) &&
+        !jsMember(s),
     )
     // A member use (`order.total()`) can only be a method or field, which Go declares outside its type.
     const candidates = r.receiver
