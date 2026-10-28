@@ -76,6 +76,8 @@ const requireHere = createRequire(import.meta.url)
 if (process.env.LEGIBLE_USER_DATA)
   app.setPath("userData", resolve(process.env.LEGIBLE_USER_DATA))
 app.setName("Legible")
+// macOS shows it beside the version: "Version 2026.1028.1 (5dcf777)".
+app.setAboutPanelOptions({ version: import.meta.env.MAIN_VITE_COMMIT })
 // Before anything else can fail, and before ready for native crashes.
 initErrorReporting()
 
